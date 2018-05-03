@@ -18,11 +18,11 @@ public class ObjectBus {
     private static final int GO       = 0b1;
     private static final int TO_UNDER = 0b10;
     private static final int TO_MAIN  = 0b100;
+    private static final int SEND     = 0b1000;
 
 
-    private static final int MAIN_THREAD      = 0X1FFFF;
-    private static final int EXECUTOR_THREAD  = 0X2FFFF;
-    private static final int MESSENGER_THREAD = 0X4FFFF;
+    private static final int MAIN_THREAD     = 0X1FFFF;
+    private static final int EXECUTOR_THREAD = 0X2FFFF;
     private int currentThread;
 
     /**
@@ -32,7 +32,7 @@ public class ObjectBus {
     private ArrayList< Command > mHowToPass = new ArrayList<>();
 
     private BusOnExecuteRunnable mBusOnExecuteRunnable = new BusOnExecuteRunnable();
-    private BusMessenger         mBusMessenger         = new BusMessenger();
+    private BusMessageListener   mBusMessageListener   = new BusMessageListener();
 
 
     public ObjectBus() {
@@ -93,7 +93,7 @@ public class ObjectBus {
 
         if (command.command == TO_MAIN) {
             if (currentThread != MAIN_THREAD) {
-                BusMessenger messenger = mBusMessenger;
+                BusMessageListener messenger = mBusMessageListener;
                 messenger.setRunnable(command.getRunnable());
                 messenger.runOnMain();
                 currentThread = MAIN_THREAD;
@@ -101,6 +101,14 @@ public class ObjectBus {
                 command.run();
                 toNextStation();
             }
+
+            return;
+        }
+
+        if (command.command == SEND) {
+            command.run();
+            toNextStation();
+            return;
         }
     }
 
@@ -148,6 +156,61 @@ public class ObjectBus {
 
 
     /**
+     * send message on current thread,same as {@link #go(Runnable)}
+     *
+     * @param what     message what
+     * @param listener receiver
+     * @return self
+     */
+    public ObjectBus send(int what, OnMessageReceiveListener listener) {
+
+        return sendDelayed(what, 0, null, listener);
+    }
+
+
+    /**
+     * send message on current thread,same as {@link #go(Runnable)}
+     *
+     * @param what     message what
+     * @param extra    extra msg
+     * @param listener receiver
+     * @return self
+     */
+    public ObjectBus send(int what, Object extra, OnMessageReceiveListener listener) {
+
+        return sendDelayed(what, 0, extra, listener);
+    }
+
+
+    /**
+     * send message on current thread,same as {@link #go(Runnable)}
+     *
+     * @param what     message what
+     * @param listener receiver
+     * @return self
+     */
+    public ObjectBus sendDelayed(int what, int delayed, OnMessageReceiveListener listener) {
+
+        return sendDelayed(what, delayed, null, listener);
+    }
+
+
+    /**
+     * send message on current thread,same as {@link #go(Runnable)}
+     *
+     * @param what     message what
+     * @param extra    extra msg
+     * @param listener receiver
+     * @return self
+     */
+    public ObjectBus sendDelayed(int what, int delayed, Object extra, OnMessageReceiveListener listener) {
+
+        mHowToPass.add(new Command(SEND, new SendRunnable(what, delayed, extra, listener)));
+        return this;
+    }
+
+
+    /**
      * start run bus
      */
     public void run() {
@@ -179,7 +242,7 @@ public class ObjectBus {
         }
 
 
-        public Runnable getRunnable() {
+        Runnable getRunnable() {
 
             return mRunnable;
         }
@@ -195,7 +258,7 @@ public class ObjectBus {
         private Runnable mRunnable;
 
 
-        public void setRunnable(Runnable runnable) {
+        void setRunnable(Runnable runnable) {
 
             mRunnable = runnable;
         }
@@ -226,22 +289,22 @@ public class ObjectBus {
         }
     }
 
-    //============================ to change messenger ============================
+    //============================ main runnable ============================
 
-    private class BusMessenger implements OnMessageReceiveListener {
+    private class BusMessageListener implements OnMessageReceiveListener {
 
         private static final int WHAT_MAIN = 3;
 
         private Runnable mRunnable;
 
 
-        public void setRunnable(Runnable runnable) {
+        void setRunnable(Runnable runnable) {
 
             mRunnable = runnable;
         }
 
 
-        public void runOnMain() {
+        void runOnMain() {
 
             Messengers.send(WHAT_MAIN, this);
         }
@@ -252,6 +315,38 @@ public class ObjectBus {
 
             mRunnable.run();
             toNextStation();
+        }
+    }
+
+    //============================ Send runnable ============================
+
+    private class SendRunnable implements Runnable {
+
+        private int                      what;
+        private int                      delayed;
+        private Object                   extra;
+        private OnMessageReceiveListener receiveListener;
+
+
+        SendRunnable(int what, int delayed, Object extra, @NonNull OnMessageReceiveListener receiveListener) {
+
+            this.what = what;
+            this.extra = extra;
+            this.delayed = delayed;
+            this.receiveListener = receiveListener;
+        }
+
+
+        @Override
+        public void run() {
+
+            if (extra == null) {
+
+                Messengers.send(what, delayed, receiveListener);
+            } else {
+
+                Messengers.send(what, delayed, extra, receiveListener);
+            }
         }
     }
 }

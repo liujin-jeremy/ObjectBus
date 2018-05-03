@@ -25,6 +25,11 @@ public class MainManager implements OnMessageReceiveListener {
     @Override
     public void onReceive(int what, Object extra) {
 
+        if (what == 1990) {
+            MainActivity.print("receive: " + what + " from Bus: " + extra);
+            return;
+        }
+
         MainActivity activity = mReference.get();
         MainActivity.print("receive: " + what + " extra: " + extra + " main: " + activity);
     }
@@ -32,6 +37,11 @@ public class MainManager implements OnMessageReceiveListener {
 
     @Override
     public void onReceive(int what) {
+
+        if (what == 1990) {
+            MainActivity.print("receive: " + what + " from Bus");
+            return;
+        }
 
         MainActivity activity = mReference.get();
         MainActivity.print("receive: " + what + " " + activity);

@@ -443,7 +443,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                 print("bus Go 08");
                 running = false;
             }
-        }).toMain(new Runnable() {
+        }).send(1990, MainManager.getInstance()).toMain(new Runnable() {
 
             @Override
             public void run() {
@@ -461,6 +461,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
                 print("bus toMain 10");
             }
-        }).run();
+        }).sendDelayed(1990, 2000, "hello from Bus", MainManager.getInstance())
+                .run();
     }
 }
