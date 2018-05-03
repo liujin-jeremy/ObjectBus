@@ -389,11 +389,11 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
                 print("bus Go 01");
             }
-        }).go(new Runnable() {
+        }).toUnder(new Runnable() {
             @Override
             public void run() {
 
-                print("bus Go 02");
+                print("bus toUnder 02");
             }
         }).go(new Runnable() {
             @Override
@@ -401,6 +401,12 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
                 print("bus Go 03");
                 running = false;
+            }
+        }).toUnder(new Runnable() {
+            @Override
+            public void run() {
+
+                print("bus toUnder 04");
             }
         }).run();
     }

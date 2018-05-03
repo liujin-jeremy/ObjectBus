@@ -3,6 +3,7 @@ package com.example.objectbus.bus;
 import android.support.annotation.NonNull;
 
 import com.example.objectbus.executor.OnExecuteRunnable;
+import com.example.objectbus.message.OnMessageReceiveListener;
 import com.example.objectbus.schedule.Scheduler;
 
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ public class ObjectBus {
 
     private static final int GO       = 0b1;
     private static final int TO_UNDER = 0b10;
+    private static final int TO_MAIN  = 0b100;
 
 
     private static final int MAIN_THREAD      = 0X1FFFF;
@@ -56,7 +58,10 @@ public class ObjectBus {
             Command command = mHowToPass.get(index);
             doCommand(command);
         } else {
-            mPassBy.set(0);
+
+            // TODO: 2018-05-03 how to set current value
+
+            //mPassBy.set(0);
         }
     }
 
@@ -76,18 +81,30 @@ public class ObjectBus {
             if (currentThread != EXECUTOR_THREAD) {
                 mBusOnExecuteRunnable.setRunnable(command.getRunnable());
                 Scheduler.todo(mBusOnExecuteRunnable);
+                currentThread = EXECUTOR_THREAD;
             } else {
                 command.run();
                 toNextStation();
             }
+            return;
         }
+
+        if (command.command == TO_MAIN) {
+            if (currentThread != MAIN_THREAD) {
+
+            }
+        }
+
     }
 
 
     /**
-     * run runnable on current thread
+     * run runnable on current thread;
+     * if call {@link #toUnder(Runnable)} current thread will be
+     * {@link com.example.objectbus.executor.AppExecutor} thread;
+     * if call {@link #toMain(Runnable)} current thread will be main thread;
      *
-     * @param task task todo
+     * @param task task to run
      * @return self
      */
     public ObjectBus go(@NonNull Runnable task) {
@@ -97,9 +114,28 @@ public class ObjectBus {
     }
 
 
+    /**
+     * run runnable on {@link com.example.objectbus.executor.AppExecutor} thread
+     *
+     * @param task task to run
+     * @return self
+     */
     public ObjectBus toUnder(@NonNull Runnable task) {
 
         mHowToPass.add(new Command(TO_UNDER, task));
+        return this;
+    }
+
+
+    /**
+     * run runnable on main thread
+     *
+     * @param task task to run
+     * @return self
+     */
+    public ObjectBus toMain(@NonNull Runnable task) {
+
+        mHowToPass.add(new Command(TO_MAIN, task));
         return this;
     }
 
@@ -142,8 +178,11 @@ public class ObjectBus {
         }
     }
 
-    //============================ executor runnable ============================
+    //============================ executor runnable  ============================
 
+    /**
+     * use take task to do in the {@link com.example.objectbus.executor.AppExecutor}
+     */
     private class BusOnExecuteRunnable implements OnExecuteRunnable {
 
         private Runnable mRunnable;
@@ -176,6 +215,33 @@ public class ObjectBus {
         public void onException(Exception e) {
 
             // TODO: 2018-05-03 how to handle exception
+
+        }
+    }
+
+    //============================ to change messenger ============================
+
+    private class BusMessenger implements OnMessageReceiveListener {
+
+        private Runnable mRunnable;
+
+
+        public void runOnMain() {
+
+            //Messengers.send();
+        }
+
+
+        @Override
+        public void onReceive(int what) {
+
+            mRunnable.run();
+            toNextStation();
+        }
+
+
+        @Override
+        public void onReceive(int what, Object extra) {
 
         }
     }

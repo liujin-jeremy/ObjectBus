@@ -8,7 +8,7 @@ import android.support.annotation.NonNull;
 import android.util.SparseArray;
 
 import java.lang.ref.WeakReference;
-import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author wuxio 2018-05-01:20:16
@@ -20,7 +20,9 @@ public class Messengers {
     private static SendHandler sSendHandler;
     private static SendHandler sMainHandler;
 
-    private static final Random RANDOM = new Random();
+    //private static final Random RANDOM = new Random();
+
+    private static final AtomicInteger ATOMIC_INTEGER = new AtomicInteger();
 
 
     public static void init() {
@@ -95,10 +97,9 @@ public class Messengers {
 
         SparseArray< Holder > array = sendHandler.MESSAGE_HOLDER_ARRAY;
 
-        Random random = RANDOM;
-        int key = random.nextInt();
+        int key = ATOMIC_INTEGER.addAndGet(1);
         while (array.get(key) != null) {
-            key = random.nextInt();
+            key = ATOMIC_INTEGER.addAndGet(1);
         }
 
         Message obtain = Message.obtain();
@@ -115,24 +116,37 @@ public class Messengers {
      *
      * @param what message 标识
      */
-    public static void remove(int what) {
+    public static void remove(int what, OnMessageReceiveListener listener) {
 
         final int judge = 2;
         if (what % judge == 0) {
-            remove(what, sSendHandler);
+            clearListener(what, listener, sSendHandler);
         } else {
-            remove(what, sMainHandler);
+            clearListener(what, listener, sMainHandler);
         }
     }
 
 
     /**
-     * 先移除消息,然后发送一个移除holder的消息,移除holder
+     * clear the listener , make him not receive message
+     *
+     * @param what     message what
+     * @param listener listener
+     * @param handler  which handler listener at
      */
-    private static void remove(int what, SendHandler sendHandler) {
+    private static void clearListener(int what, OnMessageReceiveListener listener, SendHandler handler) {
 
-        sendHandler.removeMessages(what);
-        sendHandler.sendRemoveMessage(what);
+        SparseArray< Holder > array = handler.MESSAGE_HOLDER_ARRAY;
+        int size = array.size();
+        for (int i = 0; i < size; i++) {
+
+            int key = array.keyAt(i);
+            Holder holder = array.get(key);
+
+            if (holder != null && holder.what == what && holder.listener.get() == listener) {
+                holder.listener.clear();
+            }
+        }
     }
 
     //============================ send messenger async ============================
@@ -156,55 +170,29 @@ public class Messengers {
         }
 
 
-        public void sendRemoveMessage(int what) {
-
-            Message message = obtainMessage();
-            message.what = what - 1;
-            message.arg2 = what - 1;
-            sendMessage(message);
-        }
-
-
         /**
          * 处理消息
          */
         @Override
         public void handleMessage(Message msg) {
 
-            int what = msg.what;
-
-            /* 此处处理移除message后的收尾工作 */
-
-            if (what == msg.arg2) {
-
-                what += 1;
-                SparseArray< Holder > array = MESSAGE_HOLDER_ARRAY;
-                for (int i = 0; i < array.size(); i++) {
-                    int key = array.keyAt(i);
-                    Holder holder = array.get(key);
-                    if (holder != null && holder.what == what) {
-                        array.delete(key);
-                        i--;
-                    }
-                }
-                return;
-            }
-
             /* 此处处理发送消息的工作 */
 
             SparseArray< Holder > holderArray = MESSAGE_HOLDER_ARRAY;
             Holder holder = holderArray.get(msg.arg1);
-            if (holder != null && holder.what == what) {
+            if (holder != null) {
 
                 OnMessageReceiveListener listener = holder.listener.get();
                 if (listener != null) {
                     Object extra = holder.extra;
                     if (extra == null) {
-                        listener.onReceive(what);
+                        listener.onReceive(holder.what);
                     } else {
-                        listener.onReceive(what, extra);
+                        listener.onReceive(holder.what, extra);
                     }
                 }
+
+                /* when holder is not null, must delete it */
 
                 holderArray.delete(msg.arg1);
             }
