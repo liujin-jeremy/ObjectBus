@@ -3,6 +3,7 @@ package com.example.objectbus.bus;
 import android.support.annotation.NonNull;
 
 import com.example.objectbus.executor.OnExecuteRunnable;
+import com.example.objectbus.message.Messengers;
 import com.example.objectbus.message.OnMessageReceiveListener;
 import com.example.objectbus.schedule.Scheduler;
 
@@ -31,6 +32,7 @@ public class ObjectBus {
     private ArrayList< Command > mHowToPass = new ArrayList<>();
 
     private BusOnExecuteRunnable mBusOnExecuteRunnable = new BusOnExecuteRunnable();
+    private BusMessenger         mBusMessenger         = new BusMessenger();
 
 
     public ObjectBus() {
@@ -91,10 +93,15 @@ public class ObjectBus {
 
         if (command.command == TO_MAIN) {
             if (currentThread != MAIN_THREAD) {
-
+                BusMessenger messenger = mBusMessenger;
+                messenger.setRunnable(command.getRunnable());
+                messenger.runOnMain();
+                currentThread = MAIN_THREAD;
+            } else {
+                command.run();
+                toNextStation();
             }
         }
-
     }
 
 
@@ -223,12 +230,20 @@ public class ObjectBus {
 
     private class BusMessenger implements OnMessageReceiveListener {
 
+        private static final int WHAT_MAIN = 3;
+
         private Runnable mRunnable;
+
+
+        public void setRunnable(Runnable runnable) {
+
+            mRunnable = runnable;
+        }
 
 
         public void runOnMain() {
 
-            //Messengers.send();
+            Messengers.send(WHAT_MAIN, this);
         }
 
 
@@ -237,12 +252,6 @@ public class ObjectBus {
 
             mRunnable.run();
             toNextStation();
-        }
-
-
-        @Override
-        public void onReceive(int what, Object extra) {
-
         }
     }
 }

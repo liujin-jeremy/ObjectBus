@@ -414,6 +414,53 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
                 print("bus toUnder 04");
             }
+        }).toMain(new Runnable() {
+
+            @Override
+            public void run() {
+
+                running = true;
+
+                print("bus toMain 05");
+            }
+        }).go(new Runnable() {
+            @Override
+            public void run() {
+
+                print("bus Go 06");
+                running = false;
+            }
+        }).toUnder(new Runnable() {
+            @Override
+            public void run() {
+
+                print("bus toUnder 07");
+            }
+        }).go(new Runnable() {
+            @Override
+            public void run() {
+
+                print("bus Go 08");
+                running = false;
+            }
+        }).toMain(new Runnable() {
+
+            @Override
+            public void run() {
+
+                running = true;
+
+                print("bus toMain 09");
+            }
+        }).toMain(new Runnable() {
+
+            @Override
+            public void run() {
+
+                running = true;
+
+                print("bus toMain 10");
+            }
         }).run();
     }
 }
