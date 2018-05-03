@@ -32,6 +32,8 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
+        MainManager.getInstance().register(this);
+
         super.onCreate(savedInstanceState);
         super.setContentView(R.layout.activity_main);
         initView();
@@ -357,6 +359,10 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         Messengers.send(9, 2000, " hello main ", this);
         Messengers.send(9, 2000, " hello main ", this);
         Messengers.send(9, 2000, " hello main ", this);
+
+        Messengers.send(9, 2000, " hello mainManager ", MainManager.getInstance());
+        Messengers.send(9, 2000, " hello mainManager ", MainManager.getInstance());
+        Messengers.send(9, 2000, " hello mainManager ", MainManager.getInstance());
 
         if (flag) {
             Messengers.remove(9, this);
