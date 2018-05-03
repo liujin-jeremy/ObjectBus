@@ -1,86 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+
+<android.support.v4.widget.NestedScrollView
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        tools:context=".MainActivity">
+        android:layout_height="match_parent">
 
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="testSchedulerTodo"
-            android:text="testSchedulerTodo"
-            />
-
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="testSchedulerTodoDelayed"
-            android:text="testSchedulerTodoDelayed"
-            />
-
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="testSchedulerTodoMainCallBack"
-            android:text="testSchedulerTodoMainCallBack"
-            />
-
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="testSchedulerTodoAsyncCallBack"
-            android:text="testSchedulerTodoAsyncCallBack"
-            />
-
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="testSchedulerCancel"
-            android:text="testSchedulerCancel"
-            />
-
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="testSchedulerTodoWithListener"
-            android:text="testSchedulerTodoWithListener"
-            />
-
-    <View
+    <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_margin="8dp"
-            android:background="@color/colorPrimaryDark"/>
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            tools:context=".MainActivity">
 
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="testMessengerSend"
-            android:text="testMessengerSend"
-            />
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testSchedulerTodo"
+                android:text="testSchedulerTodo"
+                />
 
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="testMessengerSendDelayed"
-            android:text="testMessengerSendDelayed"
-            />
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testSchedulerTodoDelayed"
+                android:text="testSchedulerTodoDelayed"
+                />
 
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="testMessengerSendWithExtra"
-            android:text="testMessengerSendWithExtra"
-            />
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testSchedulerTodoMainCallBack"
+                android:text="testSchedulerTodoMainCallBack"
+                />
 
-    <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="testMessengerRemove"
-            android:text="testMessengerRemove"
-            />
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testSchedulerTodoAsyncCallBack"
+                android:text="testSchedulerTodoAsyncCallBack"
+                />
 
-</LinearLayout>
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testSchedulerCancel"
+                android:text="testSchedulerCancel"
+                />
+
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testSchedulerTodoWithListener"
+                android:text="testSchedulerTodoWithListener"
+                />
+
+        <TextView
+                android:id="@+id/logText01"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="100"/>
+
+        <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_margin="8dp"
+                android:background="@color/colorPrimaryDark"/>
+
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testMessengerSend"
+                android:text="testMessengerSend"
+                />
+
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testMessengerSendDelayed"
+                android:text="testMessengerSendDelayed"
+                />
+
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testMessengerSendWithExtra"
+                android:text="testMessengerSendWithExtra"
+                />
+
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testMessengerRemove"
+                android:text="testMessengerRemove"
+                />
+
+        <TextView
+                android:id="@+id/logText02"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="100"/>
+
+        <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_margin="8dp"
+                android:background="@color/colorPrimaryDark"/>
+
+    </LinearLayout>
+</android.support.v4.widget.NestedScrollView>
