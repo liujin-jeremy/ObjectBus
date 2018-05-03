@@ -22,12 +22,22 @@ public class Messengers {
 
     private static final Random RANDOM = new Random();
 
-    static {
+
+    public static void init() {
+
         HandlerThread thread = new HandlerThread("Messengers");
         thread.start();
         syncHandler = new SendHandler(thread.getLooper());
         mainHandler = new SendHandler(Looper.getMainLooper());
     }
+
+
+    public static void init(Looper looper) {
+
+        syncHandler = new SendHandler(looper);
+        mainHandler = new SendHandler(Looper.getMainLooper());
+    }
+
 
     /**
      * 发送一条空白消息
