@@ -6,6 +6,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 该类负责使用线程池执行后台任务
@@ -75,15 +76,14 @@ public class AppExecutor {
 
     private static class AppThread extends Thread {
 
-        private static transient int total = 0;
+        private static AtomicInteger sInt = new AtomicInteger();
 
 
         public AppThread(Runnable target) {
 
             super(target);
-            setName("AppThread-" + total);
+            setName("AppThread-" + sInt.getAndAdd(1));
             setPriority(Thread.NORM_PRIORITY - 1);
-            total++;
         }
     }
 }
