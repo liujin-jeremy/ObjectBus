@@ -17,8 +17,8 @@ import java.util.Random;
  */
 public class Messengers {
 
-    private static SendHandler syncHandler;
-    private static SendHandler mainHandler;
+    private static SendHandler sSendHandler;
+    private static SendHandler sMainHandler;
 
     private static final Random RANDOM = new Random();
 
@@ -27,15 +27,15 @@ public class Messengers {
 
         HandlerThread thread = new HandlerThread("Messengers");
         thread.start();
-        syncHandler = new SendHandler(thread.getLooper());
-        mainHandler = new SendHandler(Looper.getMainLooper());
+        sSendHandler = new SendHandler(thread.getLooper());
+        sMainHandler = new SendHandler(Looper.getMainLooper());
     }
 
 
     public static void init(Looper looper) {
 
-        syncHandler = new SendHandler(looper);
-        mainHandler = new SendHandler(Looper.getMainLooper());
+        sSendHandler = new SendHandler(looper);
+        sMainHandler = new SendHandler(Looper.getMainLooper());
     }
 
 
@@ -47,7 +47,7 @@ public class Messengers {
      */
     public static void send(int what, @NonNull OnMessageReceiveListener who) {
 
-        send(what, null, who);
+        send(what, 0, null, who);
     }
 
 
@@ -76,7 +76,7 @@ public class Messengers {
 
 
     /**
-     * 发送一条空白消息,携带一个数据
+     * 发送一条消息,携带一个数据
      *
      * @param what    标识,如果是奇数,发送到主线程,如果时偶数,发送到后台线程处理,注意不要使用0作为标识
      * @param delayed 延时
@@ -85,21 +85,28 @@ public class Messengers {
      */
     public static void send(int what, int delayed, Object extra, @NonNull OnMessageReceiveListener who) {
 
-        int key = RANDOM.nextInt();
-
         final int judge = 2;
+        SendHandler sendHandler;
+        if (what % judge == 0) {
+            sendHandler = sSendHandler;
+        } else {
+            sendHandler = sMainHandler;
+        }
+
+        SparseArray< Holder > array = sendHandler.MESSAGE_HOLDER_ARRAY;
+
+        Random random = RANDOM;
+        int key = random.nextInt();
+        while (array.get(key) != null) {
+            key = random.nextInt();
+        }
 
         Message obtain = Message.obtain();
         obtain.what = what;
         obtain.arg1 = key;
 
-        if (what % judge == 0) {
-            syncHandler.MESSAGE_HOLDER_ARRAY.put(key, new Holder(what, extra, who));
-            syncHandler.sendMessageDelayed(obtain, delayed);
-        } else {
-            mainHandler.MESSAGE_HOLDER_ARRAY.put(key, new Holder(what, extra, who));
-            mainHandler.sendMessageDelayed(obtain, delayed);
-        }
+        array.put(key, new Holder(what, extra, who));
+        sendHandler.sendMessageDelayed(obtain, delayed);
     }
 
 
@@ -112,45 +119,20 @@ public class Messengers {
 
         final int judge = 2;
         if (what % judge == 0) {
-            remove(what, syncHandler);
+            remove(what, sSendHandler);
         } else {
-            remove(what, mainHandler);
+            remove(what, sMainHandler);
         }
     }
 
 
     /**
-     * 先移除消息,然后发送一个移除holder的消息,移除holder,如果需要移除的消息正在运行中,
-     * 但是还没有调用到{@link OnMessageReceiveListener#onReceive(int)},
-     * 通过置空holder{@link Messengers#setHolderNull(int, SendHandler)}可以快速结束,
-     * 但是如果已经处于调用{@link OnMessageReceiveListener#onReceive(int)},那就解决不了了,
-     * 需要用户的{@link OnMessageReceiveListener#onReceive(int)}尽快执行
+     * 先移除消息,然后发送一个移除holder的消息,移除holder
      */
     private static void remove(int what, SendHandler sendHandler) {
 
         sendHandler.removeMessages(what);
         sendHandler.sendRemoveMessage(what);
-        setHolderNull(what, sendHandler);
-    }
-
-
-    /**
-     * 此方法用于处理handler正在处理message,但是发出了remove message的命令,通过置为null,使其发生异常快速结束该处理
-     */
-    private static void setHolderNull(int what, SendHandler handler) {
-
-        SparseArray< Holder > array = handler.MESSAGE_HOLDER_ARRAY;
-        for (int i = 0; i < array.size(); i++) {
-            int key = array.keyAt(i);
-            Holder holder = array.get(key);
-            try {
-                if (holder.what == what) {
-                    array.put(key, null);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     //============================ send messenger async ============================
@@ -160,7 +142,7 @@ public class Messengers {
      */
     private static class SendHandler extends Handler {
 
-        private final SparseArray< Holder > MESSAGE_HOLDER_ARRAY = new SparseArray<>();
+        final SparseArray< Holder > MESSAGE_HOLDER_ARRAY = new SparseArray<>();
 
 
         /**
@@ -200,68 +182,31 @@ public class Messengers {
                 for (int i = 0; i < array.size(); i++) {
                     int key = array.keyAt(i);
                     Holder holder = array.get(key);
-                    try {
-                        if (holder.what == what) {
-                            array.remove(key);
-                            i--;
-                        }
-                    } catch (Exception e) {
-                        array.remove(key);
+                    if (holder != null && holder.what == what) {
+                        array.delete(key);
                         i--;
                     }
                 }
                 return;
             }
 
-            /* 遍历Holder, 找出需要处理的holder */
+            /* 此处处理发送消息的工作 */
 
             SparseArray< Holder > holderArray = MESSAGE_HOLDER_ARRAY;
-            for (int i = 0; i < holderArray.size(); i++) {
+            Holder holder = holderArray.get(msg.arg1);
+            if (holder != null && holder.what == what) {
 
-                int key = holderArray.keyAt(i);
-
-                /* 该标记用于,catch中continue还是break */
-
-                boolean isFindHolder = false;
-
-                /* 此处使用 try catch 是因为需要保证程序稳定,并且holder可能为null */
-
-                try {
-                    if (holderArray.get(key).what == what && key == msg.arg1) {
-
-                        isFindHolder = true;
-
-                        Object extra = holderArray.get(key).extra;
-
-                        if (extra == null) {
-
-                            OnMessageReceiveListener listener = holderArray.get(key).listener.get();
-                            if (listener != null) {
-                                listener.onReceive(what);
-                            }
-                        } else {
-
-                            OnMessageReceiveListener listener = holderArray.get(key).listener.get();
-                            if (listener != null) {
-                                listener.onReceive(what, extra);
-                            }
-                        }
-
-                        /* delete holder, holder is handled */
-
-                        holderArray.delete(key);
-                        break;
-                    }
-                } catch (Exception e) {
-
-                    e.printStackTrace();
-                    holderArray.delete(key);
-                    i--;
-
-                    if (isFindHolder) {
-                        break;
+                OnMessageReceiveListener listener = holder.listener.get();
+                if (listener != null) {
+                    Object extra = holder.extra;
+                    if (extra == null) {
+                        listener.onReceive(what);
+                    } else {
+                        listener.onReceive(what, extra);
                     }
                 }
+
+                holderArray.delete(msg.arg1);
             }
         }
     }

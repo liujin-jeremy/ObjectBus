@@ -64,7 +64,7 @@ public class Scheduler {
         sMainInteger = new AtomicInteger(11);
         sOtherInteger = new AtomicInteger(12);
         sScheduleTask = new ScheduleTask();
-        sRandom = new Random(66082619900012L);
+        sRandom = new Random();
     }
 
 
@@ -310,9 +310,15 @@ public class Scheduler {
 
         /* 使用一个标识,标记延时任务 */
         Message obtain = Message.obtain();
+
         int key = sRandom.nextInt();
+        SparseArray< Runnable > array = RUNNABLE;
+        while (array.get(key) != null) {
+            key = sRandom.nextInt();
+        }
+
         obtain.arg1 = key;
-        RUNNABLE.put(key, todoRunnable);
+        array.put(key, todoRunnable);
 
         /* 记录给cancelTodo */
 

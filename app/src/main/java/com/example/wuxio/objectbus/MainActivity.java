@@ -298,6 +298,8 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     public void testMessengerRemove(View view) {
 
         Messengers.send(9, 2000, " hello main ", this);
+        Messengers.send(9, 2000, " hello main ", this);
+        Messengers.send(9, 2000, " hello main ", this);
 
         if (flag) {
             Messengers.remove(9);
