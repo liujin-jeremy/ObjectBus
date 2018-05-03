@@ -1,6 +1,8 @@
 package com.example.objectbus.bus;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.util.ArrayMap;
 
 import com.example.objectbus.executor.OnExecuteRunnable;
 import com.example.objectbus.message.Messengers;
@@ -15,12 +17,19 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ObjectBus {
 
+
+    /**
+     * command used for {@link Command} to how to do runnable
+     */
     private static final int GO       = 0b1;
     private static final int TO_UNDER = 0b10;
     private static final int TO_MAIN  = 0b100;
     private static final int SEND     = 0b1000;
 
 
+    /**
+     * current thread state
+     */
     private static final int MAIN_THREAD     = 0X1FFFF;
     private static final int EXECUTOR_THREAD = 0X2FFFF;
     private int currentThread;
@@ -28,11 +37,25 @@ public class ObjectBus {
     /**
      * how many station pass By
      */
-    private AtomicInteger        mPassBy    = new AtomicInteger();
+    private AtomicInteger mPassBy = new AtomicInteger();
+
+    /**
+     * how to pass every station
+     */
     private ArrayList< Command > mHowToPass = new ArrayList<>();
 
+    /**
+     * used do runnable at {@link com.example.objectbus.executor.AppExecutor}
+     */
     private BusOnExecuteRunnable mBusOnExecuteRunnable = new BusOnExecuteRunnable();
-    private BusMessageListener   mBusMessageListener   = new BusMessageListener();
+
+    /**
+     * used do runnable at MainThread
+     */
+    private BusMessageListener mBusMessageListener = new BusMessageListener();
+
+
+    private ArrayMap< String, Object > mExtras = new ArrayMap<>();
 
 
     public ObjectBus() {
@@ -216,6 +239,44 @@ public class ObjectBus {
     public void run() {
 
         toNextStation();
+    }
+
+
+    /**
+     * take extra to bus,could use key to get
+     *
+     * @param extra extra to bus
+     * @param key   key
+     */
+    public void takeAs(Object extra, String key) {
+
+        mExtras.put(key, extra);
+    }
+
+
+    /**
+     * get the extra
+     *
+     * @param key key
+     * @return extra
+     */
+    @Nullable
+    public Object get(String key) {
+
+        return mExtras.get(key);
+    }
+
+
+    /**
+     * get and remove extra
+     *
+     * @param key key
+     * @return extra
+     */
+    @Nullable
+    public Object off(String key) {
+
+        return mExtras.remove(key);
     }
 
     //============================ command for Bus run runnable ============================
