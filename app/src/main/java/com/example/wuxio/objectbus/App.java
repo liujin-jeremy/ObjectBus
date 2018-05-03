@@ -2,7 +2,7 @@ package com.example.wuxio.objectbus;
 
 import android.app.Application;
 
-import com.example.objectbus.Scheduler;
+import com.example.objectbus.sche.Scheduler;
 
 /**
  * @author wuxio 2018-05-03:8:07

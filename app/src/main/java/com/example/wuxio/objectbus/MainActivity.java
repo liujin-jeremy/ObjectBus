@@ -7,7 +7,7 @@ import android.view.View;
 
 import com.example.objectbus.Messengers;
 import com.example.objectbus.OnMessageReceiveListener;
-import com.example.objectbus.Scheduler;
+import com.example.objectbus.sche.Scheduler;
 import com.example.objectbus.runnable.AsyncThreadCallBack;
 import com.example.objectbus.runnable.MainThreadCallBack;
 
