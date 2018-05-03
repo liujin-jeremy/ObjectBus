@@ -6,12 +6,12 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
-import com.example.objectbus.Messengers;
-import com.example.objectbus.OnMessageReceiveListener;
+import com.example.objectbus.message.Messengers;
+import com.example.objectbus.message.OnMessageReceiveListener;
 import com.example.objectbus.runnable.AsyncThreadCallBack;
 import com.example.objectbus.runnable.MainThreadCallBack;
-import com.example.objectbus.sche.CancelTodo;
-import com.example.objectbus.sche.Scheduler;
+import com.example.objectbus.schedule.CancelTodo;
+import com.example.objectbus.schedule.Scheduler;
 
 /**
  * @author wuxio
@@ -173,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
                 print(" test todo cancel");
             }
-        }, 2000,cancelTodo);
+        }, 2000, cancelTodo);
 
         if (flag) {
             cancelTodo.cancel();

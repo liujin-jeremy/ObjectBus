@@ -1,4 +1,4 @@
-package com.example.objectbus;
+package com.example.objectbus.message;
 
 import android.os.Handler;
 import android.os.HandlerThread;

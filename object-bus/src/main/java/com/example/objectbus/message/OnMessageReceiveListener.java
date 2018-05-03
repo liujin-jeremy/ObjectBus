@@ -1,4 +1,4 @@
-package com.example.objectbus;
+package com.example.objectbus.message;
 
 /**
  * @author wuxio 2018-05-01:20:37

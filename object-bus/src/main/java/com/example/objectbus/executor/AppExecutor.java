@@ -1,4 +1,4 @@
-package com.example.objectbus;
+package com.example.objectbus.executor;
 
 import android.support.annotation.NonNull;
 

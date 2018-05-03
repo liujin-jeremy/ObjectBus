@@ -1,4 +1,4 @@
-package com.example.objectbus.sche;
+package com.example.objectbus.schedule;
 
 import android.util.Log;
 import android.util.SparseArray;
