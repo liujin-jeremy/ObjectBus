@@ -19,10 +19,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Scheduler {
 
-    private static final String TAG = "Scheduler";
-
-    private static final Object LOCK = new Object();
-
     /**
      * 用于发送消息,进行任务调度
      */
@@ -312,16 +308,10 @@ public class Scheduler {
         /* 使用一个标识,标记延时任务 */
         Message obtain = Message.obtain();
 
-        SparseArray< Runnable > array = RUNNABLE;
         int key = ATOMIC_INTEGER.addAndGet(1);
+        obtain.arg1 = key;
+        RUNNABLE.put(key, todoRunnable);
 
-        synchronized (LOCK) {
-            while (array.get(key) != null) {
-                key = ATOMIC_INTEGER.addAndGet(1);
-            }
-            obtain.arg1 = key;
-            array.put(key, todoRunnable);
-        }
 
         /* 记录给cancelTodo */
 

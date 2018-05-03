@@ -20,8 +20,6 @@ public class Messengers {
     private static SendHandler sSendHandler;
     private static SendHandler sMainHandler;
 
-    private static final Object LOCK = new Object();
-
     private static final AtomicInteger ATOMIC_INTEGER = new AtomicInteger();
 
 
@@ -95,19 +93,12 @@ public class Messengers {
             sendHandler = sMainHandler;
         }
 
-        SparseArray< Holder > array = sendHandler.MESSAGE_HOLDER_ARRAY;
-        int key = ATOMIC_INTEGER.addAndGet(1);
         Message obtain = Message.obtain();
-
-        synchronized (LOCK) {
-            while (array.get(key) != null) {
-                key = ATOMIC_INTEGER.addAndGet(1);
-            }
-            obtain.arg1 = key;
-            array.put(key, new Holder(what, extra, who));
-        }
-
+        int key = ATOMIC_INTEGER.addAndGet(1);
+        obtain.arg1 = key;
+        sendHandler.MESSAGE_HOLDER_ARRAY.put(key, new Holder(what, extra, who));
         obtain.what = what;
+
         sendHandler.sendMessageDelayed(obtain, delayed);
     }
 
@@ -129,7 +120,7 @@ public class Messengers {
 
 
     /**
-     * clear the listener , make him not receive message
+     * clear the listener , so the message have no receiver ,make him not receive message
      *
      * @param what     message what
      * @param listener listener
