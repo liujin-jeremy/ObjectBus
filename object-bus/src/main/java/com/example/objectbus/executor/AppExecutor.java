@@ -52,7 +52,7 @@ public class AppExecutor {
 
 
     /**
-     * 后台执行任务,如果需要监听执行情况请使用{@link com.example.objectbus.runnable.OnExecuteRunnable}
+     * 后台执行任务,如果需要监听执行情况请使用{@link OnExecuteRunnable}
      *
      * @param runnable 执行的任务
      */

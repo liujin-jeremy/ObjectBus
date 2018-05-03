@@ -4,10 +4,11 @@ import android.os.Message;
 import android.util.SparseArray;
 
 import com.example.objectbus.executor.AppExecutor;
+import com.example.objectbus.executor.OnExecuteRunnable;
 import com.example.objectbus.message.Messengers;
 import com.example.objectbus.message.OnMessageReceiveListener;
-import com.example.objectbus.runnable.AsyncThreadCallBack;
-import com.example.objectbus.runnable.MainThreadCallBack;
+import com.example.objectbus.schedule.run.AsyncThreadCallBack;
+import com.example.objectbus.schedule.run.MainThreadCallBack;
 
 import java.lang.ref.WeakReference;
 import java.util.Random;
@@ -264,7 +265,7 @@ public class Scheduler {
      * used ,will call on mainThread,if {@link AsyncThreadCallBack}used ,will call on {@link Messengers}'s
      * thread,
      *
-     * @param runnable   background task,use {@link com.example.objectbus.runnable.OnExecuteRunnable}could
+     * @param runnable   background task,use {@link OnExecuteRunnable}could
      *                   listen runnable execute station
      * @param delayed    delayed
      * @param callback   callBack to do when finish
@@ -402,7 +403,7 @@ public class Scheduler {
      * 包装任务,使其具有回调,后台执行完成之后,根据{@link #mTag}的奇偶性,
      * 在不同的线程回调监听{@link Messengers#send(int, OnMessageReceiveListener)},
      * 可以肯定的是,肯定不再执行任务的线程回调监听,如果需要在后台执行完之后,继续进行一些操作,
-     * 请使用{@link com.example.objectbus.runnable.OnExecuteRunnable},该接口具有执行情况的监听
+     * 请使用{@link OnExecuteRunnable},该接口具有执行情况的监听
      */
     private static class CallbackRunnable implements Runnable {
 
