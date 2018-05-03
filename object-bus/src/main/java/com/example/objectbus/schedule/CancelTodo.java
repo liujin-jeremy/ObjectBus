@@ -56,7 +56,7 @@ public class CancelTodo {
                 callbackRunnable.remove(tag);
             }
         } catch (Exception e) {
-            Log.i("cancel", "cancel:" + "nullPointer");
+            Log.e("cancel", "cancel:" + "nullPointer");
         }
 
         try {
@@ -64,7 +64,7 @@ public class CancelTodo {
                 todoRunnable.remove(key);
             }
         } catch (Exception e) {
-            Log.i("cancel", "cancel:" + "nullPointer");
+            Log.e("cancel", "cancel:" + "nullPointer");
         }
     }
 

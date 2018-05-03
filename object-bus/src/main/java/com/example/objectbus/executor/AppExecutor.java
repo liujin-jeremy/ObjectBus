@@ -50,16 +50,27 @@ public class AppExecutor {
         );
     }
 
-    // TODO: 2018-05-03 添加监听
 
-
+    /**
+     * 后台执行任务,如果需要监听执行情况请使用{@link com.example.objectbus.runnable.OnExecuteRunnable}
+     *
+     * @param runnable 执行的任务
+     */
     public static void execute(Runnable runnable) {
 
+        /* 使用try..catch 增加程序健壮性,防止线程意外结束 */
+
         try {
+            if (runnable == null) {
+                return;
+            }
             sPoolExecutor.execute(runnable);
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(" you should  call init() first");
+            if (sPoolExecutor == null) {
+                throw new RuntimeException(" you should  call init() first");
+            } else {
+                e.printStackTrace();
+            }
         }
     }
 
