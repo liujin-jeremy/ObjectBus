@@ -10,6 +10,7 @@ import com.example.objectbus.message.Messengers;
 import com.example.objectbus.message.OnMessageReceiveListener;
 import com.example.objectbus.runnable.AsyncThreadCallBack;
 import com.example.objectbus.runnable.MainThreadCallBack;
+import com.example.objectbus.runnable.OnExecuteRunnable;
 import com.example.objectbus.schedule.CancelTodo;
 import com.example.objectbus.schedule.Scheduler;
 
@@ -161,6 +162,60 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     }
 
 
+    public void testSchedulerTodoWithListener(View view) {
+
+        Scheduler.todo(new OnExecuteRunnable() {
+            @Override
+            public void onExecute() {
+
+                print(" do something in pool ");
+            }
+
+
+            @Override
+            public void onFinish() {
+
+                print(" finish; do something extra in pool ");
+            }
+
+
+            @Override
+            public void onException(Exception e) {
+
+                print(" Exception! do something to rescue ");
+            }
+        });
+
+        Scheduler.todo(new OnExecuteRunnable() {
+            @Override
+            public void onExecute() {
+
+                print(" do something in pool ");
+            }
+
+
+            @Override
+            public void onFinish() {
+
+                print(" finish; do something extra in pool ");
+            }
+
+
+            @Override
+            public void onException(Exception e) {
+
+                print(" Exception! do something to rescue ");
+            }
+        }, 2000, new MainThreadCallBack() {
+            @Override
+            public void run() {
+
+                print(" callback is different with 'OnExecuteRunnable' ");
+            }
+        });
+    }
+
+
     private boolean flag;
 
 
@@ -212,5 +267,4 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
         Log.i(TAG, "onReceive:" + what);
     }
-
 }

@@ -42,6 +42,13 @@
             android:text="testSchedulerCancel"
             />
 
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="testSchedulerTodoWithListener"
+            android:text="testSchedulerTodoWithListener"
+            />
+
     <View
             android:layout_margin="8dp"
             android:layout_width="match_parent"

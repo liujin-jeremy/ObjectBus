@@ -6,6 +6,8 @@ import android.util.SparseArray;
 import java.lang.ref.WeakReference;
 
 /**
+ * 用于{@link Scheduler}取消任务
+ *
  * @author wuxio 2018-05-03:9:25
  */
 public class CancelTodo {

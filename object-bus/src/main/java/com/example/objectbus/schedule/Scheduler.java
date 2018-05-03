@@ -24,18 +24,21 @@ public class Scheduler {
     /**
      * 用于发送消息,进行任务调度
      */
-    //private static MainHandler sMainHandler;
-
     private static ScheduleTask sScheduleTask;
 
     /**
-     * 用于有callback的任务的存储标记
+     * 用于有callback的任务的存储,该int起始11,每次增加2,
+     * 用于{@link #CALLBACK_RUNNABLE}保存{@link MainThreadCallBack}
      */
     private static AtomicInteger sMainInteger;
+    /**
+     * 用于有callback的任务的存储,该int起始12,每次增加2,
+     * 用于{@link #CALLBACK_RUNNABLE}保存{@link AsyncThreadCallBack}
+     */
     private static AtomicInteger sOtherInteger;
 
     /**
-     * 用于生成一个标记
+     * 生成一个标记,{@link #RUNNABLE}使用该标记存储后台任务{@link Runnable}
      */
     private static Random sRandom;
 
@@ -84,15 +87,18 @@ public class Scheduler {
         AppExecutor.init(poolExecutor);
     }
 
+    //============================ 后台任务不可取消 ============================
+
 
     /**
-     * do something in background
+     * do something in ThreadPool
      *
      * @param runnable something
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(Runnable runnable) {
 
-        todoInner(runnable, 0, null, null);
+        todoInternal(runnable, 0, null, null);
     }
 
 
@@ -101,10 +107,11 @@ public class Scheduler {
      *
      * @param runnable something do in background
      * @param callBack something do in mainThread
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(Runnable runnable, MainThreadCallBack callBack) {
 
-        todoInner(runnable, 0, callBack, null);
+        todoInternal(runnable, 0, callBack, null);
     }
 
 
@@ -113,10 +120,11 @@ public class Scheduler {
      *
      * @param runnable something do in background
      * @param callBack something do in asyncThread
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(Runnable runnable, AsyncThreadCallBack callBack) {
 
-        todoInner(runnable, 0, callBack, null);
+        todoInternal(runnable, 0, callBack, null);
     }
 
 
@@ -125,10 +133,11 @@ public class Scheduler {
      *
      * @param runnable something
      * @param delayed  delayed time
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(Runnable runnable, int delayed) {
 
-        todoInner(runnable, delayed, null, null);
+        todoInternal(runnable, delayed, null, null);
     }
 
 
@@ -138,10 +147,11 @@ public class Scheduler {
      * @param runnable something
      * @param delayed  delayed time
      * @param callback main thread callback
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(Runnable runnable, int delayed, MainThreadCallBack callback) {
 
-        todoInner(runnable, delayed, callback, null);
+        todoInternal(runnable, delayed, callback, null);
     }
 
 
@@ -151,21 +161,25 @@ public class Scheduler {
      * @param runnable something
      * @param delayed  delayed time
      * @param callback async thread callback
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(Runnable runnable, int delayed, AsyncThreadCallBack callback) {
 
-        todoInner(runnable, delayed, callback, null);
+        todoInternal(runnable, delayed, callback, null);
     }
+
+    //============================ 后台任务,可取消 ============================
 
 
     /**
      * do something in background
      *
      * @param runnable something
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(Runnable runnable, CancelTodo cancelTodo) {
 
-        todoInner(runnable, 0, null, cancelTodo);
+        todoInternal(runnable, 0, null, cancelTodo);
     }
 
 
@@ -174,10 +188,11 @@ public class Scheduler {
      *
      * @param runnable something do in background
      * @param callBack something do in mainThread
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(Runnable runnable, MainThreadCallBack callBack, CancelTodo cancelTodo) {
 
-        todoInner(runnable, 0, callBack, cancelTodo);
+        todoInternal(runnable, 0, callBack, cancelTodo);
     }
 
 
@@ -186,10 +201,11 @@ public class Scheduler {
      *
      * @param runnable something do in background
      * @param callBack something do in asyncThread
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(Runnable runnable, AsyncThreadCallBack callBack, CancelTodo cancelTodo) {
 
-        todoInner(runnable, 0, callBack, cancelTodo);
+        todoInternal(runnable, 0, callBack, cancelTodo);
     }
 
 
@@ -198,10 +214,11 @@ public class Scheduler {
      *
      * @param runnable something
      * @param delayed  delayed time
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(Runnable runnable, int delayed, CancelTodo cancelTodo) {
 
-        todoInner(runnable, delayed, null, cancelTodo);
+        todoInternal(runnable, delayed, null, cancelTodo);
     }
 
 
@@ -211,6 +228,7 @@ public class Scheduler {
      * @param runnable something
      * @param delayed  delayed time
      * @param callback main thread callback
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(
             Runnable runnable,
@@ -218,7 +236,7 @@ public class Scheduler {
             MainThreadCallBack callback,
             CancelTodo cancelTodo) {
 
-        todoInner(runnable, delayed, callback, cancelTodo);
+        todoInternal(runnable, delayed, callback, cancelTodo);
     }
 
 
@@ -228,6 +246,7 @@ public class Scheduler {
      * @param runnable something
      * @param delayed  delayed time
      * @param callback async thread callback
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
      */
     public static void todo(
             Runnable runnable,
@@ -235,22 +254,33 @@ public class Scheduler {
             AsyncThreadCallBack callback,
             CancelTodo cancelTodo) {
 
-        todoInner(runnable, delayed, callback, cancelTodo);
+        todoInternal(runnable, delayed, callback, cancelTodo);
     }
 
 
     /**
-     * do something in background,With a delayed(if delayed==0 do it now),then do the callBack on a Thread
-     * (if has callBack)
+     * do something in background,With a delayed(if delayed==0 do it now),then do the callBack on another
+     * Thread (if has callBack),the thread depends on which runnable used,if {@link MainThreadCallBack}
+     * used ,will call on mainThread,if {@link AsyncThreadCallBack}used ,will call on {@link Messengers}'s
+     * thread,
      *
-     * @param runnable   background task
+     * @param runnable   background task,use {@link com.example.objectbus.runnable.OnExecuteRunnable}could
+     *                   listen runnable execute station
      * @param delayed    delayed
      * @param callback   callBack to do when finish
      * @param cancelTodo container used for cancel {@code runnable}
      */
-    private static void todoInner(Runnable runnable, int delayed, Runnable callback, CancelTodo cancelTodo) {
+    private static void todoInternal(
+            Runnable runnable,
+            int delayed,
+            Runnable callback,
+            CancelTodo cancelTodo) {
 
         Runnable todoRunnable;
+
+        if (cancelTodo != null) {
+            cancelTodo.init();
+        }
 
         if (callback == null) {
             todoRunnable = runnable;
@@ -363,7 +393,10 @@ public class Scheduler {
     //============================ callBack Runnable ============================
 
     /**
-     * 包装任务,使其具有回调,后台执行完成之后,调用主线程回调
+     * 包装任务,使其具有回调,后台执行完成之后,根据{@link #mTag}的奇偶性,
+     * 在不同的线程回调监听{@link Messengers#send(int, OnMessageReceiveListener)},
+     * 可以肯定的是,肯定不再执行任务的线程回调监听,如果需要在后台执行完之后,继续进行一些操作,
+     * 请使用{@link com.example.objectbus.runnable.OnExecuteRunnable},该接口具有执行情况的监听
      */
     private static class CallbackRunnable implements Runnable {
 

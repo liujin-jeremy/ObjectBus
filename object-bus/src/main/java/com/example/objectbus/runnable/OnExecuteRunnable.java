@@ -3,6 +3,10 @@ package com.example.objectbus.runnable;
 import com.example.objectbus.executor.OnExecuteListener;
 
 /**
+ * 该监听和{@link MainThreadCallBack}与{@link AsyncThreadCallBack}不同,它可以在任务执行完成后,继续在线程执行一些操作,
+ * 而{@link MainThreadCallBack}与{@link AsyncThreadCallBack},
+ * 会切换到{@link com.example.objectbus.message.Messengers}的线程上执行,后台线程执行结束了
+ *
  * @author wuxio 2018-05-03:10:27
  */
 public interface OnExecuteRunnable extends Runnable, OnExecuteListener {
