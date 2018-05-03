@@ -8,6 +8,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 该类负责使用线程池执行后台任务
+ *
  * @author wuxio 2018-04-30:1:06
  */
 public class AppExecutor {
@@ -46,6 +48,8 @@ public class AppExecutor {
                 threadFactory
         );
     }
+
+    // TODO: 2018-05-03 添加监听
 
 
     public static void execute(Runnable runnable) {

@@ -32,7 +32,7 @@ public class Messengers {
     /**
      * 发送一条空白消息
      *
-     * @param what 标识,如果时单数,发送到主线程,如果时复数,发送到后台线程处理
+     * @param what 标识,如果是奇数,发送到主线程,如果时偶数,发送到后台线程处理,注意不要使用0作为标识
      * @param who  发送给谁
      */
     public static void send(int what, @NonNull OnMessageReceiveListener who) {
@@ -44,7 +44,7 @@ public class Messengers {
     /**
      * 发送一条空白消息
      *
-     * @param what 标识,如果时单数,发送到主线程,如果时复数,发送到后台线程处理
+     * @param what 标识,如果是奇数,发送到主线程,如果时偶数,发送到后台线程处理,注意不要使用0作为标识
      * @param who  发送给谁
      */
     public static void send(int what, int delayed, @NonNull OnMessageReceiveListener who) {
@@ -56,7 +56,7 @@ public class Messengers {
     /**
      * 发送一条空白消息,携带一个数据
      *
-     * @param what 标识,如果时单数,发送到主线程,如果时复数,发送到后台线程处理
+     * @param what 标识,如果是奇数,发送到主线程,如果时偶数,发送到后台线程处理,注意不要使用0作为标识
      * @param who  发送给谁
      */
     public static void send(int what, Object extra, @NonNull OnMessageReceiveListener who) {
@@ -68,7 +68,7 @@ public class Messengers {
     /**
      * 发送一条空白消息,携带一个数据
      *
-     * @param what    标识,如果时单数,发送到主线程,如果时复数,发送到后台线程处理
+     * @param what    标识,如果是奇数,发送到主线程,如果时偶数,发送到后台线程处理,注意不要使用0作为标识
      * @param delayed 延时
      * @param extra   额外的信息
      * @param who     发送给谁

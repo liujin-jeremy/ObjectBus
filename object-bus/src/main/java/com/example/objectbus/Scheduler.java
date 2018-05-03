@@ -18,6 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Scheduler {
 
+    private static final String TAG = "Scheduler";
+
     /**
      * 用于发送消息,进行任务调度
      */
@@ -53,9 +55,7 @@ public class Scheduler {
     }
 
 
-    public static void initField() {
-
-        //sMainHandler = new MainHandler(Looper.getMainLooper());
+    private static void initField() {
 
         sMainInteger = new AtomicInteger(11);
         sOtherInteger = new AtomicInteger(12);
@@ -218,8 +218,8 @@ public class Scheduler {
 
     private static class ScheduleTask implements OnMessageReceiveListener {
 
-        static final int WHAT_MESSAGE         = 0;
-        static final int WHAT_DELAYED_MESSAGE = 2;
+        static final int WHAT_MESSAGE         = 2;
+        static final int WHAT_DELAYED_MESSAGE = 4;
 
 
         void sendMessage() {
@@ -272,7 +272,6 @@ public class Scheduler {
                 callBack.run();
             }
             CALLBACK_RUNNABLE.delete(what);
-
         }
 
 
@@ -326,6 +325,7 @@ public class Scheduler {
     /**
      * 将任务发送给线程池执行
      */
+    @Deprecated
     private static class MainHandler extends Handler {
 
         MainHandler(Looper looper) {
