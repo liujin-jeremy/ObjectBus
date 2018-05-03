@@ -106,5 +106,12 @@
                 android:layout_margin="8dp"
                 android:background="@color/colorPrimaryDark"/>
 
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testBusGo"
+                android:text="testBusGo"
+                />
+
     </LinearLayout>
 </android.support.v4.widget.NestedScrollView>

@@ -7,13 +7,16 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.objectbus.bus.ObjectBus;
+import com.example.objectbus.executor.OnExecuteRunnable;
 import com.example.objectbus.message.Messengers;
 import com.example.objectbus.message.OnMessageReceiveListener;
-import com.example.objectbus.schedule.run.AsyncThreadCallBack;
-import com.example.objectbus.schedule.run.MainThreadCallBack;
-import com.example.objectbus.executor.OnExecuteRunnable;
 import com.example.objectbus.schedule.CancelTodo;
 import com.example.objectbus.schedule.Scheduler;
+import com.example.objectbus.schedule.run.AsyncThreadCallBack;
+import com.example.objectbus.schedule.run.MainThreadCallBack;
+
+import java.util.Random;
 
 /**
  * @author wuxio
@@ -197,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void onFinish() {
 
-                print(" finish; do something extra in pool ", mLogText01);
+                print(" running; do something extra in pool ", mLogText01);
             }
 
 
@@ -219,7 +222,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void onFinish() {
 
-                print(" finish; do something extra in pool ", mLogText01);
+                print(" running; do something extra in pool ", mLogText01);
             }
 
 
@@ -278,6 +281,17 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
         CharSequence old = textView.getText();
         textView.post(() -> textView.setText(old + "\n" + msg));
+
+    }
+
+
+    public synchronized static void print(String text) {
+
+        String msg = ":" +
+                " Thread: " + Thread.currentThread().getName() +
+                " time: " + System.currentTimeMillis() +
+                " msg: " + text;
+        Log.i(TAG, msg);
 
     }
 
@@ -352,8 +366,42 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         flag = !flag;
     }
 
-
-
     //============================ bus ============================
 
+    private final Random mRandom = new Random();
+
+    private boolean running = false;
+
+
+    public void testBusGo(View view) {
+
+        if (running) {
+            return;
+        }
+
+        ObjectBus bus = new ObjectBus();
+        bus.go(new Runnable() {
+
+            @Override
+            public void run() {
+
+                running = true;
+
+                print("bus Go 01");
+            }
+        }).go(new Runnable() {
+            @Override
+            public void run() {
+
+                print("bus Go 02");
+            }
+        }).go(new Runnable() {
+            @Override
+            public void run() {
+
+                print("bus Go 03");
+                running = false;
+            }
+        }).run();
+    }
 }
