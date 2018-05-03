@@ -1,5 +1,6 @@
 package com.example.objectbus.sche;
 
+import android.util.Log;
 import android.util.SparseArray;
 
 import java.lang.ref.WeakReference;
@@ -50,12 +51,20 @@ public class CancelTodo {
         SparseArray< WeakReference< Runnable > > callbackRunnable = Scheduler.CALLBACK_RUNNABLE;
         SparseArray< Runnable > todoRunnable = Scheduler.RUNNABLE;
 
-        if (callbackRef.get() != null) {
-            callbackRunnable.remove(tag);
+        try {
+            if (callbackRef.get() != null) {
+                callbackRunnable.remove(tag);
+            }
+        } catch (Exception e) {
+            Log.i("cancel", "cancel:" + "nullPointer");
         }
 
-        if (todoRunnableRef.get() != null) {
-            todoRunnable.remove(key);
+        try {
+            if (todoRunnableRef.get() != null) {
+                todoRunnable.remove(key);
+            }
+        } catch (Exception e) {
+            Log.i("cancel", "cancel:" + "nullPointer");
         }
     }
 

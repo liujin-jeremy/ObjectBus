@@ -35,6 +35,13 @@
             android:text="testSchedulerTodoAsyncCallBack"
             />
 
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="testSchedulerCancel"
+            android:text="testSchedulerCancel"
+            />
+
     <View
             android:layout_margin="8dp"
             android:layout_width="match_parent"

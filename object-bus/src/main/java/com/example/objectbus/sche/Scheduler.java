@@ -346,7 +346,10 @@ public class Scheduler {
                 SparseArray< Runnable > runnable = RUNNABLE;
                 try {
 
-                    AppExecutor.execute(runnable.get(msg.arg1));
+                    Runnable needExecute = runnable.get(msg.arg1);
+                    if (needExecute != null) {
+                        AppExecutor.execute(needExecute);
+                    }
                     runnable.remove(msg.arg1);
 
                 } catch (Exception e) {

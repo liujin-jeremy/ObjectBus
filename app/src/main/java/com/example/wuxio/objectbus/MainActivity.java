@@ -4,12 +4,14 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import com.example.objectbus.Messengers;
 import com.example.objectbus.OnMessageReceiveListener;
-import com.example.objectbus.sche.Scheduler;
 import com.example.objectbus.runnable.AsyncThreadCallBack;
 import com.example.objectbus.runnable.MainThreadCallBack;
+import com.example.objectbus.sche.CancelTodo;
+import com.example.objectbus.sche.Scheduler;
 
 /**
  * @author wuxio
@@ -159,6 +161,28 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     }
 
 
+    private boolean flag;
+
+
+    public void testSchedulerCancel(View view) {
+
+        CancelTodo cancelTodo = new CancelTodo();
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" test todo cancel");
+            }
+        }, 2000,cancelTodo);
+
+        if (flag) {
+            cancelTodo.cancel();
+            Toast.makeText(this, "Cancel", Toast.LENGTH_SHORT).show();
+        }
+        flag = !flag;
+    }
+
+
     public static void print(String text) {
 
         Log.i(TAG, "print:" +
@@ -188,4 +212,5 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
         Log.i(TAG, "onReceive:" + what);
     }
+
 }
