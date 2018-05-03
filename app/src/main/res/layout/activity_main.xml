@@ -2,7 +2,6 @@
 <LinearLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -11,15 +10,42 @@
     <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="testSchedulerTodo"
             android:onClick="testSchedulerTodo"
+            android:text="testSchedulerTodo"
             />
 
     <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="testMessengerSend"
+            android:onClick="testSchedulerTodoDelayed"
+            android:text="testSchedulerTodoDelayed"
+            />
+
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="testSchedulerTodoMainCallBack"
+            android:text="testSchedulerTodoMainCallBack"
+            />
+
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="testSchedulerTodoAsyncCallBack"
+            android:text="testSchedulerTodoAsyncCallBack"
+            />
+
+    <View
+            android:layout_margin="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/colorPrimaryDark"/>
+
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:onClick="testMessengerSend"
+            android:text="testMessengerSend"
             />
 
 </LinearLayout>

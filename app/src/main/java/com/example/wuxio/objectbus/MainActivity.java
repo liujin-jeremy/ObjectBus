@@ -8,6 +8,8 @@ import android.view.View;
 import com.example.objectbus.Messengers;
 import com.example.objectbus.OnMessageReceiveListener;
 import com.example.objectbus.Scheduler;
+import com.example.objectbus.runnable.AsyncThreadCallBack;
+import com.example.objectbus.runnable.MainThreadCallBack;
 
 /**
  * @author wuxio
@@ -24,6 +26,8 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         setContentView(R.layout.activity_main);
     }
 
+    //============================ scheduler ============================
+
 
     public void testSchedulerTodo(View view) {
 
@@ -31,33 +35,139 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void run() {
 
-                print(" test todo ");
+                print(" test todo 01");
             }
         });
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo ");
+                print(" test todo 02");
             }
         });
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo ");
+                print(" test todo 03");
             }
         });
     }
 
 
-    private void print(String text) {
+    public void testSchedulerTodoDelayed(View view) {
+
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" test todo delayed01");
+            }
+        }, 2000);
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" test todo delayed02");
+            }
+        }, 4000);
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" test todo delayed03");
+            }
+        }, 6000);
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" test todo delayed04");
+            }
+        }, 4000);
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" test todo delayed05");
+            }
+        }, 2000);
+    }
+
+
+    public void testSchedulerTodoMainCallBack(View view) {
+
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" todo back ");
+            }
+        }, new MainThreadCallBack() {
+            @Override
+            public void run() {
+
+                print(" callback main ");
+            }
+        });
+
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" todo back delayed");
+            }
+        }, 3000, new MainThreadCallBack() {
+            @Override
+            public void run() {
+
+                print(" callback main ");
+            }
+        });
+    }
+
+
+    public void testSchedulerTodoAsyncCallBack(View view) {
+
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" todo back ");
+            }
+        }, new AsyncThreadCallBack() {
+            @Override
+            public void run() {
+
+                print(" callback async ");
+            }
+        });
+
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" todo back delayed");
+            }
+        }, 3000, new AsyncThreadCallBack() {
+            @Override
+            public void run() {
+
+                print(" callback async ");
+            }
+        });
+    }
+
+
+    public static void print(String text) {
 
         Log.i(TAG, "print:" +
                 " Thread: " + Thread.currentThread().getName() +
                 " time: " + System.currentTimeMillis() +
                 " msg: " + text);
     }
+
+    //============================ message ============================
 
 
     public void testMessengerSend(View view) {
