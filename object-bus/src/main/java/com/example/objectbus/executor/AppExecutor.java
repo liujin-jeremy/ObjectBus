@@ -56,14 +56,11 @@ public class AppExecutor {
      *
      * @param runnable 执行的任务
      */
-    public static void execute(Runnable runnable) {
+    public static void execute(@NonNull Runnable runnable) {
 
         /* 使用try..catch 增加程序健壮性,防止线程意外结束 */
 
         try {
-            if (runnable == null) {
-                return;
-            }
             sPoolExecutor.execute(runnable);
         } catch (Exception e) {
             if (sPoolExecutor == null) {

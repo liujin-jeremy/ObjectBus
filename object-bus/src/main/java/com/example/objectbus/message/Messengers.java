@@ -20,7 +20,7 @@ public class Messengers {
     private static SendHandler sSendHandler;
     private static SendHandler sMainHandler;
 
-    //private static final Random RANDOM = new Random();
+    private static final Object LOCK = new Object();
 
     private static final AtomicInteger ATOMIC_INTEGER = new AtomicInteger();
 
@@ -96,17 +96,18 @@ public class Messengers {
         }
 
         SparseArray< Holder > array = sendHandler.MESSAGE_HOLDER_ARRAY;
-
         int key = ATOMIC_INTEGER.addAndGet(1);
-        while (array.get(key) != null) {
-            key = ATOMIC_INTEGER.addAndGet(1);
+        Message obtain = Message.obtain();
+
+        synchronized (LOCK) {
+            while (array.get(key) != null) {
+                key = ATOMIC_INTEGER.addAndGet(1);
+            }
+            obtain.arg1 = key;
+            array.put(key, new Holder(what, extra, who));
         }
 
-        Message obtain = Message.obtain();
         obtain.what = what;
-        obtain.arg1 = key;
-
-        array.put(key, new Holder(what, extra, who));
         sendHandler.sendMessageDelayed(obtain, delayed);
     }
 

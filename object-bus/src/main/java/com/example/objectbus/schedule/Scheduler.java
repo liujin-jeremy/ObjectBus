@@ -11,7 +11,6 @@ import com.example.objectbus.schedule.run.AsyncThreadCallBack;
 import com.example.objectbus.schedule.run.MainThreadCallBack;
 
 import java.lang.ref.WeakReference;
-import java.util.Random;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,6 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Scheduler {
 
     private static final String TAG = "Scheduler";
+
+    private static final Object LOCK = new Object();
 
     /**
      * 用于发送消息,进行任务调度
@@ -41,7 +42,7 @@ public class Scheduler {
     /**
      * 生成一个标记,{@link #RUNNABLE}使用该标记存储后台任务{@link Runnable}
      */
-    private static Random sRandom;
+    private static final AtomicInteger ATOMIC_INTEGER = new AtomicInteger();
 
     /**
      * 保存任务
@@ -65,7 +66,6 @@ public class Scheduler {
         sMainInteger = new AtomicInteger(11);
         sOtherInteger = new AtomicInteger(12);
         sScheduleTask = new ScheduleTask();
-        sRandom = new Random();
     }
 
 
@@ -312,14 +312,16 @@ public class Scheduler {
         /* 使用一个标识,标记延时任务 */
         Message obtain = Message.obtain();
 
-        int key = sRandom.nextInt();
         SparseArray< Runnable > array = RUNNABLE;
-        while (array.get(key) != null) {
-            key = sRandom.nextInt();
-        }
+        int key = ATOMIC_INTEGER.addAndGet(1);
 
-        obtain.arg1 = key;
-        array.put(key, todoRunnable);
+        synchronized (LOCK) {
+            while (array.get(key) != null) {
+                key = ATOMIC_INTEGER.addAndGet(1);
+            }
+            obtain.arg1 = key;
+            array.put(key, todoRunnable);
+        }
 
         /* 记录给cancelTodo */
 
@@ -374,25 +376,22 @@ public class Scheduler {
 
             /* 此处处理的是后台任务 */
 
-            if (what == WHAT_DELAYED_MESSAGE) {
+            Message msg = (Message) extra;
 
-                Message msg = (Message) extra;
+            /* 从delayed队列中,找出需要执行的任务 */
+            /* try catch 是因为,外部会调用delayRunnable.remove(int);取消任务 */
+            SparseArray< Runnable > runnable = RUNNABLE;
+            try {
 
-                /* 从delayed队列中,找出需要执行的任务 */
-                /* try catch 是因为,外部会调用delayRunnable.remove(int);取消任务 */
-                SparseArray< Runnable > runnable = RUNNABLE;
-                try {
-
-                    Runnable needExecute = runnable.get(msg.arg1);
-                    if (needExecute != null) {
-                        AppExecutor.execute(needExecute);
-                    }
-                    runnable.remove(msg.arg1);
-
-                } catch (Exception e) {
-
-                    runnable.remove(msg.arg1);
+                Runnable needExecute = runnable.get(msg.arg1);
+                if (needExecute != null) {
+                    AppExecutor.execute(needExecute);
                 }
+                runnable.delete(msg.arg1);
+
+            } catch (Exception e) {
+
+                runnable.delete(msg.arg1);
             }
         }
     }
@@ -411,7 +410,7 @@ public class Scheduler {
         private int      mTag;
 
 
-        public CallbackRunnable(Runnable runnable, int tag) {
+        CallbackRunnable(Runnable runnable, int tag) {
 
             mRunnable = runnable;
             this.mTag = tag;

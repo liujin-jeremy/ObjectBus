@@ -359,7 +359,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         Messengers.send(9, 2000, " hello main ", this);
 
         if (flag) {
-            Messengers.remove(9);
+            Messengers.remove(9, this);
             Toast.makeText(this, "removed", Toast.LENGTH_SHORT).show();
         }
 
