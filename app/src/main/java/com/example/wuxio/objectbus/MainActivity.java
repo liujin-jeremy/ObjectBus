@@ -249,22 +249,61 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     //============================ message ============================
 
 
-    public void testMessengerSend(View view) {
-
-        Messengers.send(2, this);
-
-    }
-
-
     @Override
     public void onReceive(int what, Object extra) {
 
+        print("receive: " + what + " extra: " + extra);
     }
 
 
     @Override
     public void onReceive(int what) {
 
-        Log.i(TAG, "onReceive:" + what);
+        print("receive: " + what);
+    }
+
+
+    public void testMessengerSend(View view) {
+
+        /* message what 的奇偶性决定发送到哪个线程 */
+
+        /* 1 is odd number,the message will send to main thread */
+
+        Messengers.send(1, this);
+
+        /* 2 is  even number, the message will send to a async thread*/
+
+        Messengers.send(2, this);
+
+    }
+
+
+    public void testMessengerSendDelayed(View view) {
+
+        Messengers.send(3, 2000, this);
+        Messengers.send(4, 2000, this);
+    }
+
+
+    public void testMessengerSendWithExtra(View view) {
+
+        Messengers.send(5, " hello main ", this);
+        Messengers.send(6, " hello main ", this);
+
+        Messengers.send(7, 2000, " hello main ", this);
+        Messengers.send(8, 2000, " hello main ", this);
+    }
+
+
+    public void testMessengerRemove(View view) {
+
+        Messengers.send(9, 2000, " hello main ", this);
+
+        if (flag) {
+            Messengers.remove(9);
+            Toast.makeText(this, "removed", Toast.LENGTH_SHORT).show();
+        }
+
+        flag = !flag;
     }
 }

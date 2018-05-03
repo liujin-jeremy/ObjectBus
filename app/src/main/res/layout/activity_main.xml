@@ -50,9 +50,9 @@
             />
 
     <View
-            android:layout_margin="8dp"
             android:layout_width="match_parent"
             android:layout_height="1dp"
+            android:layout_margin="8dp"
             android:background="@color/colorPrimaryDark"/>
 
     <Button
@@ -60,6 +60,27 @@
             android:layout_height="wrap_content"
             android:onClick="testMessengerSend"
             android:text="testMessengerSend"
+            />
+
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="testMessengerSendDelayed"
+            android:text="testMessengerSendDelayed"
+            />
+
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="testMessengerSendWithExtra"
+            android:text="testMessengerSendWithExtra"
+            />
+
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="testMessengerRemove"
+            android:text="testMessengerRemove"
             />
 
 </LinearLayout>
