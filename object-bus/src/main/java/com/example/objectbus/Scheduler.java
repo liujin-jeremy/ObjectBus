@@ -5,9 +5,11 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.SparseArray;
 
+import com.example.objectbus.runnable.AsyncThreadCallBack;
+import com.example.objectbus.runnable.MainThreadCallBack;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -16,16 +18,18 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Scheduler {
 
-
     /**
      * 用于发送消息,进行任务调度
      */
-    private static MainHandler sMainHandler;
+    //private static MainHandler sMainHandler;
+
+    private static ScheduleTask sScheduleTask;
 
     /**
-     * 用于右callback的任务的存储标记
+     * 用于有callback的任务的存储标记
      */
-    private static AtomicInteger sInteger;
+    private static AtomicInteger sMainInteger;
+    private static AtomicInteger sOtherInteger;
 
     /**
      * 保存立即执行的任务
@@ -49,10 +53,13 @@ public class Scheduler {
     }
 
 
-    private static void initField() {
+    public static void initField() {
 
-        sMainHandler = new MainHandler(Looper.getMainLooper());
-        sInteger = new AtomicInteger(12);
+        //sMainHandler = new MainHandler(Looper.getMainLooper());
+
+        sMainInteger = new AtomicInteger(11);
+        sOtherInteger = new AtomicInteger(12);
+        sScheduleTask = new ScheduleTask();
     }
 
 
@@ -77,16 +84,6 @@ public class Scheduler {
 
 
     /**
-     * 初始化
-     */
-    public static void init(ThreadFactory threadFactory) {
-
-        initField();
-        AppExecutor.init(threadFactory);
-    }
-
-
-    /**
      * do something in background
      *
      * @param runnable something
@@ -94,7 +91,7 @@ public class Scheduler {
     public static void todo(Runnable runnable) {
 
         RUNNABLE.add(runnable);
-        sMainHandler.sendEmptyMessage(0);
+        sScheduleTask.sendMessage();
     }
 
 
@@ -104,12 +101,27 @@ public class Scheduler {
      * @param runnable something do in background
      * @param callBack something do in mainThread
      */
-    public static void todo(Runnable runnable, Runnable callBack) {
+    public static void todo(Runnable runnable, MainThreadCallBack callBack) {
 
-        int tag = sInteger.addAndGet(1);
+        int tag = sMainInteger.addAndGet(2);
         CALLBACK_RUNNABLE.put(tag, new WeakReference<>(callBack));
         RUNNABLE.add(new CallbackRunnable(runnable, tag));
-        sMainHandler.sendEmptyMessage(0);
+        sScheduleTask.sendMessage();
+    }
+
+
+    /**
+     * do something in background,then do the callBack on mainThread
+     *
+     * @param runnable something do in background
+     * @param callBack something do in asyncThread
+     */
+    public static void todo(Runnable runnable, AsyncThreadCallBack callBack) {
+
+        int tag = sOtherInteger.addAndGet(2);
+        CALLBACK_RUNNABLE.put(tag, new WeakReference<>(callBack));
+        RUNNABLE.add(new CallbackRunnable(runnable, tag));
+        sScheduleTask.sendMessage();
     }
 
 
@@ -126,15 +138,20 @@ public class Scheduler {
             return;
         }
 
+        /* 使用一个标识,标记延时任务 */
+
         Message obtain = Message.obtain();
         long time = System.currentTimeMillis() + delayed;
+
+        /* 标记延时任务的执行时间 */
         obtain.arg1 = (int) (time >> 32);
         obtain.arg2 = (int) time;
+        /* 标记延时任务的string */
         obtain.obj = runnable.toString();
-        obtain.what = 1;
+        /* 一般认为时间相同,string一致,就可判断该任务时需要执行的延时任务 */
 
         DELAY_RUNNABLE.add(runnable);
-        sMainHandler.sendMessageDelayed(obtain, delayed);
+        sScheduleTask.sendDelayedMessage(obtain, delayed);
     }
 
 
@@ -145,14 +162,14 @@ public class Scheduler {
      * @param delayed  delayed time
      * @param callback main thread callback
      */
-    public static void todo(Runnable runnable, int delayed, Runnable callback) {
+    public static void todo(Runnable runnable, int delayed, MainThreadCallBack callback) {
 
         if (delayed <= 0) {
             todo(runnable, callback);
             return;
         }
 
-        int tag = sInteger.addAndGet(1);
+        int tag = sMainInteger.addAndGet(2);
         CALLBACK_RUNNABLE.put(tag, new WeakReference<>(callback));
         CallbackRunnable callbackRunnable = new CallbackRunnable(runnable, tag);
 
@@ -161,10 +178,147 @@ public class Scheduler {
         obtain.arg1 = (int) (time >> 32);
         obtain.arg2 = (int) time;
         obtain.obj = callbackRunnable.toString();
-        obtain.what = 1;
 
         DELAY_RUNNABLE.add(callbackRunnable);
-        sMainHandler.sendMessageDelayed(obtain, delayed);
+        sScheduleTask.sendDelayedMessage(obtain, delayed);
+    }
+
+
+    /**
+     * do something in background,With a delayed,then do the callBack on mainThread
+     *
+     * @param runnable something
+     * @param delayed  delayed time
+     * @param callback async thread callback
+     */
+    public static void todo(Runnable runnable, int delayed, AsyncThreadCallBack callback) {
+
+        if (delayed <= 0) {
+            todo(runnable, callback);
+            return;
+        }
+
+        int tag = sOtherInteger.addAndGet(2);
+        CALLBACK_RUNNABLE.put(tag, new WeakReference<>(callback));
+        CallbackRunnable callbackRunnable = new CallbackRunnable(runnable, tag);
+
+        Message obtain = Message.obtain();
+        long time = System.currentTimeMillis() + delayed;
+        obtain.arg1 = (int) (time >> 32);
+        obtain.arg2 = (int) time;
+        obtain.obj = callbackRunnable.toString();
+
+        DELAY_RUNNABLE.add(callbackRunnable);
+        sScheduleTask.sendDelayedMessage(obtain, delayed);
+    }
+
+    // TODO: 2018-05-03 cancel 方法 使用外部传参'undo'
+
+    //============================ schedule task to pool ============================
+
+    private static class ScheduleTask implements OnMessageReceiveListener {
+
+        static final int WHAT_MESSAGE         = 0;
+        static final int WHAT_DELAYED_MESSAGE = 2;
+
+
+        void sendMessage() {
+
+            Messengers.send(WHAT_MESSAGE, this);
+        }
+
+
+        void sendMessage(int what) {
+
+            Messengers.send(what, this);
+        }
+
+
+        void sendDelayedMessage(Message message, int delayed) {
+
+            Messengers.send(WHAT_DELAYED_MESSAGE, delayed, message, this);
+        }
+
+
+        @Override
+        public void onReceive(int what) {
+
+            /* 此处处理的是没有带有callBack的非延时任务 */
+
+            if (what == WHAT_MESSAGE) {
+
+                /* send task to executor */
+
+                while (RUNNABLE.size() > 0) {
+
+                    /* 此处try..catch..因为外部可能会在该方法执行期间,执行RUNNABLE.remove(0);需要捕获异常*/
+
+                    try {
+                        Runnable runnable = RUNNABLE.get(0);
+                        AppExecutor.execute(runnable);
+                        RUNNABLE.remove(0);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                return;
+            }
+
+            /* 此处处理的是带有callBack的任务 */
+
+            WeakReference< Runnable > reference = CALLBACK_RUNNABLE.get(what);
+            Runnable callBack = reference.get();
+            if (callBack != null) {
+                callBack.run();
+            }
+            CALLBACK_RUNNABLE.delete(what);
+
+        }
+
+
+        @Override
+        public void onReceive(int what, Object extra) {
+
+            /* 此处处理的是没有带有callBack的延时任务 */
+
+            if (what == WHAT_DELAYED_MESSAGE) {
+
+                Message msg = (Message) extra;
+                Object name = msg.obj;
+
+                /* send delay task to executor */
+
+                long currentTimeMillis = System.currentTimeMillis();
+
+                /* 从delayed队列中,找出需要执行的任务 */
+                try {
+                    ArrayList< Runnable > delayRunnable = DELAY_RUNNABLE;
+                    int size = delayRunnable.size();
+                    for (int i = 0; i < size; i++) {
+
+                        Runnable runnable = delayRunnable.get(i);
+
+                        /* 先比较名字 */
+                        if (!name.equals(runnable.toString())) {
+                            continue;
+                        }
+
+                        /* 后比较时间 */
+                        long src = msg.arg1;
+                        src = (src << 32) | msg.arg2;
+
+                        /* 如果时间已经到了,执行它 */
+                        if (src <= currentTimeMillis) {
+                            AppExecutor.execute(runnable);
+                            delayRunnable.remove(i);
+                            return;
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     //============================ main thread handler ============================
@@ -254,7 +408,7 @@ public class Scheduler {
         public void run() {
 
             mRunnable.run();
-            sMainHandler.sendEmptyMessage(mTag);
+            sScheduleTask.sendMessage(mTag);
         }
     }
 }

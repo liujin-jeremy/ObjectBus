@@ -34,6 +34,7 @@ public class AppExecutor {
     }
 
 
+    @Deprecated
     public static void init(ThreadFactory threadFactory) {
 
         sPoolExecutor = new ThreadPoolExecutor(
