@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void run() {
 
-                print(" test todo 01", mLogText01);
+                print(" test todo 01");
             }
         });
         Scheduler.todo(new Runnable() {
@@ -78,6 +78,8 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     public void testSchedulerTodoDelayed(View view) {
 
         clearText(mLogText01);
+
+        print(" start delayed task ");
 
         Scheduler.todo(new Runnable() {
             @Override
@@ -125,13 +127,13 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void run() {
 
-                print(" todo back ", mLogText01);
+                print(" todo back ");
             }
         }, new MainThreadCallBack() {
             @Override
             public void run() {
 
-                print(" callback main ", mLogText01);
+                print(" callback main ");
             }
         });
 
@@ -301,14 +303,14 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     @Override
     public void onReceive(int what, Object extra) {
 
-        print("receive: " + what + " extra: " + extra, mLogText02);
+        print("receive: " + what + " extra: " + extra);
     }
 
 
     @Override
     public void onReceive(int what) {
 
-        print("receive: " + what, mLogText02);
+        print("receive: " + what);
     }
 
 
@@ -332,6 +334,8 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     public void testMessengerSendDelayed(View view) {
 
         clearText(mLogText02);
+
+        print("send delayed message");
 
         Messengers.send(3, 2000, this);
         Messengers.send(4, 2000, this);

@@ -246,3 +246,149 @@ I/MainActivity: : Thread: main time: 1525424289586 msg:  do someThing
 I/MainActivity: : Thread: main time: 1525424289586 msg:  do finished 
 I/MainActivity: : Thread: AppThread-0 time: 1525424292591 msg:  receive message  --> 收到消息执行操作
 ```
+
+## Messengers
+
+该类用于任意两个类之间进行通信,可以指定接收线程
+
+### 示例 1
+
+实现接口 `com.example.objectbus.message.OnMessageReceiveListener`
+
+```
+@Override
+public void onReceive(int what, Object extra) {
+    print("receive: " + what + " extra: " + extra);
+}
+@Override
+public void onReceive(int what) {
+    print("receive: " + what);
+}
+```
+
+#### 发送消息
+
+```
+Messengers.send(1, this); --> 数字的奇偶性决定接收在那个线程,奇数主线程,偶数后台线程
+Messengers.send(2, this);
+```
+
+log:
+
+```
+ I/MainActivity: : Thread: Messengers time: 1525424829634 msg: receive: 2
+ I/MainActivity: : Thread: main time: 1525424829650 msg: receive: 1
+```
+
+#### 发送延时消息
+
+```
+Messengers.send(3, 2000, this);
+Messengers.send(4, 2000, this);
+```
+
+![](img/msg01.gif)
+
+```
+I/MainActivity: : Thread: main time: 1525425061268 msg: send delayed message
+I/MainActivity: : Thread: main time: 1525425063269 msg: receive: 3
+I/MainActivity: : Thread: Messengers time: 1525425063270 msg: receive: 4
+```
+
+#### 发送附带信息的消息
+
+```
+Messengers.send(5, " hello main ", this);
+Messengers.send(6, " hello main ", this);
+Messengers.send(7, 2000, " hello main ", this);
+Messengers.send(8, 2000, " hello main ", this);
+```
+
+![](img/msg02.gif)
+
+## Scheduler
+
+该类用于线程调度
+
+### 后台任务
+
+```
+Scheduler.todo(new Runnable() {
+    @Override
+    public void run() {
+        print(" test todo 01");
+    }
+});
+```
+
+log
+
+```
+I/MainActivity: : Thread: AppThread-0 time: 1525425553389 msg:  test todo 01
+```
+
+### 后台延时任务
+
+```
+Scheduler.todo(new Runnable() {
+    @Override
+    public void run() {
+        print(" test todo delayed01", mLogText01);
+    }
+}, 2000);
+```
+
+log
+
+```
+I/MainActivity: : Thread: main time: 1525425698585 msg:  start delayed task 
+I/MainActivity: : Thread: AppThread-0 time: 1525425700590 msg:  test todo delayed01		--> 相差 2s
+```
+
+### 使用回调
+
+#### 后台执行任务,主线程进行回调
+
+```
+Scheduler.todo(new Runnable() {
+    @Override
+    public void run() {
+        print(" todo back ");
+    }
+}, new MainThreadCallBack() {
+    @Override
+    public void run() {
+        print(" callback main ");
+    }
+});
+```
+
+log
+
+```
+I/MainActivity: : Thread: AppThread-2 time: 1525425803886 msg:  todo back 
+I/MainActivity: : Thread: main time: 1525425803904 msg:  callback main 
+```
+
+#### 后台执行任务,后台进行回调
+
+```
+Scheduler.todo(new Runnable() {
+    @Override
+    public void run() {
+        print(" todo back ");
+    }
+}, new AsyncThreadCallBack() {
+    @Override
+    public void run() {
+        print(" callback async ");
+    }
+});
+```
+
+log
+
+```
+I/MainActivity: : Thread: AppThread-1 time: 1525425995369 msg:  todo back 
+I/MainActivity: : Thread: Messengers time: 1525425995369 msg:  callback async 
+```
