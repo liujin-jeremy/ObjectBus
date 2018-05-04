@@ -2,8 +2,7 @@ package com.example.wuxio.objectbus;
 
 import android.app.Application;
 
-import com.example.objectbus.message.Messengers;
-import com.example.objectbus.schedule.Scheduler;
+import com.example.objectbus.BusConfig;
 
 /**
  * @author wuxio 2018-05-03:8:07
@@ -15,7 +14,6 @@ public class App extends Application {
 
         super.onCreate();
 
-        Scheduler.init();
-        Messengers.init();
+        BusConfig.init();
     }
 }
