@@ -141,5 +141,26 @@
 
         </LinearLayout>
 
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:onClick="testBusMessage"
+                    android:text="testBusMessage"
+                    />
+
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:onClick="testBusMessageRegister"
+                    android:text="testBusMessageRegister"
+                    />
+
+        </LinearLayout>
+
     </LinearLayout>
 </android.support.v4.widget.NestedScrollView>

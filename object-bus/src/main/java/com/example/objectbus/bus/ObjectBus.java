@@ -512,6 +512,8 @@ public class ObjectBus implements OnMessageReceiveListener {
     @Override
     public void onReceive(int what) {
 
+        /* when bus receive a message run the runnable register to what  */
+
         Runnable runnable = mMessageReceiveRunnable.get(what);
 
         if (runnable == null) {
@@ -522,8 +524,12 @@ public class ObjectBus implements OnMessageReceiveListener {
 
         if (what % 2 == 0) {
 
+            /* run on thread pool */
+
             AppExecutor.execute(runnable);
         } else {
+
+            /* run on MainThread */
 
             mMessageReceiveRunnable.put(what, runnable);
             mBusMessageManger.runMessageReceiveRunnableOnMain(what);

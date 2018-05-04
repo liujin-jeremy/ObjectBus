@@ -492,4 +492,54 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         bus.stopRest();
 
     }
+
+
+    public void testBusMessage(View view) {
+
+        bus.go(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" do someThing  ");
+            }
+        }).send(158, bus, MainManager.getInstance())
+                .takeRest()
+                .go(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        print(" rest finished ");
+                    }
+                })
+                .run();
+
+    }
+
+
+    public void testBusMessageRegister(View view) {
+
+        bus.go(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" do someThing  ");
+            }
+        }).registerMessage(88, new Runnable() {
+            @Override
+            public void run() {
+
+                print(" receive message ");
+            }
+        }).go(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" do finished ");
+
+            }
+        }).run();
+
+        Messengers.send(88, 3000, bus);
+
+    }
 }

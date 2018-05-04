@@ -92,7 +92,7 @@ bus.go(() -> print(" do task 01 @Main"))
         .run();
 ```
 
-## 示例 2 
+### 示例 2 
 
 携带参数到 bus,或者保存中间变量到 bus 用于后续操作
 
@@ -148,7 +148,7 @@ I/MainActivity: : Thread: main time: 1525419530209 msg:  go back to @Main , resu
 
 > 正确 : 4200=99+99+1002+3000
 
-## 控制ObjectBus执行流程
+### 控制ObjectBus执行流程
 
 暂停执行
 
@@ -180,4 +180,69 @@ log:
 ```
 I/MainActivity: : Thread: main time: 1525420360068 msg:  do task 01 
 I/MainActivity: : Thread: AppThread-1 time: 1525420361952 msg:  after take a rest go on do task 02 
+```
+
+### 与其他类通信
+
+```
+bus.go(new Runnable() {
+    @Override
+    public void run() {
+        print(" do someThing  ");
+    }
+}).send(158, bus, MainManager.getInstance())		--> 使用 send 可以与其他类进行通信
+        .takeRest()
+        .go(new Runnable() {
+            @Override
+            public void run() {
+                print(" rest finished ");
+            }
+        })
+        .run();
+```
+
+>MainManager收到消息之后延迟3s,控制bus 继续执行
+
+log
+
+```
+I/MainActivity: : Thread: main time: 1525423712822 msg:  do someThing  
+I/MainActivity: : Thread: AppThread-0 time: 1525423715826 msg:  rest finished  --> 相差3s
+```
+
+### 注册一个消息
+
+注册一个消息,收到该消息时执行操作
+
+```
+bus.go(new Runnable() {
+    @Override
+    public void run() {
+        print(" do someThing  ");
+    }
+}).registerMessage(88, new Runnable() {
+    @Override
+    public void run() {
+        print(" receive message ");
+    }
+}).go(new Runnable() {
+    @Override
+    public void run() {
+        print(" do finished ");
+    }
+}).run();
+```
+
+发送消息
+
+```
+Messengers.send(88, 3000, bus);
+```
+
+log
+
+```
+I/MainActivity: : Thread: main time: 1525424289586 msg:  do someThing  
+I/MainActivity: : Thread: main time: 1525424289586 msg:  do finished 
+I/MainActivity: : Thread: AppThread-0 time: 1525424292591 msg:  receive message  --> 收到消息执行操作
 ```

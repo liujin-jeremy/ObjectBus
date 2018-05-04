@@ -1,5 +1,7 @@
 package com.example.wuxio.objectbus;
 
+import com.example.objectbus.bus.ObjectBus;
+import com.example.objectbus.message.Messengers;
 import com.example.objectbus.message.OnMessageReceiveListener;
 
 import java.lang.ref.WeakReference;
@@ -30,8 +32,15 @@ public class MainManager implements OnMessageReceiveListener {
             return;
         }
 
-        MainActivity activity = mReference.get();
-        MainActivity.print("receive: " + what + " extra: " + extra + " main: " + activity);
+        if (what == 158) {
+            ObjectBus bus = (ObjectBus) extra;
+            Messengers.send(159, 3000, bus, this);
+        }
+
+        if (what == 159) {
+            ObjectBus bus = (ObjectBus) extra;
+            bus.stopRest();
+        }
     }
 
 
