@@ -9,6 +9,26 @@
 * 任意两个类之间通信
 * ObjectBus将以上功能串联.减少逻辑的割裂感
 
+## 引入
+
+project.gradle
+
+```
+allprojects {
+	repositories {
+		maven { url 'https://jitpack.io' }
+	}
+}
+```
+
+app.gradle
+
+```
+dependencies {
+	implementation 'com.github.threekilogram:ObjectBus:1.0'
+}
+```
+
 ## ObjectBus
 
 该类可以在不同的线程上串行执行任务
