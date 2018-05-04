@@ -374,8 +374,6 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     private boolean running = false;
 
-    ObjectBus bus = new ObjectBus();
-
 
     public void testBusGo(View view) {
 
@@ -385,44 +383,113 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
         running = true;
 
-        bus.go(new Runnable() {
-            @Override
-            public void run() {
+        ObjectBus bus = new ObjectBus();
 
-                print("bus go station 01 go");
-            }
-        }).toUnder(new Runnable() {
-            @Override
-            public void run() {
+        bus.go(() -> print(" do task 01 @Main"))
+                .toUnder(() -> {
 
-                print("bus go station 02 at under");
-            }
-        }).takeRest(2000).go(new Runnable() {
-            @Override
-            public void run() {
+                    print(" do task 02 @ThreadPools ");
 
-                print("bus go station 03 go");
-            }
-        }).toMain(new Runnable() {
-            @Override
-            public void run() {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
 
-                print("bus go station 04 at main");
-            }
-        }).takeRest(2000).go(new Runnable() {
-            @Override
-            public void run() {
+                })
+                .go(() -> {
 
-                print("bus go station 05 go");
+                    print(" do task 03 @ThreadPools ");
 
-                running = false;
-            }
-        }).run();
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                }).toMain(() -> print(" go back to @Main "))
+                .run();
     }
 
 
-    public void testBusGo02(View view) {
+    public void testBusGoWithParams(View view) {
+
+        ObjectBus bus = new ObjectBus();
+
+        bus.go(() -> {
+
+            print(" do task 01 @Main");
+            int j = 99 + 99;
+            bus.takeAs(j, "result");
+
+        }).toUnder(() -> {
+
+            print(" do task 02 @ThreadPools ");
+
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Integer result = (Integer) bus.get("result");
+            int k = result + 1002;
+            bus.takeAs(k, "result");
+
+        }).go(() -> {
+
+            print(" do task 03 @ThreadPools ");
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Integer result = (Integer) bus.get("result");
+            int l = result + 3000;
+            bus.takeAs(l, "result");
+
+        }).toMain(() -> {
+
+            Integer result = (Integer) bus.get("result");
+            print(" go back to @Main , result: " + result);
+
+        }).run();
+
+    }
+
+
+    ObjectBus bus = new ObjectBus();
+
+
+    public void testBusControl(View view) {
+
+        bus.go(new Runnable() {
+
+            @Override
+            public void run() {
+
+                print(" do task 01 ");
+
+            }
+
+        }).takeRest()
+                .go(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        print(" after take a rest go on do task 02 ");
+
+                    }
+                }).run();
+
+    }
+
+
+    public void goOn(View view) {
 
         bus.stopRest();
+
     }
 }

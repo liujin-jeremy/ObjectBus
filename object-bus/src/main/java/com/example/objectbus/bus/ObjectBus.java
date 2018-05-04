@@ -3,6 +3,7 @@ package com.example.objectbus.bus;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.util.ArrayMap;
+import android.util.SparseArray;
 
 import com.example.objectbus.executor.AppExecutor;
 import com.example.objectbus.message.Messengers;
@@ -12,13 +13,12 @@ import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 该类穿梭于线程之间,执行各种操作
+ * 该类穿梭于线程之间,顺序执行各种操作
  *
  * @author wuxio 2018-05-03:16:16
  */
-public class ObjectBus {
+public class ObjectBus implements OnMessageReceiveListener {
 
-    private static final String TAG = "ObjectBus";
 
     /**
      * command used for {@link Command} to how to do runnable
@@ -66,7 +66,7 @@ public class ObjectBus {
      * {@link #stopRest()}:to stop bus rest
      * {@link TakeWhileRunnable#run()}: to top bus rest
      */
-    private BusMessageListener mBusMessageListener = new BusMessageListener();
+    private BusMessageListener mBusMessageManger = new BusMessageListener();
 
     /**
      * take customs to bus,{@link #takeAs(Object, String)},{@link #get(String)},{@link #off(String)}
@@ -82,6 +82,8 @@ public class ObjectBus {
     public ObjectBus() {
 
     }
+
+    //============================ core ============================
 
 
     /**
@@ -163,7 +165,7 @@ public class ObjectBus {
 
                 /* not on main, use messenger change to MainThread */
 
-                BusMessageListener messenger = mBusMessageListener;
+                BusMessageListener messenger = mBusMessageManger;
                 Runnable runnable = command.getRunnable();
                 runnable = wrapperRunnableIfHaveOnBusRunningListener(runnable);
                 messenger.setRunnable(runnable);
@@ -348,7 +350,7 @@ public class ObjectBus {
 
         if (runState == RUN_STATE_RESTING || runState == RUN_STATE_RESTING_AWHILE) {
 
-            mBusMessageListener.notifyBusStopRest();
+            mBusMessageManger.notifyBusStopRest();
         }
     }
 
@@ -478,6 +480,80 @@ public class ObjectBus {
         return runnable;
     }
 
+    //============================ bus message register ============================
+
+    private SparseArray< Runnable > mMessageReceiveRunnable = new SparseArray<>();
+
+
+    /**
+     * when {@link Messengers#send(int, OnMessageReceiveListener)} to bus ,bus will do the runnable
+     *
+     * @param what     msg what, nofity when what is even number (偶数), bus will run the runnable on the
+     *                 threadPool, else will run the runnable on MainThread
+     * @param runnable what to do when receive msg
+     * @return self
+     */
+    public ObjectBus registerMessage(int what, Runnable runnable) {
+
+        mMessageReceiveRunnable.put(what, runnable);
+        return this;
+    }
+
+
+    /**
+     * unRegister a message
+     */
+    public void unRegisterMessage(int what) {
+
+        mMessageReceiveRunnable.delete(what);
+    }
+
+
+    @Override
+    public void onReceive(int what) {
+
+        Runnable runnable = mMessageReceiveRunnable.get(what);
+
+        if (runnable == null) {
+            return;
+        }
+
+        runnable = wrapperRunnableNewIfHaveOnBusRunningListener(runnable);
+
+        if (what % 2 == 0) {
+
+            AppExecutor.execute(runnable);
+        } else {
+
+            mMessageReceiveRunnable.put(what, runnable);
+            mBusMessageManger.runMessageReceiveRunnableOnMain(what);
+
+        }
+    }
+
+
+    /**
+     * if have a {@link #mOnBusRunningListener} use {@link BusRunningListenerRunnable} wrapper {@code
+     * runnable},different from {@link #wrapperRunnableIfHaveOnBusRunningListener(Runnable)} this all use a
+     * new {@link BusRunningListenerRunnable} to wrapper runnable, this is used for {@link #onReceive(int)}
+     * to avoid multi thread safe question
+     *
+     * @param runnable user's runnable
+     * @return {@link BusRunningListenerRunnable} or runnable self
+     */
+    private Runnable wrapperRunnableNewIfHaveOnBusRunningListener(Runnable runnable) {
+
+        if (mOnBusRunningListener != null) {
+
+            BusRunningListenerRunnable listenerRunnable = new BusRunningListenerRunnable
+                    (mOnBusRunningListener);
+            listenerRunnable.setRunnable(runnable);
+            return listenerRunnable;
+        }
+
+        return runnable;
+    }
+
     //============================ command for Bus run runnable ============================
 
     /**
@@ -549,7 +625,6 @@ public class ObjectBus {
      */
     private class BusMessageListener implements OnMessageReceiveListener {
 
-        //============================ to run on min ============================
 
         /**
          * when receive this msg, take bus to Main Thread to run
@@ -575,7 +650,6 @@ public class ObjectBus {
             Messengers.send(WHAT_MAIN, this);
         }
 
-        //============================ bus stop rest ============================
 
         /**
          * when receive this msg take bus to last Command run Thread to go on
@@ -611,12 +685,41 @@ public class ObjectBus {
         }
 
 
-        private void takeBusAtMainToNext() {
+        /**
+         * call {@link #toNextStation()} on main thread
+         */
+        private void takeBusOnMainToNextStation() {
 
             Messengers.send(WHAT_NEXT_AT_MAIN, this);
         }
 
-        //============================ actual action ============================
+
+        private static final int WHAT_RUN_MESSAGE_RECEIVE_RUNNABLE_MAIN = 7;
+
+
+        /**
+         * to run message runnable at {@link #mMessageReceiveRunnable} on MainThread
+         *
+         * @param what msg what
+         */
+        void runMessageReceiveRunnableOnMain(int what) {
+
+            Messengers.send(WHAT_RUN_MESSAGE_RECEIVE_RUNNABLE_MAIN, what, this);
+        }
+
+
+        @SuppressWarnings("UnnecessaryUnboxing")
+        @Override
+        public void onReceive(int what, Object extra) {
+
+            if (what == WHAT_RUN_MESSAGE_RECEIVE_RUNNABLE_MAIN) {
+                int index = ((Integer) extra).intValue();
+                Runnable runnable = mMessageReceiveRunnable.get(index);
+                if (runnable != null) {
+                    runnable.run();
+                }
+            }
+        }
 
 
         @Override
@@ -642,7 +745,7 @@ public class ObjectBus {
 
                 if (threadCurrent == THREAD_MAIN) {
 
-                    takeBusAtMainToNext();
+                    takeBusOnMainToNextStation();
                 } else {
 
                     AppExecutor.execute(ObjectBus.this::toNextStation);
@@ -769,7 +872,7 @@ public class ObjectBus {
         @Override
         public void run() {
 
-            mBusMessageListener.notifyBusStopRestAfter(delayed);
+            mBusMessageManger.notifyBusStopRestAfter(delayed);
         }
     }
 

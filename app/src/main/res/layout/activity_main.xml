@@ -110,15 +110,36 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:onClick="testBusGo"
-                android:text="testBusGo"
+                android:text="testBusSimple"
                 />
 
         <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:onClick="testBusGo02"
-                android:text="testBusGo02"
+                android:onClick="testBusGoWithParams"
+                android:text="testBusGoWithParams"
                 />
+
+        <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:onClick="testBusControl"
+                    android:text="testBusControl"
+                    />
+
+            <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:onClick="goOn"
+                    android:text="go on"
+                    />
+
+        </LinearLayout>
 
     </LinearLayout>
 </android.support.v4.widget.NestedScrollView>
