@@ -13,5 +13,4 @@ public final class BusConfig {
         Scheduler.init();
         Messengers.init();
     }
-
 }
