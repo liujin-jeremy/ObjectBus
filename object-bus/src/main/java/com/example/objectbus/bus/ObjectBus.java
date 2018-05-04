@@ -4,6 +4,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.util.ArrayMap;
 
+import com.example.objectbus.executor.AppExecutor;
 import com.example.objectbus.executor.OnExecuteRunnable;
 import com.example.objectbus.message.Messengers;
 import com.example.objectbus.message.OnMessageReceiveListener;
@@ -17,22 +18,32 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ObjectBus {
 
+    private static final String TAG = "ObjectBus";
 
     /**
      * command used for {@link Command} to how to do runnable
      */
-    private static final int GO       = 0b1;
-    private static final int TO_UNDER = 0b10;
-    private static final int TO_MAIN  = 0b100;
-    private static final int SEND     = 0b1000;
-
+    private static final int COMMAND_GO               = 0b1;
+    private static final int COMMAND_TO_UNDER         = 0b10;
+    private static final int COMMAND_TO_MAIN          = 0b100;
+    private static final int COMMAND_SEND             = 0b1000;
+    private static final int COMMAND_TAKE_REST        = 0b10000;
+    private static final int COMMAND_TAKE_REST_AWHILE = 0b100000;
 
     /**
      * current thread state
      */
-    private static final int MAIN_THREAD     = 0X1FFFF;
-    private static final int EXECUTOR_THREAD = 0X2FFFF;
-    private int currentThread;
+    private static final int THREAD_MAIN     = 0X1FFFF;
+    private static final int THREAD_EXECUTOR = 0X2FFFF;
+    private int threadCurrent;
+
+    /**
+     * record current is resting
+     */
+    private static final int RUN_STATE_RUNNING        = 0X10EE;
+    private static final int RUN_STATE_RESTING        = 0X11EE;
+    private static final int RUN_STATE_RESTING_AWHILE = 0X100EE;
+    private int runState;
 
     /**
      * how many station pass By
@@ -54,8 +65,15 @@ public class ObjectBus {
      */
     private BusMessageListener mBusMessageListener = new BusMessageListener();
 
-
+    /**
+     * take customs to bus,{@link #takeAs(Object, String)}
+     */
     private ArrayMap< String, Object > mExtras = new ArrayMap<>();
+
+    /**
+     * do nothing just take a rest ,wait notify
+     */
+    private RestRunnable mRestRunnable = new RestRunnable();
 
 
     public ObjectBus() {
@@ -85,8 +103,7 @@ public class ObjectBus {
         } else {
 
             // TODO: 2018-05-03 how to set current value
-
-            //mPassBy.set(0);
+            mPassBy.getAndAdd(-1);
         }
     }
 
@@ -96,17 +113,17 @@ public class ObjectBus {
      */
     private void doCommand(Command command) {
 
-        if (command.command == GO) {
+        if (command.command == COMMAND_GO) {
             command.run();
             toNextStation();
             return;
         }
 
-        if (command.command == TO_UNDER) {
-            if (currentThread != EXECUTOR_THREAD) {
+        if (command.command == COMMAND_TO_UNDER) {
+            if (threadCurrent != THREAD_EXECUTOR) {
                 mBusOnExecuteRunnable.setRunnable(command.getRunnable());
                 Scheduler.todo(mBusOnExecuteRunnable);
-                currentThread = EXECUTOR_THREAD;
+                threadCurrent = THREAD_EXECUTOR;
             } else {
                 command.run();
                 toNextStation();
@@ -114,12 +131,12 @@ public class ObjectBus {
             return;
         }
 
-        if (command.command == TO_MAIN) {
-            if (currentThread != MAIN_THREAD) {
+        if (command.command == COMMAND_TO_MAIN) {
+            if (threadCurrent != THREAD_MAIN) {
                 BusMessageListener messenger = mBusMessageListener;
                 messenger.setRunnable(command.getRunnable());
                 messenger.runOnMain();
-                currentThread = MAIN_THREAD;
+                threadCurrent = THREAD_MAIN;
             } else {
                 command.run();
                 toNextStation();
@@ -128,9 +145,21 @@ public class ObjectBus {
             return;
         }
 
-        if (command.command == SEND) {
+        if (command.command == COMMAND_SEND) {
             command.run();
             toNextStation();
+            return;
+        }
+
+        if (command.command == COMMAND_TAKE_REST) {
+            runState = RUN_STATE_RESTING;
+            /*  do nothing,wait for notify to go on */
+            return;
+        }
+
+        if (command.command == COMMAND_TAKE_REST_AWHILE) {
+            runState = RUN_STATE_RESTING_AWHILE;
+            command.run();
             return;
         }
     }
@@ -147,7 +176,7 @@ public class ObjectBus {
      */
     public ObjectBus go(@NonNull Runnable task) {
 
-        mHowToPass.add(new Command(GO, task));
+        mHowToPass.add(new Command(COMMAND_GO, task));
         return this;
     }
 
@@ -160,7 +189,7 @@ public class ObjectBus {
      */
     public ObjectBus toUnder(@NonNull Runnable task) {
 
-        mHowToPass.add(new Command(TO_UNDER, task));
+        mHowToPass.add(new Command(COMMAND_TO_UNDER, task));
         return this;
     }
 
@@ -173,7 +202,7 @@ public class ObjectBus {
      */
     public ObjectBus toMain(@NonNull Runnable task) {
 
-        mHowToPass.add(new Command(TO_MAIN, task));
+        mHowToPass.add(new Command(COMMAND_TO_MAIN, task));
         return this;
     }
 
@@ -228,8 +257,34 @@ public class ObjectBus {
      */
     public ObjectBus sendDelayed(int what, int delayed, Object extra, OnMessageReceiveListener listener) {
 
-        mHowToPass.add(new Command(SEND, new SendRunnable(what, delayed, extra, listener)));
+        mHowToPass.add(new Command(COMMAND_SEND, new SendRunnable(what, delayed, extra, listener)));
         return this;
+    }
+
+
+    /**
+     * take a rest
+     */
+    public ObjectBus takeRest() {
+
+        mHowToPass.add(new Command(COMMAND_TAKE_REST, mRestRunnable));
+        return this;
+    }
+
+
+    public ObjectBus takeRest(int millisecond) {
+
+        mHowToPass.add(new Command(COMMAND_TAKE_REST_AWHILE, new TakeWhileRunnable(millisecond)));
+        return this;
+    }
+
+
+    public void stopRest() {
+
+        if (runState == RUN_STATE_RESTING || runState == RUN_STATE_RESTING_AWHILE) {
+
+            mBusMessageListener.notifyBusStopRest();
+        }
     }
 
 
@@ -238,8 +293,11 @@ public class ObjectBus {
      */
     public void run() {
 
+        runState = RUN_STATE_RUNNING;
         toNextStation();
     }
+
+    //============================ 添加乘客操作 ============================
 
 
     /**
@@ -354,7 +412,12 @@ public class ObjectBus {
 
     private class BusMessageListener implements OnMessageReceiveListener {
 
-        private static final int WHAT_MAIN = 3;
+        private static final String TAG = "BusMessageListener";
+
+        private static final int WHAT_MAIN         = 3;
+        private static final int WHAT_STOP_REST    = 4;
+        private static final int WHAT_NEXT_AT_MAIN = 5;
+        private static final int WHAT_REST_TIME_UP = 6;
 
         private Runnable mRunnable;
 
@@ -365,17 +428,81 @@ public class ObjectBus {
         }
 
 
+        /**
+         * run the {@link #mRunnable}at main
+         */
         void runOnMain() {
 
             Messengers.send(WHAT_MAIN, this);
         }
 
 
+        /**
+         * notify bus to next station when bus is RESTING
+         */
+        void notifyBusStopRest() {
+
+            runState = RUN_STATE_RUNNING;
+            Messengers.send(WHAT_STOP_REST, this);
+        }
+
+
+        /**
+         * notify bus to next station when bus is RESTING
+         */
+        void notifyBusStopRestAfter(int millisecond) {
+
+            Messengers.send(WHAT_REST_TIME_UP, millisecond, this);
+        }
+
+
+        private void takeBusAtMainToNext() {
+
+            Messengers.send(WHAT_NEXT_AT_MAIN, this);
+        }
+
+
         @Override
         public void onReceive(int what) {
 
-            mRunnable.run();
-            toNextStation();
+            /* run runnable on main */
+
+            if (what == WHAT_MAIN) {
+                if (mRunnable != null) {
+                    mRunnable.run();
+                    toNextStation();
+                }
+                return;
+            }
+
+            /* stop bus rest */
+
+            if (what == WHAT_STOP_REST) {
+
+                /* base on bus threadCurrent when him rest,to go on at that thread */
+
+                if (threadCurrent == THREAD_MAIN) {
+                    takeBusAtMainToNext();
+                } else {
+                    AppExecutor.execute(ObjectBus.this::toNextStation);
+                }
+
+                return;
+            }
+
+            /* take bus to stop rest at main thread */
+
+            if (what == WHAT_NEXT_AT_MAIN) {
+                toNextStation();
+                return;
+            }
+
+            if (what == WHAT_REST_TIME_UP) {
+
+                if (runState == RUN_STATE_RESTING_AWHILE) {
+                    notifyBusStopRest();
+                }
+            }
         }
     }
 
@@ -408,6 +535,38 @@ public class ObjectBus {
 
                 Messengers.send(what, delayed, extra, receiveListener);
             }
+        }
+    }
+
+    //============================ rest Runnable ============================
+
+    private class RestRunnable implements Runnable {
+
+        @Override
+        public void run() {
+
+            /* take a rest, do nothing */
+
+        }
+    }
+
+    //============================ take a while Runnable ============================
+
+    private class TakeWhileRunnable implements Runnable {
+
+        private int delayed;
+
+
+        public TakeWhileRunnable(int delayed) {
+
+            this.delayed = delayed;
+        }
+
+
+        @Override
+        public void run() {
+
+            mBusMessageListener.notifyBusStopRestAfter(delayed);
         }
     }
 }

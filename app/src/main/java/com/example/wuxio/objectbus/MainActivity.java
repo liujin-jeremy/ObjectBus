@@ -16,8 +16,6 @@ import com.example.objectbus.schedule.Scheduler;
 import com.example.objectbus.schedule.run.AsyncThreadCallBack;
 import com.example.objectbus.schedule.run.MainThreadCallBack;
 
-import java.util.Random;
-
 /**
  * @author wuxio
  */
@@ -374,9 +372,9 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     //============================ bus ============================
 
-    private final Random mRandom = new Random();
-
     private boolean running = false;
+
+    ObjectBus bus = new ObjectBus();
 
 
     public void testBusGo(View view) {
@@ -385,83 +383,46 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             return;
         }
 
-        ObjectBus bus = new ObjectBus();
+        running = true;
+
         bus.go(new Runnable() {
-
             @Override
             public void run() {
 
-                running = true;
-
-                print("bus Go 01");
+                print("bus go station 01 go");
             }
         }).toUnder(new Runnable() {
             @Override
             public void run() {
 
-                print("bus toUnder 02");
+                print("bus go station 02 at under");
             }
-        }).go(new Runnable() {
+        }).takeRest(2000).go(new Runnable() {
             @Override
             public void run() {
 
-                print("bus Go 03");
-                running = false;
-            }
-        }).toUnder(new Runnable() {
-            @Override
-            public void run() {
-
-                print("bus toUnder 04");
+                print("bus go station 03 go");
             }
         }).toMain(new Runnable() {
-
             @Override
             public void run() {
 
-                running = true;
-
-                print("bus toMain 05");
+                print("bus go station 04 at main");
             }
-        }).go(new Runnable() {
+        }).takeRest(2000).go(new Runnable() {
             @Override
             public void run() {
 
-                print("bus Go 06");
+                print("bus go station 05 go");
+
                 running = false;
             }
-        }).toUnder(new Runnable() {
-            @Override
-            public void run() {
+        }).run();
+    }
 
-                print("bus toUnder 07");
-            }
-        }).go(new Runnable() {
-            @Override
-            public void run() {
 
-                print("bus Go 08");
-                running = false;
-            }
-        }).send(1990, MainManager.getInstance()).toMain(new Runnable() {
+    public void testBusGo02(View view) {
 
-            @Override
-            public void run() {
-
-                running = true;
-
-                print("bus toMain 09");
-            }
-        }).toMain(new Runnable() {
-
-            @Override
-            public void run() {
-
-                running = true;
-
-                print("bus toMain 10");
-            }
-        }).sendDelayed(1990, 2000, "hello from Bus", MainManager.getInstance())
-                .run();
+        bus.stopRest();
     }
 }
