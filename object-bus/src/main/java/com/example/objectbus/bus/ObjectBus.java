@@ -107,7 +107,10 @@ public class ObjectBus implements OnMessageReceiveListener {
             doCommand(command);
         } else {
 
-            mPassBy.getAndAdd(-1);
+            // TODO: 2018-05-05 添加更多选项
+
+            mHowToPass.clear();
+            mPassBy.set(0);
         }
     }
 
