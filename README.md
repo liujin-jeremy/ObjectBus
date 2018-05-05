@@ -25,7 +25,7 @@ app.gradle
 
 ```
 dependencies {
-	implementation 'com.github.threekilogram:ObjectBus:1.0'
+	implementation 'com.github.threekilogram:ObjectBus:1.2'
 }
 ```
 
@@ -273,6 +273,103 @@ I/MainActivity: : Thread: main time: 1525424289586 msg:  do someThing
 I/MainActivity: : Thread: main time: 1525424289586 msg:  do finished 
 I/MainActivity: : Thread: AppThread-0 time: 1525424292591 msg:  receive message  --> 收到消息执行操作
 ```
+
+### callable
+
+```
+ObjectBus bus = new ObjectBus();
+
+Callable< String > callable = new Callable< String >() {
+    @Override
+    public String call() throws Exception {
+        Thread.sleep(1000);
+        return String.valueOf(1990);
+    }
+};
+
+bus.toUnder(callable, "CAll")
+        .go(new Runnable() {
+            @Override
+            public void run() {
+                String result = (String) bus.get("CAll");
+                Log.i(TAG, "run:" + result);
+            }
+        }).run();
+```
+
+![](img/bus03.gif)
+
+```
+I/MainActivity: run:1990
+```
+
+### 多任务并发执行(有返回值)
+
+```
+ObjectBus bus = new ObjectBus();
+
+List< Callable< String > > callableList = new ArrayList<>();
+for (int i = 0; i < 10; i++) {
+    int j = i;
+    Callable< String > callable = new Callable< String >() {
+        @Override
+        public String call() throws Exception {
+            Thread.sleep(1000);
+            return String.valueOf(j);
+        }
+    };
+    callableList.add(callable);
+}
+
+bus.toUnder(callableList, "CAll_LIST")
+        .go(new Runnable() {
+            @Override
+            public void run() {
+                List< String > result = (List< String >) bus.get("CAll_LIST");
+                Log.i(TAG, "run:" + result);
+            }
+        }).run();
+
+```
+
+![](img/bus02.gif)
+
+```
+I/MainActivity: run:[0, 1, 3, 2, 4]
+```
+
+###  多任务并发执行
+
+```
+ObjectBus bus = new ObjectBus();
+
+List< Runnable > runnableList = new ArrayList<>();
+for (int i = 0; i < 4; i++) {
+    Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                print("start");
+                Thread.sleep(1000);
+                print("end");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    };
+    runnableList.add(runnable);
+}
+
+bus.toUnder(runnableList)
+        .go(new Runnable() {
+            @Override
+            public void run() {
+                print("all finished");
+            }
+        }).run();
+```
+
+![](img/bus04.gif)
 
 ## Messengers
 

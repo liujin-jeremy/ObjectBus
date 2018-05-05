@@ -558,7 +558,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
         List< Callable< String > > callableList = new ArrayList<>();
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 5; i++) {
 
             int j = i;
 
@@ -624,7 +624,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
         List< Runnable > runnableList = new ArrayList<>();
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 4; i++) {
 
             Runnable runnable = new Runnable() {
                 @Override
