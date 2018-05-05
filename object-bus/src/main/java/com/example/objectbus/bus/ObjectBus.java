@@ -10,6 +10,8 @@ import com.example.objectbus.message.Messengers;
 import com.example.objectbus.message.OnMessageReceiveListener;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -29,6 +31,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     private static final int COMMAND_SEND             = 0b1000;
     private static final int COMMAND_TAKE_REST        = 0b10000;
     private static final int COMMAND_TAKE_REST_AWHILE = 0b100000;
+    private static final int COMMAND_MULTI_CALLABLE   = 0b1000000;
 
     /**
      * current thread state
@@ -134,7 +137,7 @@ public class ObjectBus implements OnMessageReceiveListener {
 
         /* run runnable on threadPool */
 
-        if (command.command == COMMAND_TO_UNDER) {
+        if (command.command == COMMAND_TO_UNDER || command.command == COMMAND_MULTI_CALLABLE) {
 
             if (threadCurrent != THREAD_EXECUTOR) {
 
@@ -143,6 +146,7 @@ public class ObjectBus implements OnMessageReceiveListener {
                 if (mExecutorRunnable == null) {
                     mExecutorRunnable = new ExecutorRunnable();
                 }
+
                 Runnable runnable = command.getRunnable();
                 runnable = wrapperRunnableIfHaveOnBusRunningListener(runnable);
                 mExecutorRunnable.setRunnable(runnable);
@@ -217,6 +221,7 @@ public class ObjectBus implements OnMessageReceiveListener {
 
             //return;
         }
+
     }
 
     //============================ flow action ============================
@@ -247,6 +252,16 @@ public class ObjectBus implements OnMessageReceiveListener {
     public ObjectBus toUnder(@NonNull Runnable task) {
 
         mHowToPass.add(new Command(COMMAND_TO_UNDER, task));
+        return this;
+    }
+
+
+    public < T > ObjectBus toUnder(@NonNull List< Callable< T > > callableList, String key) {
+
+        mHowToPass.add(new Command(
+                COMMAND_MULTI_CALLABLE,
+                new ConcurrentRunnable<>(callableList, key))
+        );
         return this;
     }
 
@@ -872,7 +887,7 @@ public class ObjectBus implements OnMessageReceiveListener {
         private int delayed;
 
 
-        public TakeWhileRunnable(int delayed) {
+        TakeWhileRunnable(int delayed) {
 
             this.delayed = delayed;
         }
@@ -939,6 +954,28 @@ public class ObjectBus implements OnMessageReceiveListener {
                 e.printStackTrace();
                 listener.onRunnableException(ObjectBus.this, runnable, e);
             }
+        }
+    }
+
+    //============================ multi runnable Concurrent ============================
+
+    private class ConcurrentRunnable < T > implements Runnable {
+
+        List< Callable< T > > mCallableList;
+        private String key;
+
+
+        ConcurrentRunnable(List< Callable< T > > callableList, String key) {
+
+            mCallableList = callableList;
+        }
+
+
+        @Override
+        public void run() {
+
+            List< T > list = AppExecutor.submitAndGet(mCallableList);
+            take(list, key);
         }
     }
 }

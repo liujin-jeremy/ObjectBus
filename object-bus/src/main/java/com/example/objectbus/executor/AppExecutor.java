@@ -2,6 +2,12 @@ package com.example.objectbus.executor;
 
 import android.support.annotation.NonNull;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -63,6 +69,7 @@ public class AppExecutor {
         try {
             sPoolExecutor.execute(runnable);
         } catch (Exception e) {
+
             if (sPoolExecutor == null) {
                 throw new RuntimeException(" you should  call init() first");
             } else {
@@ -70,6 +77,94 @@ public class AppExecutor {
             }
         }
     }
+
+
+    public static < T > Future< T > submit(Callable< T > callable) {
+
+        /* 使用try..catch 增加程序健壮性,防止线程意外结束 */
+
+        try {
+
+            return sPoolExecutor.submit(callable);
+        } catch (Exception e) {
+
+            if (sPoolExecutor == null) {
+                throw new RuntimeException(" you should  call init() first");
+            } else {
+                e.printStackTrace();
+            }
+        }
+
+        return null;
+    }
+
+
+    public static < T > T submitAndGet(Callable< T > callable) {
+
+        /* 使用try..catch 增加程序健壮性,防止线程意外结束 */
+
+        try {
+
+            Future< T > future = sPoolExecutor.submit(callable);
+            return future.get();
+        } catch (Exception e) {
+
+            if (sPoolExecutor == null) {
+                throw new RuntimeException(" you should  call init() first");
+            } else {
+                e.printStackTrace();
+            }
+        }
+
+        return null;
+    }
+
+
+    public static < T > CompletionService< T > submit(List< Callable< T > > callableList) {
+
+        ExecutorCompletionService< T > completionService = new ExecutorCompletionService<>(sPoolExecutor);
+
+        int size = callableList.size();
+        for (int i = 0; i < size; i++) {
+
+            try {
+                Callable< T > callable = callableList.get(i);
+                completionService.submit(callable);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return completionService;
+    }
+
+
+    public static < T > List< T > submitAndGet(List< Callable< T > > callableList) {
+
+        ExecutorCompletionService< T > completionService = new ExecutorCompletionService<>(sPoolExecutor);
+
+        int size = callableList.size();
+        for (int i = 0; i < size; i++) {
+            Callable< T > callable = callableList.get(i);
+            completionService.submit(callable);
+        }
+
+        List< T > results = new ArrayList<>(size);
+
+        for (int i = 0; i < size; i++) {
+
+            try {
+
+                T t = completionService.take().get();
+                results.add(t);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return results;
+    }
+
+    //============================ 结束任务 ============================
 
     //============================ 配置类 ============================
 
