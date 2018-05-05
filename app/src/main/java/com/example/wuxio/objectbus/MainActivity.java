@@ -424,7 +424,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
             print(" do task 01 @Main");
             int j = 99 + 99;
-            bus.takeAs(j, "result");
+            bus.take(j, "result");
 
         }).toUnder(() -> {
 
@@ -438,7 +438,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
             Integer result = (Integer) bus.get("result");
             int k = result + 1002;
-            bus.takeAs(k, "result");
+            bus.take(k, "result");
 
         }).go(() -> {
 
@@ -452,7 +452,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
             Integer result = (Integer) bus.get("result");
             int l = result + 3000;
-            bus.takeAs(l, "result");
+            bus.take(l, "result");
 
         }).toMain(() -> {
 

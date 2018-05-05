@@ -69,7 +69,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     private BusMessageListener mBusMessageManger = new BusMessageListener();
 
     /**
-     * take customs to bus,{@link #takeAs(Object, String)},{@link #get(String)},{@link #off(String)}
+     * take customs to bus,{@link #take(Object, String)},{@link #get(String)},{@link #off(String)}
      */
     private ArrayMap< String, Object > mExtras = new ArrayMap<>();
 
@@ -376,7 +376,7 @@ public class ObjectBus implements OnMessageReceiveListener {
      * @param extra extra to bus
      * @param key   key
      */
-    public void takeAs(Object extra, String key) {
+    public void take(Object extra, String key) {
 
         mExtras.put(key, extra);
     }
