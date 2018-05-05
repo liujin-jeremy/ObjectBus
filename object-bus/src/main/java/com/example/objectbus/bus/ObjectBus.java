@@ -69,7 +69,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     private BusMessageListener mBusMessageManger = new BusMessageListener();
 
     /**
-     * take customs to bus,{@link #take(Object, String)},{@link #get(String)},{@link #off(String)}
+     * take customs to bus,{@link #take(Object, String)},{@link #get(String)},{@link #getOff(String)}
      */
     private ArrayMap< String, Object > mExtras = new ArrayMap<>();
 
@@ -402,7 +402,7 @@ public class ObjectBus implements OnMessageReceiveListener {
      * @return extra
      */
     @Nullable
-    public Object off(String key) {
+    public Object getOff(String key) {
 
         return mExtras.remove(key);
     }
