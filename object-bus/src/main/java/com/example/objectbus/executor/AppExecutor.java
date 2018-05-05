@@ -220,6 +220,26 @@ public class AppExecutor {
 
     //============================ 结束任务 ============================
 
+
+    /**
+     * 不再添加任务,执行完所有任务
+     */
+    public static void shutDown() {
+
+        if (!sPoolExecutor.isShutdown()) {
+            sPoolExecutor.shutdownNow();
+        }
+    }
+
+
+    /**
+     * 立即停止,未执行的不再执行,正在执行的任务如果判断{@link Thread#isInterrupted()}可以得到true;如果有抛出异常的代码则任务结束
+     */
+    public static void shutDownNow() {
+
+        sPoolExecutor.shutdownNow();
+    }
+
     //============================ 配置类 ============================
 
     private static class AppThreadFactory implements ThreadFactory {
