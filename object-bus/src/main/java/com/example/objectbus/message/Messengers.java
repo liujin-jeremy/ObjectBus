@@ -13,7 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * @author wuxio 2018-05-01:20:16
  * 该类用于两个类之间通信
- * 用于发送一个通知,主要用于后台任务处理完成之后,继续下一步任务,使用handler 1.解决方法栈过长,2.可以切换到主线程
+ * 用于发送一个通知,主要用于后台任务处理完成之后,继续下一步任务,
+ * 使用handler 1.解决方法栈过长,2.可以切换到主线程
  */
 public class Messengers {
 
@@ -36,6 +37,13 @@ public class Messengers {
 
         sSendHandler = new SendHandler(looper);
         sMainHandler = new SendHandler(Looper.getMainLooper());
+    }
+
+
+    public static void removeAllMessage() {
+
+        sSendHandler.removeCallbacksAndMessages(null);
+        sMainHandler.removeCallbacksAndMessages(null);
     }
 
 
