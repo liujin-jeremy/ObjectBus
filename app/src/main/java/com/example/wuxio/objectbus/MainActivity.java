@@ -16,6 +16,10 @@ import com.example.objectbus.schedule.Scheduler;
 import com.example.objectbus.schedule.run.AsyncThreadCallBack;
 import com.example.objectbus.schedule.run.MainThreadCallBack;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+
 /**
  * @author wuxio
  */
@@ -544,6 +548,110 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         }).run();
 
         Messengers.send(88, 3000, bus);
+
+    }
+
+
+    public void testBusCallableList(View view) {
+
+        ObjectBus bus = new ObjectBus();
+
+        List< Callable< String > > callableList = new ArrayList<>();
+
+        for (int i = 0; i < 10; i++) {
+
+            int j = i;
+
+            Callable< String > callable = new Callable< String >() {
+                @Override
+                public String call() throws Exception {
+
+                    Thread.sleep(1000);
+
+                    return String.valueOf(j);
+                }
+            };
+
+            callableList.add(callable);
+
+        }
+
+        bus.toUnder(callableList, "CAll_LIST")
+                .go(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        List< String > result = (List< String >) bus.get("CAll_LIST");
+
+                        Log.i(TAG, "run:" + result);
+                    }
+                }).run();
+
+    }
+
+
+    public void testBusCallable(View view) {
+
+        ObjectBus bus = new ObjectBus();
+
+        Callable< String > callable = new Callable< String >() {
+            @Override
+            public String call() throws Exception {
+
+                Thread.sleep(1000);
+
+                return String.valueOf(1990);
+            }
+        };
+
+        bus.toUnder(callable, "CAll")
+                .go(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        String result = (String) bus.get("CAll");
+
+                        Log.i(TAG, "run:" + result);
+                    }
+                }).run();
+
+    }
+
+
+    public void testBusRunnableList(View view) {
+
+        ObjectBus bus = new ObjectBus();
+
+        List< Runnable > runnableList = new ArrayList<>();
+
+        for (int i = 0; i < 10; i++) {
+
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+
+                    try {
+                        print("start");
+                        Thread.sleep(1000);
+                        print("end");
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+
+            runnableList.add(runnable);
+
+        }
+
+        bus.toUnder(runnableList)
+                .go(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        print("all finished");
+                    }
+                }).run();
 
     }
 }

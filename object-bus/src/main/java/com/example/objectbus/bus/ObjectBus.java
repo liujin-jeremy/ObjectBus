@@ -21,17 +21,21 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ObjectBus implements OnMessageReceiveListener {
 
+    private static final String TAG = "ObjectBus";
 
     /**
      * command used for {@link Command} to how to do runnable
      */
     private static final int COMMAND_GO               = 0b1;
     private static final int COMMAND_TO_UNDER         = 0b10;
+    private static final int COMMAND_CALLABLE         = 0b10;
+    private static final int COMMAND_MULTI_CALLABLE   = 0b10;
+    private static final int COMMAND_MULTI_RUNNABLE   = 0b10;
     private static final int COMMAND_TO_MAIN          = 0b100;
     private static final int COMMAND_SEND             = 0b1000;
     private static final int COMMAND_TAKE_REST        = 0b10000;
     private static final int COMMAND_TAKE_REST_AWHILE = 0b100000;
-    private static final int COMMAND_MULTI_CALLABLE   = 0b1000000;
+
 
     /**
      * current thread state
@@ -137,7 +141,7 @@ public class ObjectBus implements OnMessageReceiveListener {
 
         /* run runnable on threadPool */
 
-        if (command.command == COMMAND_TO_UNDER || command.command == COMMAND_MULTI_CALLABLE) {
+        if (command.command == COMMAND_TO_UNDER) {
 
             if (threadCurrent != THREAD_EXECUTOR) {
 
@@ -256,6 +260,48 @@ public class ObjectBus implements OnMessageReceiveListener {
     }
 
 
+    /**
+     * run list of runnable on {@link com.example.objectbus.executor.AppExecutor} thread
+     *
+     * @param tasks task to run
+     * @return self
+     */
+    public ObjectBus toUnder(@NonNull List< Runnable > tasks) {
+
+        mHowToPass.add(new Command(
+                COMMAND_TO_UNDER,
+                new ListRunnable(tasks))
+        );
+        return this;
+    }
+
+
+    /**
+     * to do callable on BackThread and save value
+     *
+     * @param callable need run
+     * @param key      key for save
+     * @param <T>      result type
+     * @return self
+     */
+    public < T > ObjectBus toUnder(@NonNull Callable< T > callable, String key) {
+
+        mHowToPass.add(new Command(
+                COMMAND_CALLABLE,
+                new CallableRunnable<>(callable, key))
+        );
+        return this;
+    }
+
+
+    /**
+     * to do callable on BackThread and save value
+     *
+     * @param callableList need run
+     * @param key          key for save
+     * @param <T>          result type
+     * @return self
+     */
     public < T > ObjectBus toUnder(@NonNull List< Callable< T > > callableList, String key) {
 
         mHowToPass.add(new Command(
@@ -957,17 +1003,61 @@ public class ObjectBus implements OnMessageReceiveListener {
         }
     }
 
+    //============================ list runnable ============================
+
+    private class ListRunnable implements Runnable {
+
+        private List< Runnable > mRunnableList;
+
+
+        public ListRunnable(List< Runnable > runnableList) {
+
+            mRunnableList = runnableList;
+        }
+
+
+        @Override
+        public void run() {
+
+            AppExecutor.execute(mRunnableList);
+        }
+    }
+
+    //============================ callable Runnable ============================
+
+    private class CallableRunnable < T > implements Runnable {
+
+        private Callable< T > mCallable;
+        private String        key;
+
+
+        public CallableRunnable(Callable< T > callable, String key) {
+
+            this.key = key;
+            mCallable = callable;
+        }
+
+
+        @Override
+        public void run() {
+
+            T t = AppExecutor.submitAndGet(mCallable);
+            take(t, key);
+        }
+    }
+
     //============================ multi runnable Concurrent ============================
 
     private class ConcurrentRunnable < T > implements Runnable {
 
-        List< Callable< T > > mCallableList;
+        java.util.List< Callable< T > > mCallableList;
         private String key;
 
 
         ConcurrentRunnable(List< Callable< T > > callableList, String key) {
 
             mCallableList = callableList;
+            this.key = key;
         }
 
 

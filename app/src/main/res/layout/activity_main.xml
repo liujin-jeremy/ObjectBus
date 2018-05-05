@@ -162,5 +162,26 @@
 
         </LinearLayout>
 
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testBusCallableList"
+                android:text="testBusCallableList"
+                />
+
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testBusCallable"
+                android:text="testBusCallable"
+                />
+
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testBusRunnableList"
+                android:text="testBusRunnableList"
+                />
+
     </LinearLayout>
 </android.support.v4.widget.NestedScrollView>

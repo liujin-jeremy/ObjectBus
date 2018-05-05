@@ -79,6 +79,13 @@ public class AppExecutor {
     }
 
 
+    /**
+     * submit a callable
+     *
+     * @param callable callable
+     * @param <T>      type
+     * @return use {@link Future#get()} to get result
+     */
     public static < T > Future< T > submit(Callable< T > callable) {
 
         /* 使用try..catch 增加程序健壮性,防止线程意外结束 */
@@ -99,6 +106,13 @@ public class AppExecutor {
     }
 
 
+    /**
+     * submit a callable, and return result
+     *
+     * @param callable callable
+     * @param <T>      result type
+     * @return result, or null if Exception
+     */
     public static < T > T submitAndGet(Callable< T > callable) {
 
         /* 使用try..catch 增加程序健壮性,防止线程意外结束 */
@@ -120,6 +134,13 @@ public class AppExecutor {
     }
 
 
+    /**
+     * submit a list of callable to run
+     *
+     * @param callableList need to run
+     * @param <T>          result type
+     * @return use {@link CompletionService#take()} to get {@link Future#get()}
+     */
     public static < T > CompletionService< T > submit(List< Callable< T > > callableList) {
 
         ExecutorCompletionService< T > completionService = new ExecutorCompletionService<>(sPoolExecutor);
@@ -135,6 +156,38 @@ public class AppExecutor {
             }
         }
         return completionService;
+    }
+
+
+    /**
+     * submit a list of runnable to run at same time
+     *
+     * @param runnableList need to do
+     */
+    public static void execute(List< Runnable > runnableList) {
+
+        Object object = new Object();
+        ExecutorCompletionService< Object > completionService =
+                new ExecutorCompletionService<>(sPoolExecutor);
+
+        int size = runnableList.size();
+        for (int i = 0; i < size; i++) {
+
+            Runnable runnable = runnableList.get(i);
+            completionService.submit(runnable, object);
+        }
+
+        for (int i = 0; i < size; i++) {
+
+            try {
+
+                completionService.take().get();
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+            }
+        }
     }
 
 
@@ -161,6 +214,7 @@ public class AppExecutor {
                 e.printStackTrace();
             }
         }
+
         return results;
     }
 
