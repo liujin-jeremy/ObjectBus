@@ -73,7 +73,7 @@ public class ObjectBus implements OnMessageReceiveListener {
      * {@link #stopRest()}:to stop bus rest
      * {@link TakeWhileRunnable#run()}: to top bus rest
      */
-    private BusMessageListener mBusMessageManger;
+    private BusMessenger mBusMessageManger;
 
     /**
      * take customs to bus,{@link #take(Object, String)},{@link #get(String)},{@link #getOff(String)}
@@ -177,10 +177,10 @@ public class ObjectBus implements OnMessageReceiveListener {
                 /* not on main, use messenger change to MainThread */
 
                 if (mBusMessageManger == null) {
-                    mBusMessageManger = new BusMessageListener();
+                    mBusMessageManger = new BusMessenger();
                 }
 
-                BusMessageListener messenger = mBusMessageManger;
+                BusMessenger messenger = mBusMessageManger;
                 Runnable runnable = command.getRunnable();
                 runnable = wrapperRunnableIfHaveOnBusRunningListener(runnable);
                 messenger.setRunnable(runnable);
@@ -473,6 +473,29 @@ public class ObjectBus implements OnMessageReceiveListener {
                         runnable,
                         afterRunAction))
         );
+        return this;
+    }
+
+    //============================ 延迟创建runnable ============================
+
+
+    public < T extends Runnable > ObjectBus go(LazyInitializeRunnableAction< T > action) {
+
+        mHowToPass.add(new Command(COMMAND_GO, new LazyInitRunnable(action)));
+        return this;
+    }
+
+
+    public < T extends Runnable > ObjectBus toUnder(LazyInitializeRunnableAction< T > action) {
+
+        mHowToPass.add(new Command(COMMAND_TO_UNDER, new LazyInitRunnable(action)));
+        return this;
+    }
+
+
+    public < T extends Runnable > ObjectBus toMain(LazyInitializeRunnableAction< T > action) {
+
+        mHowToPass.add(new Command(COMMAND_TO_MAIN, new LazyInitRunnable(action)));
         return this;
     }
 
@@ -860,7 +883,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     /**
      * bus use this to communicate with {@link Messengers}
      */
-    private class BusMessageListener implements OnMessageReceiveListener {
+    private class BusMessenger implements OnMessageReceiveListener {
 
 
         /**
@@ -1274,6 +1297,30 @@ public class ObjectBus implements OnMessageReceiveListener {
             if (mOnRunnableFinishAction != null) {
                 mOnRunnableFinishAction.onAfterRun(ObjectBus.this, mRunnable);
             }
+        }
+    }
+
+    //============================ lazy initialize ============================
+
+    /**
+     * 用于延迟创建 runnable
+     */
+    private class LazyInitRunnable implements Runnable {
+
+        private LazyInitializeRunnableAction mInitializeRunnableAction;
+
+
+        public LazyInitRunnable(LazyInitializeRunnableAction initializeRunnableAction) {
+
+            mInitializeRunnableAction = initializeRunnableAction;
+        }
+
+
+        @Override
+        public void run() {
+
+            Runnable runnable = mInitializeRunnableAction.onLazyInitialize();
+            runnable.run();
         }
     }
 }
