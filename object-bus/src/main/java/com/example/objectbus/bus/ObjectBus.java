@@ -532,29 +532,6 @@ public class ObjectBus implements OnMessageReceiveListener {
         return this;
     }
 
-    //============================ 延迟创建runnable ============================
-
-
-    public < T extends Runnable > ObjectBus go(LazyInitializeRunnableAction< T > action) {
-
-        mHowToPass.add(new Command(COMMAND_GO, new LazyInitRunnable(action)));
-        return this;
-    }
-
-
-    public < T extends Runnable > ObjectBus toUnder(LazyInitializeRunnableAction< T > action) {
-
-        mHowToPass.add(new Command(COMMAND_TO_UNDER, new LazyInitRunnable(action)));
-        return this;
-    }
-
-
-    public < T extends Runnable > ObjectBus toMain(LazyInitializeRunnableAction< T > action) {
-
-        mHowToPass.add(new Command(COMMAND_TO_MAIN, new LazyInitRunnable(action)));
-        return this;
-    }
-
     //============================ 向外发送消息 ============================
 
 
@@ -1163,30 +1140,6 @@ public class ObjectBus implements OnMessageReceiveListener {
                     mOnRunExceptionHandler.onException(e);
                 }
             }
-        }
-    }
-
-    //============================ lazy initialize ============================
-
-    /**
-     * 用于延迟创建 runnable
-     */
-    private class LazyInitRunnable implements Runnable {
-
-        private LazyInitializeRunnableAction mInitializeRunnableAction;
-
-
-        public LazyInitRunnable(LazyInitializeRunnableAction initializeRunnableAction) {
-
-            mInitializeRunnableAction = initializeRunnableAction;
-        }
-
-
-        @Override
-        public void run() {
-
-            Runnable runnable = mInitializeRunnableAction.onLazyInitialize();
-            runnable.run();
         }
     }
 }

@@ -7,7 +7,6 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.objectbus.bus.LazyInitializeRunnableAction;
 import com.example.objectbus.bus.ObjectBus;
 import com.example.objectbus.bus.OnAfterRunAction;
 import com.example.objectbus.bus.OnBeforeRunAction;
