@@ -351,7 +351,8 @@ public class ObjectBus implements OnMessageReceiveListener {
      * @return self
      */
     public < T extends Runnable > ObjectBus go(
-            @NonNull T runnable, OnAfterRunAction< T > afterRunAction) {
+            @NonNull T runnable,
+            OnAfterRunAction< T > afterRunAction) {
 
         return go(null, runnable, afterRunAction);
     }
