@@ -699,44 +699,4 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             }
         }).run();
     }
-
-
-    public void testBusLazyInit(View view) {
-
-        ObjectBus bus = new ObjectBus();
-        bus.go(new Runnable() {
-            @Override
-            public void run() {
-
-                print(" do 01 ");
-                bus.take("hello params", "key");
-            }
-        }).go(new LazyInitializeRunnableAction< Lazy >() {
-            @Override
-            public Lazy onLazyInitialize() {
-
-                return new Lazy((String) bus.get("key"));
-            }
-        }).run();
-
-    }
-
-
-    class Lazy implements Runnable {
-
-        private String mString;
-
-
-        public Lazy(String string) {
-
-            mString = string;
-        }
-
-
-        @Override
-        public void run() {
-
-            print(mString);
-        }
-    }
 }
