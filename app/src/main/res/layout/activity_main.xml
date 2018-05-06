@@ -183,5 +183,12 @@
                 android:text="testBusRunnableList"
                 />
 
+        <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testBusLazyGo"
+                android:text="testBusLazyGo"
+                />
+
     </LinearLayout>
 </android.support.v4.widget.NestedScrollView>

@@ -8,6 +8,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.objectbus.bus.ObjectBus;
+import com.example.objectbus.bus.OnAfterRunAction;
+import com.example.objectbus.bus.OnBeforeRunAction;
 import com.example.objectbus.executor.OnExecuteRunnable;
 import com.example.objectbus.message.Messengers;
 import com.example.objectbus.message.OnMessageReceiveListener;
@@ -653,5 +655,41 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                     }
                 }).run();
 
+    }
+
+
+    public void testBusLazyGo(View view) {
+
+        ObjectBus bus = new ObjectBus();
+
+        bus.go(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" do something 01 ");
+            }
+        }).go(new OnBeforeRunAction< Runnable >() {
+            @Override
+            public void onBeforeRun(Runnable runnable) {
+
+                print("before take to bus" + runnable);
+                bus.take("Hello runnable", "key");
+            }
+        }, new Runnable() {
+            @Override
+            public void run() {
+
+                String msg = (String) bus.get("key");
+
+                print(msg + " get from bus ");
+            }
+        }, new OnAfterRunAction< Runnable >() {
+            @Override
+            public void onAfterRun(Object bus, Runnable runnable) {
+
+                print("after run " + runnable);
+
+            }
+        }).run();
     }
 }

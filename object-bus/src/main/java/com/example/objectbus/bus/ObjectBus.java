@@ -27,12 +27,12 @@ public class ObjectBus implements OnMessageReceiveListener {
      * command used for {@link Command} to how to do runnable
      */
     private static final int COMMAND_GO               = 0b1;
+    private static final int COMMAND_SEND             = 0b1;
     private static final int COMMAND_TO_UNDER         = 0b10;
     private static final int COMMAND_CALLABLE         = 0b10;
     private static final int COMMAND_MULTI_CALLABLE   = 0b10;
     private static final int COMMAND_MULTI_RUNNABLE   = 0b10;
     private static final int COMMAND_TO_MAIN          = 0b100;
-    private static final int COMMAND_SEND             = 0b1000;
     private static final int COMMAND_TAKE_REST        = 0b10000;
     private static final int COMMAND_TAKE_REST_AWHILE = 0b100000;
 
@@ -73,12 +73,12 @@ public class ObjectBus implements OnMessageReceiveListener {
      * {@link #stopRest()}:to stop bus rest
      * {@link TakeWhileRunnable#run()}: to top bus rest
      */
-    private BusMessageListener mBusMessageManger = new BusMessageListener();
+    private BusMessageListener mBusMessageManger;
 
     /**
      * take customs to bus,{@link #take(Object, String)},{@link #get(String)},{@link #getOff(String)}
      */
-    private ArrayMap< String, Object > mExtras = new ArrayMap<>();
+    private ArrayMap< String, Object > mExtras;
 
     /**
      * do nothing just take a rest ,{@link #COMMAND_TAKE_REST}
@@ -176,6 +176,10 @@ public class ObjectBus implements OnMessageReceiveListener {
 
                 /* not on main, use messenger change to MainThread */
 
+                if (mBusMessageManger == null) {
+                    mBusMessageManger = new BusMessageListener();
+                }
+
                 BusMessageListener messenger = mBusMessageManger;
                 Runnable runnable = command.getRunnable();
                 runnable = wrapperRunnableIfHaveOnBusRunningListener(runnable);
@@ -190,16 +194,6 @@ public class ObjectBus implements OnMessageReceiveListener {
                 toNextStation();
             }
 
-            return;
-        }
-
-        /* send a message on currentThread */
-
-        if (command.command == COMMAND_SEND) {
-            Runnable runnable = command.getRunnable();
-            runnable = wrapperRunnableIfHaveOnBusRunningListener(runnable);
-            runnable.run();
-            toNextStation();
             return;
         }
 
@@ -237,43 +231,31 @@ public class ObjectBus implements OnMessageReceiveListener {
      * {@link com.example.objectbus.executor.AppExecutor} thread;
      * if call {@link #toMain(Runnable)} current thread will be main thread;
      *
-     * @param task task to run
+     * @param runnable runnable to run
      * @return self
      */
-    public ObjectBus go(@NonNull Runnable task) {
+    public ObjectBus go(@NonNull Runnable runnable) {
 
-        mHowToPass.add(new Command(COMMAND_GO, task));
+        mHowToPass.add(new Command(COMMAND_GO, runnable));
         return this;
     }
+
+    //============================ 后台执行 ============================
 
 
     /**
      * run runnable on {@link com.example.objectbus.executor.AppExecutor} thread
      *
-     * @param task task to run
+     * @param runnable runnable to run
      * @return self
      */
-    public ObjectBus toUnder(@NonNull Runnable task) {
+    public ObjectBus toUnder(@NonNull Runnable runnable) {
 
-        mHowToPass.add(new Command(COMMAND_TO_UNDER, task));
+        mHowToPass.add(new Command(COMMAND_TO_UNDER, runnable));
         return this;
     }
 
-
-    /**
-     * run list of runnable on {@link com.example.objectbus.executor.AppExecutor} thread
-     *
-     * @param tasks task to run
-     * @return self
-     */
-    public ObjectBus toUnder(@NonNull List< Runnable > tasks) {
-
-        mHowToPass.add(new Command(
-                COMMAND_TO_UNDER,
-                new ListRunnable(tasks))
-        );
-        return this;
-    }
+    //============================ callable 执行 ============================
 
 
     /**
@@ -289,6 +271,24 @@ public class ObjectBus implements OnMessageReceiveListener {
         mHowToPass.add(new Command(
                 COMMAND_CALLABLE,
                 new CallableRunnable<>(callable, key))
+        );
+        return this;
+    }
+
+    //============================ 并发多任务后台执行 ============================
+
+
+    /**
+     * run list of runnable on {@link com.example.objectbus.executor.AppExecutor} thread
+     *
+     * @param runnableList task to run
+     * @return self
+     */
+    public ObjectBus toUnder(@NonNull List< Runnable > runnableList) {
+
+        mHowToPass.add(new Command(
+                COMMAND_MULTI_RUNNABLE,
+                new ListRunnable(runnableList))
         );
         return this;
     }
@@ -311,18 +311,171 @@ public class ObjectBus implements OnMessageReceiveListener {
         return this;
     }
 
+    //============================ 主线程任务 ============================
+
 
     /**
      * run runnable on main thread
      *
-     * @param task task to run
+     * @param runnable runnable to run
      * @return self
      */
-    public ObjectBus toMain(@NonNull Runnable task) {
+    public ObjectBus toMain(@NonNull Runnable runnable) {
 
-        mHowToPass.add(new Command(COMMAND_TO_MAIN, task));
+        mHowToPass.add(new Command(COMMAND_TO_MAIN, runnable));
         return this;
     }
+
+    //============================ 额外任务 ============================
+
+
+    /**
+     * @param action   this will call after last runnable, before this runnable run,could do some
+     *                 Initialize action to runnable
+     * @param runnable runnable
+     * @param <T>      type of runnable
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus go(
+            OnBeforeRunAction< T > action,
+            @NonNull T runnable) {
+
+        return go(action, runnable, null);
+    }
+
+
+    /**
+     * @param runnable       runnable runnable
+     * @param afterRunAction this will call after runnable.run
+     * @param <T>            type of runnable
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus go(
+            @NonNull T runnable, OnAfterRunAction< T > afterRunAction) {
+
+        return go(null, runnable, afterRunAction);
+    }
+
+
+    /**
+     * @param initializeAction call after last runnable, before this runnable run
+     * @param runnable         runnable
+     * @param afterRunAction   this will call after runnable.run
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus go(
+            OnBeforeRunAction< T > initializeAction,
+            @NonNull T runnable,
+            OnAfterRunAction< T > afterRunAction) {
+
+        mHowToPass.add(new Command(
+                COMMAND_GO,
+                new ExtraActionRunnable(initializeAction, runnable, afterRunAction))
+        );
+        return this;
+    }
+
+
+    /**
+     * run runnable on {@link com.example.objectbus.executor.AppExecutor} thread
+     *
+     * @param runnable runnable to run
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus toUnder(
+            OnBeforeRunAction< T > beforeRunAction,
+            @NonNull T runnable) {
+
+        return toUnder(beforeRunAction, runnable, null);
+    }
+
+
+    /**
+     * run runnable on {@link com.example.objectbus.executor.AppExecutor} thread
+     *
+     * @param runnable runnable to run
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus toUnder(
+            @NonNull T runnable,
+            OnAfterRunAction< T > afterRunAction) {
+
+        return toUnder(null, runnable, afterRunAction);
+    }
+
+
+    /**
+     * run runnable on {@link com.example.objectbus.executor.AppExecutor} thread
+     *
+     * @param runnable runnable to run
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus toUnder(
+            OnBeforeRunAction< T > initializeAction,
+            @NonNull T runnable,
+            OnAfterRunAction< T > afterRunAction) {
+
+        mHowToPass.add(new Command(
+                COMMAND_TO_UNDER,
+                new ExtraActionRunnable(
+                        initializeAction,
+                        runnable,
+                        afterRunAction))
+        );
+        return this;
+    }
+
+
+    /**
+     * run runnable on main thread
+     *
+     * @param runnable runnable to run
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus toMain(
+            OnBeforeRunAction< T > initializeAction,
+            @NonNull T runnable) {
+
+        return toMain(initializeAction, runnable, null);
+    }
+
+
+    /**
+     * run runnable on main thread
+     *
+     * @param runnable runnable to run
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus toMain(
+            @NonNull T runnable,
+            OnAfterRunAction< T > afterRunAction) {
+
+        return toMain(null, runnable, afterRunAction);
+    }
+
+
+    /**
+     * run runnable on main thread
+     *
+     * @param runnable runnable to run
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus toMain(
+            OnBeforeRunAction< T > initializeAction,
+            @NonNull T runnable,
+            OnAfterRunAction< T > afterRunAction) {
+
+        mHowToPass.add(new Command(
+                COMMAND_TO_MAIN,
+                new ExtraActionRunnable(
+                        initializeAction,
+                        runnable,
+                        afterRunAction))
+        );
+        return this;
+    }
+
+    //============================ 向外发送消息 ============================
 
 
     /**
@@ -380,6 +533,8 @@ public class ObjectBus implements OnMessageReceiveListener {
         return this;
     }
 
+    //============================ 暂停/恢复 ============================
+
 
     /**
      * take a rest ,util {@link #stopRest()} called
@@ -418,6 +573,8 @@ public class ObjectBus implements OnMessageReceiveListener {
         }
     }
 
+    //============================ 开始执行任务 ============================
+
 
     /**
      * start run bus
@@ -428,7 +585,16 @@ public class ObjectBus implements OnMessageReceiveListener {
         toNextStation();
     }
 
-    //============================ 添加乘客操作 ============================
+    //============================ 添加/删除乘客操作 ============================
+
+
+    private ArrayMap< String, Object > getExtras() {
+
+        if (mExtras == null) {
+            mExtras = new ArrayMap<>();
+        }
+        return mExtras;
+    }
 
 
     /**
@@ -439,7 +605,7 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     public void take(Object extra, String key) {
 
-        mExtras.put(key, extra);
+        getExtras().put(key, extra);
     }
 
 
@@ -452,7 +618,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     @Nullable
     public Object get(String key) {
 
-        return mExtras.get(key);
+        return getExtras().get(key);
     }
 
 
@@ -465,7 +631,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     @Nullable
     public Object getOff(String key) {
 
-        return mExtras.remove(key);
+        return getExtras().remove(key);
     }
 
     //============================ bus listener ============================
@@ -526,7 +692,7 @@ public class ObjectBus implements OnMessageReceiveListener {
      * @param runnable user's runnable
      * @return {@link BusRunningListenerRunnable} or runnable self
      */
-    private Runnable wrapperRunnableIfHaveOnBusRunningListener(Runnable runnable) {
+    private Runnable wrapperRunnableIfHaveOnBusRunningListener(@NonNull Runnable runnable) {
 
         if (mOnBusRunningListener != null) {
 
@@ -688,7 +854,7 @@ public class ObjectBus implements OnMessageReceiveListener {
         }
     }
 
-    //============================ main runnable ============================
+    //============================ communicate ============================
 
     /**
      * bus use this to communicate with {@link Messengers}
@@ -957,14 +1123,16 @@ public class ObjectBus implements OnMessageReceiveListener {
         /**
          * {@link #setOnBusRunningListener(OnBusRunningListener)}
          */
+        @NonNull
         OnBusRunningListener mOnBusRunningListener;
         /**
          * {@link Command#mRunnable}
          */
+        @NonNull
         Runnable             mRunnable;
 
 
-        BusRunningListenerRunnable(OnBusRunningListener onBusRunningListener) {
+        BusRunningListenerRunnable(@NonNull OnBusRunningListener onBusRunningListener) {
 
             mOnBusRunningListener = onBusRunningListener;
         }
@@ -976,7 +1144,7 @@ public class ObjectBus implements OnMessageReceiveListener {
         }
 
 
-        void setRunnable(Runnable runnable) {
+        void setRunnable(@NonNull Runnable runnable) {
 
             mRunnable = runnable;
         }
@@ -989,6 +1157,7 @@ public class ObjectBus implements OnMessageReceiveListener {
 
             Runnable runnable = mRunnable;
             OnBusRunningListener listener = mOnBusRunningListener;
+
             listener.onRunnableStart(ObjectBus.this, runnable);
 
             try {
@@ -1066,6 +1235,44 @@ public class ObjectBus implements OnMessageReceiveListener {
 
             List< T > list = AppExecutor.submitAndGet(mCallableList);
             take(list, key);
+        }
+    }
+
+    //============================ do extra action with runnable ============================
+
+    /**
+     * use with {@link #go(OnBeforeRunAction, Runnable)} to run init before runnable run
+     *
+     * @see OnBeforeRunAction
+     */
+    private class ExtraActionRunnable implements Runnable {
+
+        private OnBeforeRunAction mOnBeforeRunAction;
+        private Runnable          mRunnable;
+        private OnAfterRunAction  mOnRunnableFinishAction;
+
+
+        public ExtraActionRunnable(OnBeforeRunAction OnBeforeRunAction, Runnable
+                runnable, OnAfterRunAction onRunnableFinishAction) {
+
+            mOnBeforeRunAction = OnBeforeRunAction;
+            mRunnable = runnable;
+            mOnRunnableFinishAction = onRunnableFinishAction;
+        }
+
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public void run() {
+
+            if (mOnBeforeRunAction != null) {
+                mOnBeforeRunAction.onBeforeRun(mRunnable);
+            }
+            mRunnable.run();
+
+            if (mOnRunnableFinishAction != null) {
+                mOnRunnableFinishAction.onAfterRun(ObjectBus.this, mRunnable);
+            }
         }
     }
 }
