@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.objectbus.bus.LazyInitializeRunnableAction;
 import com.example.objectbus.bus.ObjectBus;
 import com.example.objectbus.bus.OnAfterRunAction;
 import com.example.objectbus.bus.OnBeforeRunAction;
@@ -538,7 +539,13 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void run() {
 
-                print(" receive message ");
+                print(" receive message 88");
+            }
+        }).registerMessage(87, new Runnable() {
+            @Override
+            public void run() {
+
+                print(" receive message 87");
             }
         }).go(new Runnable() {
             @Override
@@ -550,6 +557,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         }).run();
 
         Messengers.send(88, 3000, bus);
+        Messengers.send(87, 3000, bus);
 
     }
 
@@ -691,5 +699,45 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
             }
         }).run();
+    }
+
+
+    public void testBusLazyInit(View view) {
+
+        ObjectBus bus = new ObjectBus();
+        bus.go(new Runnable() {
+            @Override
+            public void run() {
+
+                print(" do 01 ");
+                bus.take("hello params", "key");
+            }
+        }).go(new LazyInitializeRunnableAction< Lazy >() {
+            @Override
+            public Lazy onLazyInitialize() {
+
+                return new Lazy((String) bus.get("key"));
+            }
+        }).run();
+
+    }
+
+
+    class Lazy implements Runnable {
+
+        private String mString;
+
+
+        public Lazy(String string) {
+
+            mString = string;
+        }
+
+
+        @Override
+        public void run() {
+
+            print(mString);
+        }
     }
 }

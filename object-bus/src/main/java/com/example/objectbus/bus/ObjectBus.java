@@ -9,6 +9,7 @@ import com.example.objectbus.executor.AppExecutor;
 import com.example.objectbus.message.Messengers;
 import com.example.objectbus.message.OnMessageReceiveListener;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -81,7 +82,8 @@ public class ObjectBus implements OnMessageReceiveListener {
     private ArrayMap< String, Object > mExtras;
 
     /**
-     * do nothing just take a rest ,{@link #COMMAND_TAKE_REST}
+     * do nothing just take a rest ,{@link #COMMAND_TAKE_REST},because
+     * {@link Command#Command(int, Runnable)} not null,so need a runnable to take place
      */
     private RestRunnable mRestRunnable;
 
@@ -107,18 +109,28 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     private void toNextStation() {
 
+        int size = mHowToPass.size();
+
+        if (size <= 0) {
+            return;
+        }
+
         int index = mPassBy.getAndAdd(1);
-        if (index < mHowToPass.size()) {
+        if (index < size) {
 
             Command command = mHowToPass.get(index);
             doCommand(command);
         } else {
 
-            // TODO: 2018-05-05 添加更多选项
-
-            mHowToPass.clear();
-            mPassBy.set(0);
+            mPassBy.getAndAdd(-1);
         }
+    }
+
+
+    public void clearRunnable() {
+
+        mHowToPass.clear();
+        mPassBy.set(0);
     }
 
 
@@ -132,7 +144,6 @@ public class ObjectBus implements OnMessageReceiveListener {
         if (command.command == COMMAND_GO) {
 
             Runnable runnable = command.getRunnable();
-            runnable = wrapperRunnableIfHaveOnBusRunningListener(runnable);
             runnable.run();
 
             toNextStation();
@@ -152,7 +163,6 @@ public class ObjectBus implements OnMessageReceiveListener {
                 }
 
                 Runnable runnable = command.getRunnable();
-                runnable = wrapperRunnableIfHaveOnBusRunningListener(runnable);
                 mExecutorRunnable.setRunnable(runnable);
                 AppExecutor.execute(mExecutorRunnable);
                 threadCurrent = THREAD_EXECUTOR;
@@ -161,7 +171,6 @@ public class ObjectBus implements OnMessageReceiveListener {
                 /* still in pool, run runnable */
 
                 Runnable runnable = command.getRunnable();
-                runnable = wrapperRunnableIfHaveOnBusRunningListener(runnable);
                 runnable.run();
                 toNextStation();
             }
@@ -182,7 +191,6 @@ public class ObjectBus implements OnMessageReceiveListener {
 
                 BusMessenger messenger = mBusMessageManger;
                 Runnable runnable = command.getRunnable();
-                runnable = wrapperRunnableIfHaveOnBusRunningListener(runnable);
                 messenger.setRunnable(runnable);
                 messenger.runOnMain();
                 threadCurrent = THREAD_MAIN;
@@ -295,7 +303,7 @@ public class ObjectBus implements OnMessageReceiveListener {
 
 
     /**
-     * to do callable on BackThread and save value
+     * to do callable on BackThread and save every result value as list
      *
      * @param callableList need run
      * @param key          key for save
@@ -369,9 +377,25 @@ public class ObjectBus implements OnMessageReceiveListener {
             @NonNull T runnable,
             OnAfterRunAction< T > afterRunAction) {
 
+        return go(initializeAction, runnable, afterRunAction, null);
+    }
+
+
+    /**
+     * @param initializeAction call after last runnable, before this runnable run
+     * @param runnable         runnable
+     * @param afterRunAction   this will call after runnable.run
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus go(
+            OnBeforeRunAction< T > initializeAction,
+            @NonNull T runnable,
+            OnAfterRunAction< T > afterRunAction,
+            OnRunExceptionHandler handler) {
+
         mHowToPass.add(new Command(
                 COMMAND_GO,
-                new ExtraActionRunnable(initializeAction, runnable, afterRunAction))
+                new ExtraActionRunnable(initializeAction, runnable, afterRunAction, handler))
         );
         return this;
     }
@@ -416,12 +440,28 @@ public class ObjectBus implements OnMessageReceiveListener {
             @NonNull T runnable,
             OnAfterRunAction< T > afterRunAction) {
 
+        return toUnder(initializeAction, runnable, afterRunAction, null);
+    }
+
+
+    /**
+     * run runnable on {@link com.example.objectbus.executor.AppExecutor} thread
+     *
+     * @param runnable runnable to run
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus toUnder(
+            OnBeforeRunAction< T > initializeAction,
+            @NonNull T runnable,
+            OnAfterRunAction< T > afterRunAction,
+            OnRunExceptionHandler handler) {
+
         mHowToPass.add(new Command(
                 COMMAND_TO_UNDER,
                 new ExtraActionRunnable(
                         initializeAction,
                         runnable,
-                        afterRunAction))
+                        afterRunAction, handler))
         );
         return this;
     }
@@ -466,12 +506,28 @@ public class ObjectBus implements OnMessageReceiveListener {
             @NonNull T runnable,
             OnAfterRunAction< T > afterRunAction) {
 
+        return toMain(initializeAction, runnable, afterRunAction, null);
+    }
+
+
+    /**
+     * run runnable on main thread
+     *
+     * @param runnable runnable to run
+     * @return self
+     */
+    public < T extends Runnable > ObjectBus toMain(
+            OnBeforeRunAction< T > initializeAction,
+            @NonNull T runnable,
+            OnAfterRunAction< T > afterRunAction,
+            OnRunExceptionHandler handler) {
+
         mHowToPass.add(new Command(
                 COMMAND_TO_MAIN,
                 new ExtraActionRunnable(
                         initializeAction,
                         runnable,
-                        afterRunAction))
+                        afterRunAction, handler))
         );
         return this;
     }
@@ -612,6 +668,11 @@ public class ObjectBus implements OnMessageReceiveListener {
     //============================ 添加/删除乘客操作 ============================
 
 
+    /**
+     * lazy init
+     *
+     * @return {@link #mExtras}
+     */
     private ArrayMap< String, Object > getExtras() {
 
         if (mExtras == null) {
@@ -658,82 +719,6 @@ public class ObjectBus implements OnMessageReceiveListener {
         return getExtras().remove(key);
     }
 
-    //============================ bus listener ============================
-
-    private OnBusRunningListener       mOnBusRunningListener;
-    private BusRunningListenerRunnable mBusRunningListenerRunnable;
-
-
-    public void setOnBusRunningListener(OnBusRunningListener onBusRunningListener) {
-
-        mOnBusRunningListener = onBusRunningListener;
-    }
-
-
-    public OnBusRunningListener getOnBusRunningListener() {
-
-        return mOnBusRunningListener;
-    }
-
-
-    /**
-     * bus run runnable listener
-     */
-    public interface OnBusRunningListener {
-
-        /**
-         * before runnable start call
-         *
-         * @param bus      bus
-         * @param runnable to run
-         */
-        void onRunnableStart(ObjectBus bus, Runnable runnable);
-
-        /**
-         * after runnable finish
-         *
-         * @param bus      bus
-         * @param runnable finished
-         */
-        void onRunnableFinished(ObjectBus bus, Runnable runnable);
-
-        /**
-         * called when runnable exception
-         *
-         * @param bus      bus
-         * @param runnable runnable get Exception
-         * @param e        Exception
-         */
-        void onRunnableException(ObjectBus bus, Runnable runnable, Exception e);
-
-    }
-
-
-    /**
-     * if have a {@link #mOnBusRunningListener} use {@link BusRunningListenerRunnable} wrapper {@code
-     * runnable}
-     *
-     * @param runnable user's runnable
-     * @return {@link BusRunningListenerRunnable} or runnable self
-     */
-    private Runnable wrapperRunnableIfHaveOnBusRunningListener(@NonNull Runnable runnable) {
-
-        if (mOnBusRunningListener != null) {
-
-            if (mBusRunningListenerRunnable == null) {
-                mBusRunningListenerRunnable = new BusRunningListenerRunnable(mOnBusRunningListener);
-            } else {
-
-                mBusRunningListenerRunnable.changeListener(mOnBusRunningListener);
-            }
-
-            mBusRunningListenerRunnable.setRunnable(runnable);
-            return mBusRunningListenerRunnable;
-        }
-
-        return runnable;
-    }
-
     //============================ bus message register ============================
 
     private SparseArray< Runnable > mMessageReceiveRunnable = new SparseArray<>();
@@ -774,9 +759,9 @@ public class ObjectBus implements OnMessageReceiveListener {
             return;
         }
 
-        runnable = wrapperRunnableNewIfHaveOnBusRunningListener(runnable);
+        final int judge = 2;
 
-        if (what % 2 == 0) {
+        if (what % judge == 0) {
 
             /* run on thread pool */
 
@@ -785,33 +770,8 @@ public class ObjectBus implements OnMessageReceiveListener {
 
             /* run on MainThread */
 
-            mMessageReceiveRunnable.put(what, runnable);
-            mBusMessageManger.runMessageReceiveRunnableOnMain(what);
-
+            runnable.run();
         }
-    }
-
-
-    /**
-     * if have a {@link #mOnBusRunningListener} use {@link BusRunningListenerRunnable} wrapper {@code
-     * runnable},different from {@link #wrapperRunnableIfHaveOnBusRunningListener(Runnable)} this all use a
-     * new {@link BusRunningListenerRunnable} to wrapper runnable, this is used for {@link #onReceive(int)}
-     * to avoid multi thread safe question
-     *
-     * @param runnable user's runnable
-     * @return {@link BusRunningListenerRunnable} or runnable self
-     */
-    private Runnable wrapperRunnableNewIfHaveOnBusRunningListener(Runnable runnable) {
-
-        if (mOnBusRunningListener != null) {
-
-            BusRunningListenerRunnable listenerRunnable = new BusRunningListenerRunnable
-                    (mOnBusRunningListener);
-            listenerRunnable.setRunnable(runnable);
-            return listenerRunnable;
-        }
-
-        return runnable;
     }
 
     //============================ command for Bus run runnable ============================
@@ -829,7 +789,7 @@ public class ObjectBus implements OnMessageReceiveListener {
          */
         private int      command;
         /**
-         * the runnable if the user want to do,bus will run this with command
+         * the runnable the user want to do,bus will run runnable with command
          */
         private Runnable mRunnable;
 
@@ -954,34 +914,6 @@ public class ObjectBus implements OnMessageReceiveListener {
         }
 
 
-        private static final int WHAT_RUN_MESSAGE_RECEIVE_RUNNABLE_MAIN = 7;
-
-
-        /**
-         * to run message runnable at {@link #mMessageReceiveRunnable} on MainThread
-         *
-         * @param what msg what
-         */
-        void runMessageReceiveRunnableOnMain(int what) {
-
-            Messengers.send(WHAT_RUN_MESSAGE_RECEIVE_RUNNABLE_MAIN, what, this);
-        }
-
-
-        @SuppressWarnings("UnnecessaryUnboxing")
-        @Override
-        public void onReceive(int what, Object extra) {
-
-            if (what == WHAT_RUN_MESSAGE_RECEIVE_RUNNABLE_MAIN) {
-                int index = ((Integer) extra).intValue();
-                Runnable runnable = mMessageReceiveRunnable.get(index);
-                if (runnable != null) {
-                    runnable.run();
-                }
-            }
-        }
-
-
         @Override
         public void onReceive(int what) {
 
@@ -999,9 +931,8 @@ public class ObjectBus implements OnMessageReceiveListener {
 
             if (what == WHAT_STOP_REST) {
 
-                /* base on bus threadCurrent when him rest,to go on at that thread */
-
                 /* this is running at Messengers#Thread not in threadPool or MainThread*/
+                /* if before bus rest it run on pool thread ,goto pool; if on main thread ,go to main */
 
                 if (threadCurrent == THREAD_MAIN) {
 
@@ -1014,7 +945,7 @@ public class ObjectBus implements OnMessageReceiveListener {
                 return;
             }
 
-            /* take bus to stop rest at main thread */
+            /* take bus to next station at main thread ,WHAT_NEXT_AT_MAIN is 5:odd number*/
 
             if (what == WHAT_NEXT_AT_MAIN) {
                 toNextStation();
@@ -1042,10 +973,10 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     private class SendRunnable implements Runnable {
 
-        private int                      what;
-        private int                      delayed;
-        private Object                   extra;
-        private OnMessageReceiveListener receiveListener;
+        private int                                       what;
+        private int                                       delayed;
+        private Object                                    extra;
+        private WeakReference< OnMessageReceiveListener > mListenerWeakReference;
 
 
         SendRunnable(int what, int delayed, Object extra, @NonNull OnMessageReceiveListener receiveListener) {
@@ -1053,7 +984,7 @@ public class ObjectBus implements OnMessageReceiveListener {
             this.what = what;
             this.extra = extra;
             this.delayed = delayed;
-            this.receiveListener = receiveListener;
+            this.mListenerWeakReference = new WeakReference<>(receiveListener);
         }
 
 
@@ -1062,37 +993,19 @@ public class ObjectBus implements OnMessageReceiveListener {
 
             /* send message */
 
+            OnMessageReceiveListener who = mListenerWeakReference.get();
+
+            if (who == null) {
+                return;
+            }
+
             if (extra == null) {
 
-                Messengers.send(what, delayed, receiveListener);
+                Messengers.send(what, delayed, who);
             } else {
 
-                Messengers.send(what, delayed, extra, receiveListener);
+                Messengers.send(what, delayed, extra, who);
             }
-        }
-
-
-        public int getWhat() {
-
-            return what;
-        }
-
-
-        public int getDelayed() {
-
-            return delayed;
-        }
-
-
-        public Object getExtra() {
-
-            return extra;
-        }
-
-
-        public OnMessageReceiveListener getReceiveListener() {
-
-            return receiveListener;
         }
     }
 
@@ -1133,66 +1046,6 @@ public class ObjectBus implements OnMessageReceiveListener {
         public void run() {
 
             mBusMessageManger.notifyBusStopRestAfter(delayed);
-        }
-    }
-
-    //============================ BusRunningListenerRunnable ============================
-
-    /**
-     * when user {@link #setOnBusRunningListener(OnBusRunningListener)},use this to
-     * {@link #wrapperRunnableIfHaveOnBusRunningListener(Runnable)} the user runnable to listen
-     */
-    private class BusRunningListenerRunnable implements Runnable {
-
-        /**
-         * {@link #setOnBusRunningListener(OnBusRunningListener)}
-         */
-        @NonNull
-        OnBusRunningListener mOnBusRunningListener;
-        /**
-         * {@link Command#mRunnable}
-         */
-        @NonNull
-        Runnable             mRunnable;
-
-
-        BusRunningListenerRunnable(@NonNull OnBusRunningListener onBusRunningListener) {
-
-            mOnBusRunningListener = onBusRunningListener;
-        }
-
-
-        void changeListener(OnBusRunningListener onBusRunningListener) {
-
-            mOnBusRunningListener = onBusRunningListener;
-        }
-
-
-        void setRunnable(@NonNull Runnable runnable) {
-
-            mRunnable = runnable;
-        }
-
-
-        @Override
-        public void run() {
-
-            /* run the runnable user set with the OnBusRunningListener */
-
-            Runnable runnable = mRunnable;
-            OnBusRunningListener listener = mOnBusRunningListener;
-
-            listener.onRunnableStart(ObjectBus.this, runnable);
-
-            try {
-
-                runnable.run();
-                listener.onRunnableFinished(ObjectBus.this, runnable);
-            } catch (Exception e) {
-
-                e.printStackTrace();
-                listener.onRunnableException(ObjectBus.this, runnable, e);
-            }
         }
     }
 
@@ -1271,17 +1124,22 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     private class ExtraActionRunnable implements Runnable {
 
-        private OnBeforeRunAction mOnBeforeRunAction;
-        private Runnable          mRunnable;
-        private OnAfterRunAction  mOnRunnableFinishAction;
+        private OnBeforeRunAction     mOnBeforeRunAction;
+        private Runnable              mRunnable;
+        private OnAfterRunAction      mOnRunnableFinishAction;
+        private OnRunExceptionHandler mOnRunExceptionHandler;
 
 
-        public ExtraActionRunnable(OnBeforeRunAction OnBeforeRunAction, Runnable
-                runnable, OnAfterRunAction onRunnableFinishAction) {
+        public ExtraActionRunnable(
+                OnBeforeRunAction OnBeforeRunAction,
+                Runnable runnable,
+                OnAfterRunAction onRunnableFinishAction,
+                OnRunExceptionHandler onRunExceptionHandler) {
 
             mOnBeforeRunAction = OnBeforeRunAction;
             mRunnable = runnable;
             mOnRunnableFinishAction = onRunnableFinishAction;
+            mOnRunExceptionHandler = onRunExceptionHandler;
         }
 
 
@@ -1289,13 +1147,21 @@ public class ObjectBus implements OnMessageReceiveListener {
         @Override
         public void run() {
 
-            if (mOnBeforeRunAction != null) {
-                mOnBeforeRunAction.onBeforeRun(mRunnable);
-            }
-            mRunnable.run();
+            try {
+                if (mOnBeforeRunAction != null) {
+                    mOnBeforeRunAction.onBeforeRun(mRunnable);
+                }
 
-            if (mOnRunnableFinishAction != null) {
-                mOnRunnableFinishAction.onAfterRun(ObjectBus.this, mRunnable);
+                mRunnable.run();
+
+                if (mOnRunnableFinishAction != null) {
+                    mOnRunnableFinishAction.onAfterRun(ObjectBus.this, mRunnable);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                if (mOnRunExceptionHandler != null) {
+                    mOnRunExceptionHandler.onException(e);
+                }
             }
         }
     }
