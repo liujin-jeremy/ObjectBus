@@ -1,6 +1,8 @@
 package com.example.wuxio.objectbus;
 
 import android.os.Bundle;
+import android.support.design.widget.NavigationView;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -28,9 +30,8 @@ import java.util.concurrent.Callable;
 public class MainActivity extends AppCompatActivity implements OnMessageReceiveListener {
 
     private static final String TAG = "MainActivity";
-
-    protected TextView mLogText01;
-    protected TextView mLogText02;
+    protected NavigationView mNavigationView;
+    protected DrawerLayout   mDrawerLayout;
 
 
     @Override
@@ -46,16 +47,14 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     private void initView() {
 
-        mLogText01 = findViewById(R.id.logText01);
-        mLogText02 = findViewById(R.id.logText02);
+        mNavigationView = findViewById(R.id.navigationView);
+        mDrawerLayout = findViewById(R.id.drawerLayout);
     }
 
     //============================ scheduler ============================
 
 
     public void testSchedulerTodo(View view) {
-
-        clearText(mLogText01);
 
         Scheduler.todo(new Runnable() {
             @Override
@@ -68,14 +67,14 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void run() {
 
-                print(" test todo 02", mLogText01);
+                print(" test todo 02");
             }
         });
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo 03", mLogText01);
+                print(" test todo 03");
             }
         });
     }
@@ -83,51 +82,47 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     public void testSchedulerTodoDelayed(View view) {
 
-        clearText(mLogText01);
-
         print(" start delayed task ");
 
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo delayed01", mLogText01);
+                print(" test todo delayed01");
             }
         }, 2000);
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo delayed02", mLogText01);
+                print(" test todo delayed02");
             }
         }, 4000);
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo delayed03", mLogText01);
+                print(" test todo delayed03");
             }
         }, 6000);
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo delayed04", mLogText01);
+                print(" test todo delayed04");
             }
         }, 4000);
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo delayed05", mLogText01);
+                print(" test todo delayed05");
             }
         }, 2000);
     }
 
 
     public void testSchedulerTodoMainCallBack(View view) {
-
-        clearText(mLogText01);
 
         Scheduler.todo(new Runnable() {
             @Override
@@ -147,13 +142,13 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void run() {
 
-                print(" todo back delayed", mLogText01);
+                print(" todo back delayed");
             }
         }, 3000, new MainThreadCallBack() {
             @Override
             public void run() {
 
-                print(" callback main ", mLogText01);
+                print(" callback main ");
             }
         });
     }
@@ -161,19 +156,17 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     public void testSchedulerTodoAsyncCallBack(View view) {
 
-        clearText(mLogText01);
-
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" todo back ", mLogText01);
+                print(" todo back ");
             }
         }, new AsyncThreadCallBack() {
             @Override
             public void run() {
 
-                print(" callback async ", mLogText01);
+                print(" callback async ");
             }
         });
 
@@ -181,13 +174,13 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void run() {
 
-                print(" todo back delayed", mLogText01);
+                print(" todo back delayed");
             }
         }, 3000, new AsyncThreadCallBack() {
             @Override
             public void run() {
 
-                print(" callback async ", mLogText01);
+                print(" callback async ");
             }
         });
     }
@@ -195,27 +188,25 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     public void testSchedulerTodoWithListener(View view) {
 
-        clearText(mLogText01);
-
         Scheduler.todo(new OnExecuteRunnable() {
             @Override
             public void onExecute() {
 
-                print(" do something in pool ", mLogText01);
+                print(" do something in pool ");
             }
 
 
             @Override
             public void onFinish() {
 
-                print(" running; do something extra in pool ", mLogText01);
+                print(" running; do something extra in pool ");
             }
 
 
             @Override
             public void onException(Exception e) {
 
-                print(" Exception! do something to rescue ", mLogText01);
+                print(" Exception! do something to rescue ");
             }
         });
 
@@ -223,27 +214,27 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void onExecute() {
 
-                print(" do something in pool ", mLogText01);
+                print(" do something in pool ");
             }
 
 
             @Override
             public void onFinish() {
 
-                print(" running; do something extra in pool ", mLogText01);
+                print(" running; do something extra in pool ");
             }
 
 
             @Override
             public void onException(Exception e) {
 
-                print(" Exception! do something to rescue ", mLogText01);
+                print(" Exception! do something to rescue ");
             }
         }, 2000, new MainThreadCallBack() {
             @Override
             public void run() {
 
-                print(" callback is different with 'OnExecuteRunnable' ", mLogText01);
+                print(" callback is different with 'OnExecuteRunnable' ");
             }
         });
     }
@@ -254,14 +245,12 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     public void testSchedulerCancel(View view) {
 
-        clearText(mLogText01);
-
         CancelTodo cancelTodo = new CancelTodo();
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo cancel", mLogText01);
+                print(" test todo cancel");
             }
         }, 2000, cancelTodo);
 
@@ -322,7 +311,6 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     public void testMessengerSend(View view) {
 
-        clearText(mLogText02);
 
         /* message what 的奇偶性决定发送到哪个线程 */
 
@@ -339,8 +327,6 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     public void testMessengerSendDelayed(View view) {
 
-        clearText(mLogText02);
-
         print("send delayed message");
 
         Messengers.send(3, 2000, this);
@@ -349,8 +335,6 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
 
     public void testMessengerSendWithExtra(View view) {
-
-        clearText(mLogText02);
 
         Messengers.send(5, " hello main ", this);
         Messengers.send(6, " hello main ", this);
@@ -361,8 +345,6 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
 
     public void testMessengerRemove(View view) {
-
-        clearText(mLogText02);
 
         Messengers.send(9, 2000, " hello main ", this);
         Messengers.send(9, 2000, " hello main ", this);
