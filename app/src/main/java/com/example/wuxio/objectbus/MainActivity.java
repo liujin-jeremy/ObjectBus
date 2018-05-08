@@ -1,11 +1,15 @@
 package com.example.wuxio.objectbus;
 
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,6 +36,10 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     private static final String TAG = "MainActivity";
     protected NavigationView mNavigationView;
     protected DrawerLayout   mDrawerLayout;
+    protected TextView       mTextLog;
+    protected ScrollView     mContainer;
+
+    private String mLog;
 
 
     @Override
@@ -49,32 +57,93 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
         mNavigationView = findViewById(R.id.navigationView);
         mDrawerLayout = findViewById(R.id.drawerLayout);
+        mTextLog = findViewById(R.id.text_log);
+        mContainer = findViewById(R.id.container);
+
+        mNavigationView.setNavigationItemSelectedListener(new MainNavigationItemClick());
+    }
+
+
+    private void closeDrawer() {
+
+        mDrawerLayout.closeDrawer(Gravity.START);
+    }
+
+
+    private ObjectBus mLogBus = new ObjectBus();
+
+
+    private void printLog(String log) {
+
+        mLog = mLog + log;
+        mLogBus.toMain(() -> {
+            mTextLog.setText(mLog);
+            mLogBus.clearRunnable();
+        }).run();
+    }
+
+
+    class MainNavigationItemClick implements NavigationView.OnNavigationItemSelectedListener {
+
+        @Override
+        public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+
+            switch (item.getItemId()) {
+                case R.id.menu_00:
+                    testSchedulerTodo();
+                default:
+                    break;
+            }
+
+            closeDrawer();
+            return true;
+        }
     }
 
     //============================ scheduler ============================
 
 
-    public void testSchedulerTodo(View view) {
+    public void testSchedulerTodo() {
+
+        mLog = "";
+
+        /* 以下会将任务带到后台执行  */
 
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo 01");
+                printLog(" todo 01 ");
+                print(" todo 01 ");
             }
         });
-        Scheduler.todo(new Runnable() {
-            @Override
-            public void run() {
 
-                print(" test todo 02");
+        /* lambda 简化编程 */
+
+        Scheduler.todo(() -> {
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
+
+            printLog(" todo 02 ");
+            print(" todo 02 ");
         });
+
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo 03");
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                printLog(" todo 03 ");
+                print(" todo 03 ");
             }
         });
     }
@@ -82,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     public void testSchedulerTodoDelayed(View view) {
 
-        print(" start delayed task ");
+        mLog = "";
 
         Scheduler.todo(new Runnable() {
             @Override

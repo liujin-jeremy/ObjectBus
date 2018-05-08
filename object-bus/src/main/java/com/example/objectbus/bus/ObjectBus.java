@@ -39,13 +39,6 @@ public class ObjectBus implements OnMessageReceiveListener {
 
 
     /**
-     * current thread state
-     */
-    private static final int THREAD_MAIN     = 0X1FFFF;
-    private static final int THREAD_EXECUTOR = 0X2FFFF;
-    private int threadCurrent;
-
-    /**
      * record  run State is resting
      */
     private static final int RUN_STATE_RUNNING        = 0X10EE;
@@ -105,7 +98,7 @@ public class ObjectBus implements OnMessageReceiveListener {
 
 
     /**
-     * to next station,
+     * to next station
      */
     private void toNextStation() {
 
@@ -154,26 +147,15 @@ public class ObjectBus implements OnMessageReceiveListener {
 
         if (command.command == COMMAND_TO_UNDER) {
 
-            if (threadCurrent != THREAD_EXECUTOR) {
+            /* not in pool change to pool */
 
-                /* not in pool change to pool */
-
-                if (mExecutorRunnable == null) {
-                    mExecutorRunnable = new ExecutorRunnable();
-                }
-
-                Runnable runnable = command.getRunnable();
-                mExecutorRunnable.setRunnable(runnable);
-                AppExecutor.execute(mExecutorRunnable);
-                threadCurrent = THREAD_EXECUTOR;
-            } else {
-
-                /* still in pool, run runnable */
-
-                Runnable runnable = command.getRunnable();
-                runnable.run();
-                toNextStation();
+            if (mExecutorRunnable == null) {
+                mExecutorRunnable = new ExecutorRunnable();
             }
+
+            Runnable runnable = command.getRunnable();
+            mExecutorRunnable.setRunnable(runnable);
+            AppExecutor.execute(mExecutorRunnable);
             return;
         }
 
@@ -181,27 +163,16 @@ public class ObjectBus implements OnMessageReceiveListener {
 
         if (command.command == COMMAND_TO_MAIN) {
 
-            if (threadCurrent != THREAD_MAIN) {
+            /* not on main, use messenger change to MainThread */
 
-                /* not on main, use messenger change to MainThread */
-
-                if (mBusMessageManger == null) {
-                    mBusMessageManger = new BusMessenger();
-                }
-
-                BusMessenger messenger = mBusMessageManger;
-                Runnable runnable = command.getRunnable();
-                messenger.setRunnable(runnable);
-                messenger.runOnMain();
-                threadCurrent = THREAD_MAIN;
-            } else {
-
-                /* still on Main, runRunnable */
-
-                command.getRunnable().run();
-                toNextStation();
+            if (mBusMessageManger == null) {
+                mBusMessageManger = new BusMessenger();
             }
 
+            BusMessenger messenger = mBusMessageManger;
+            Runnable runnable = command.getRunnable();
+            messenger.setRunnable(runnable);
+            messenger.runOnMain();
             return;
         }
 
@@ -853,10 +824,6 @@ public class ObjectBus implements OnMessageReceiveListener {
          */
         private static final int WHAT_STOP_REST    = 4;
         /**
-         * when receive this msg means bus last command run on MainThread,to MainThread go on
-         */
-        private static final int WHAT_NEXT_AT_MAIN = 5;
-        /**
          * when receive this msg means bus rest time up, need go on
          */
         private static final int WHAT_REST_TIME_UP = 6;
@@ -882,15 +849,6 @@ public class ObjectBus implements OnMessageReceiveListener {
         }
 
 
-        /**
-         * call {@link #toNextStation()} on main thread
-         */
-        private void takeBusOnMainToNextStation() {
-
-            Messengers.send(WHAT_NEXT_AT_MAIN, this);
-        }
-
-
         @Override
         public void onReceive(int what) {
 
@@ -910,21 +868,6 @@ public class ObjectBus implements OnMessageReceiveListener {
 
                 /* this is running at Messengers#Thread not in threadPool or MainThread*/
                 /* if before bus rest it run on pool thread ,goto pool; if on main thread ,go to main */
-
-                if (threadCurrent == THREAD_MAIN) {
-
-                    takeBusOnMainToNextStation();
-                } else {
-
-                    AppExecutor.execute(ObjectBus.this::toNextStation);
-                }
-
-                return;
-            }
-
-            /* take bus to next station at main thread ,WHAT_NEXT_AT_MAIN is 5:odd number*/
-
-            if (what == WHAT_NEXT_AT_MAIN) {
                 toNextStation();
                 return;
             }
