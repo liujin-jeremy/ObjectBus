@@ -1,13 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <item android:title="scheduler">
+    <item android:title="Scheduler">
 
         <menu>
 
             <item
                     android:title="后台任务"
                     android:id="@+id/menu_00"/>
+
+            <item
+                    android:title="后台延时任务"
+                    android:id="@+id/menu_01"/>
+
+            <item
+                    android:title="后台任务,主线程回调"
+                    android:id="@+id/menu_02"/>
+
+            <item
+                    android:title="后台任务,后台回调"
+                    android:id="@+id/menu_03"/>
+
+            <item
+                    android:title="监听任务进度"
+                    android:id="@+id/menu_04"/>
+
+            <item
+                    android:title="取消任务"
+                    android:id="@+id/menu_05"/>
+
+        </menu>
+
+    </item>
+
+    <item android:title="AppExecutor">
+
+        <menu>
+
+            <item
+                    android:id="@+id/menu_06"
+                    android:title="提交Runnable到线程池"/>
+
+            <item
+                    android:id="@+id/menu_07"
+                    android:title="提交Callable到线程池"/>
+
+            <item
+                    android:id="@+id/menu_08"
+                    android:title="提交Callable到线程池,直接返回结果"/>
+
+            <item
+                    android:id="@+id/menu_09"
+                    android:title="提交一组Runnable到线程池"/>
+
+            <item
+                    android:id="@+id/menu_10"
+                    android:title="提交一组Callable到线程池"/>
+
+        </menu>
+
+    </item>
+
+    <item android:title="Messenger">
+
+        <menu>
+
+            <item
+                    android:id="@+id/menu_11"
+                    android:title="发送消息给其他类"/>
+
+            <item
+                    android:id="@+id/menu_12"
+                    android:title="发送延时消息给其他类"/>
+
+            <item
+                    android:id="@+id/menu_13"
+                    android:title="发送带附件消息给其他类"/>
+
+            <item
+                    android:id="@+id/menu_14"
+                    android:title="取消消息"/>
+
+        </menu>
+
+    </item>
+
+    <item android:title="ObjectBus">
+
+        <menu>
+
+            <item
+                    android:id="@+id/menu_15"
+                    android:title="ObjectBus简单使用"/>
+
+            <item
+                    android:id="@+id/menu_16"
+                    android:title="ObjectBus保存变量以便后续使用"/>
+
+            <item
+                    android:id="@+id/menu_17"
+                    android:title="ObjectBus 暂停"/>
+
+            <item
+                    android:id="@+id/menu_18"
+                    android:title="ObjectBus 结束暂停"/>
+
 
         </menu>
 

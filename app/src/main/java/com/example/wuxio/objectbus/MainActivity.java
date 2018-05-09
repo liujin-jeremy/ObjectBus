@@ -16,6 +16,7 @@ import android.widget.Toast;
 import com.example.objectbus.bus.ObjectBus;
 import com.example.objectbus.bus.OnAfterRunAction;
 import com.example.objectbus.bus.OnBeforeRunAction;
+import com.example.objectbus.executor.AppExecutor;
 import com.example.objectbus.executor.OnExecuteRunnable;
 import com.example.objectbus.message.Messengers;
 import com.example.objectbus.message.OnMessageReceiveListener;
@@ -24,9 +25,12 @@ import com.example.objectbus.schedule.Scheduler;
 import com.example.objectbus.schedule.run.AsyncThreadCallBack;
 import com.example.objectbus.schedule.run.MainThreadCallBack;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * @author wuxio
@@ -39,7 +43,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     protected TextView       mTextLog;
     protected ScrollView     mContainer;
 
-    private String mLog;
+    private String mLog = "";
 
 
     @Override
@@ -70,16 +74,55 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     }
 
 
+    public synchronized static void print(String text) {
+
+        String msg = ":" +
+                " Thread: " + Thread.currentThread().getName() +
+                " time: " + System.currentTimeMillis() +
+                " msg: " + text;
+        Log.i(TAG, msg);
+
+    }
+
+
     private ObjectBus mLogBus = new ObjectBus();
 
 
-    private void printLog(String log) {
+    private void clearLogText() {
 
-        mLog = mLog + log;
+        mLog = "";
+        mTextLog.setText("");
+    }
+
+
+    private synchronized void printLog(String log) {
+
+        String s = log + " : " +
+                " ThreadOn: " + Thread.currentThread().getName() + ";" +
+                " timeAt: " + System.currentTimeMillis() + "\n";
+        mLog = mLog + s;
+
         mLogBus.toMain(() -> {
             mTextLog.setText(mLog);
             mLogBus.clearRunnable();
         }).run();
+    }
+
+
+    private synchronized void printText(String text) {
+
+        mLog = mLog + text;
+
+        mLogBus.toMain(() -> {
+            mTextLog.setText(mLog);
+            mLogBus.clearRunnable();
+        }).run();
+    }
+
+
+    private void addEnter() {
+
+        mLog = mLog + "\n";
     }
 
 
@@ -88,9 +131,79 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         @Override
         public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 
+            clearLogText();
+
             switch (item.getItemId()) {
+
+                /* Scheduler */
+
                 case R.id.menu_00:
                     testSchedulerTodo();
+                    break;
+                case R.id.menu_01:
+                    testSchedulerTodoDelayed();
+                    break;
+                case R.id.menu_02:
+                    testSchedulerTodoMainCallBack();
+                    break;
+                case R.id.menu_03:
+                    testSchedulerTodoAsyncCallBack();
+                    break;
+                case R.id.menu_04:
+                    testSchedulerTodoWithListener();
+                    break;
+                case R.id.menu_05:
+                    testSchedulerCancel();
+                    break;
+
+                /* AppExecutor */
+
+                case R.id.menu_06:
+                    testExecutorRunnable();
+                    break;
+                case R.id.menu_07:
+                    testExecutorCallable();
+                    break;
+                case R.id.menu_08:
+                    testExecutorCallableAndGet();
+                    break;
+                case R.id.menu_09:
+                    testExecutorRunnableList();
+                    break;
+                case R.id.menu_10:
+                    testExecutorCallableList();
+                    break;
+
+                /* Messenger */
+
+                case R.id.menu_11:
+                    testMessengerSend();
+                    break;
+                case R.id.menu_12:
+                    testMessengerSendDelayed();
+                    break;
+                case R.id.menu_13:
+                    testMessengerSendWithExtra();
+                    break;
+                case R.id.menu_14:
+                    testMessengerRemove();
+                    break;
+
+                /* ObjectBus */
+
+                case R.id.menu_15:
+                    testBusGo();
+                    break;
+                case R.id.menu_16:
+                    testBusGoWithParams();
+                    break;
+                case R.id.menu_17:
+                    testBusTakeRest();
+                    break;
+                case R.id.menu_18:
+                    testBusStopRest();
+                    break;
+
                 default:
                     break;
             }
@@ -100,12 +213,150 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         }
     }
 
+    //============================ AppExecutor ============================
+
+
+    public void testExecutorRunnable() {
+
+        AppExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+
+                printLog(" run ");
+                print(" run ");
+            }
+        });
+    }
+
+
+    public void testExecutorCallable() {
+
+        Future< String > submit = AppExecutor.submit(new Callable< String >() {
+            @Override
+            public String call() throws Exception {
+
+                String s = " call At";
+                printLog(s);
+                print(s);
+                return "Hello";
+            }
+        });
+
+        /* 不要在主线程{submit.get()},否则主线程会阻塞 */
+
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                try {
+                    String s = submit.get();
+                    printLog(" getAt: " + s);
+                    print(" getAt: " + s);
+
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+
+    public void testExecutorCallableAndGet() {
+
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                /* submitAndGet 会阻塞调用线程,推荐和Scheduler配合,在后台读取结果 */
+
+                String get = AppExecutor.submitAndGet(new Callable< String >() {
+                    @Override
+                    public String call() throws Exception {
+
+                        String s = "Hello";
+                        printLog(s);
+                        print(s);
+                        return s;
+                    }
+                });
+
+            }
+        });
+    }
+
+
+    public void testExecutorRunnableList() {
+
+        final int size = 4;
+        List< Runnable > runnableList = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+
+            final int j = i;
+
+            Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+
+                    String s = "running " + j;
+                    printLog(s);
+                    print(s);
+                }
+            };
+            runnableList.add(runnable);
+        }
+
+        AppExecutor.execute(runnableList);
+    }
+
+
+    public void testExecutorCallableList() {
+
+        /* 因为 submitAndGet 会阻塞调用线程,所以和Scheduler配合,在后台读取结果 */
+
+        Scheduler.todo(new Runnable() {
+            @Override
+            public void run() {
+
+                final int size = 4;
+                List< Callable< String > > callableList = new ArrayList<>(size);
+                for (int i = 0; i < size; i++) {
+
+                    final int j = i;
+                    Callable< String > callable = new Callable< String >() {
+                        @Override
+                        public String call() throws Exception {
+
+                            String s = " calling " + j;
+                            printLog(s);
+                            print(s);
+                            return "Hello " + j;
+                        }
+                    };
+
+                    callableList.add(callable);
+                }
+
+                List< String > stringList = AppExecutor.submitAndGet(callableList);
+
+                int length = stringList.size();
+                for (int i = 0; i < length; i++) {
+                    String s = stringList.get(i);
+                    printLog(s);
+                    print(s);
+                }
+
+                addEnter();
+                String s = "可以看出 callable 运行在其他线程;结果都在同一个线程读取";
+                printText(s);
+            }
+        });
+    }
+
     //============================ scheduler ============================
 
 
     public void testSchedulerTodo() {
 
-        mLog = "";
 
         /* 以下会将任务带到后台执行  */
 
@@ -149,61 +400,64 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     }
 
 
-    public void testSchedulerTodoDelayed(View view) {
+    public void testSchedulerTodoDelayed() {
 
-        mLog = "";
+        Scheduler.todo(() -> {
 
-        Scheduler.todo(new Runnable() {
-            @Override
-            public void run() {
+            String msg = " delayed01 ";
+            printLog(msg);
+            print(msg);
+        }, 1000);
 
-                print(" test todo delayed01");
-            }
+        Scheduler.todo(() -> {
+
+            String msg = " delayed02 ";
+            printLog(msg);
+            print(msg);
+
         }, 2000);
-        Scheduler.todo(new Runnable() {
-            @Override
-            public void run() {
 
-                print(" test todo delayed02");
-            }
+        Scheduler.todo(() -> {
+
+            String msg = " delayed03 ";
+            printLog(msg);
+            print(msg);
+        }, 3000);
+
+        Scheduler.todo(() -> {
+
+            String msg = " delayed04 ";
+            printLog(msg);
+            print(msg);
         }, 4000);
-        Scheduler.todo(new Runnable() {
-            @Override
-            public void run() {
 
-                print(" test todo delayed03");
-            }
-        }, 6000);
-        Scheduler.todo(new Runnable() {
-            @Override
-            public void run() {
+        Scheduler.todo(() -> {
 
-                print(" test todo delayed04");
-            }
-        }, 4000);
-        Scheduler.todo(new Runnable() {
-            @Override
-            public void run() {
-
-                print(" test todo delayed05");
-            }
-        }, 2000);
+            String msg = " delayed05 ";
+            printLog(msg);
+            print(msg);
+        }, 5000);
     }
 
 
-    public void testSchedulerTodoMainCallBack(View view) {
+    public void testSchedulerTodoMainCallBack() {
 
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" todo back ");
+                String msg = "back";
+                printLog(msg);
+                print(msg);
             }
         }, new MainThreadCallBack() {
             @Override
             public void run() {
 
-                print(" callback main ");
+                String msg = "callback";
+                printLog(msg);
+                print(msg);
+                addEnter();
             }
         });
 
@@ -211,31 +465,40 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void run() {
 
-                print(" todo back delayed");
+                String msg = "back delayed";
+                printLog(msg);
+                print(msg);
             }
-        }, 3000, new MainThreadCallBack() {
+        }, 1000, new MainThreadCallBack() {
             @Override
             public void run() {
 
-                print(" callback main ");
+                String msg = "callback";
+                printLog(msg);
+                print(msg);
             }
         });
     }
 
 
-    public void testSchedulerTodoAsyncCallBack(View view) {
+    public void testSchedulerTodoAsyncCallBack() {
 
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" todo back ");
+                String msg = "back";
+                printLog(msg);
+                print(msg);
             }
         }, new AsyncThreadCallBack() {
             @Override
             public void run() {
 
-                print(" callback async ");
+                String msg = "callback";
+                printLog(msg);
+                print(msg);
+                addEnter();
             }
         });
 
@@ -243,142 +506,179 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void run() {
 
-                print(" todo back delayed");
+                String msg = "back delayed";
+                printLog(msg);
+                print(msg);
             }
-        }, 3000, new AsyncThreadCallBack() {
+        }, 1000, new AsyncThreadCallBack() {
             @Override
             public void run() {
 
-                print(" callback async ");
+                String msg = "callback";
+                printLog(msg);
+                print(msg);
             }
         });
     }
 
 
-    public void testSchedulerTodoWithListener(View view) {
+    private boolean mFlag;
+
+
+    public void testSchedulerTodoWithListener() {
 
         Scheduler.todo(new OnExecuteRunnable() {
+
+            @Override
+            public void onStart() {
+
+                String msg = "task start";
+                printLog(msg);
+                print(msg);
+            }
+
+
             @Override
             public void onExecute() {
 
-                print(" do something in pool ");
+                String msg = "task running";
+                printLog(msg);
+                print(msg);
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                mFlag = !mFlag;
+                if (mFlag) {
+                    throw new RuntimeException("null");
+                }
             }
 
 
             @Override
             public void onFinish() {
 
-                print(" running; do something extra in pool ");
+                String msg = "task finish";
+                printLog(msg);
+                print(msg);
             }
 
 
             @Override
             public void onException(Exception e) {
 
-                print(" Exception! do something to rescue ");
-            }
-        });
-
-        Scheduler.todo(new OnExecuteRunnable() {
-            @Override
-            public void onExecute() {
-
-                print(" do something in pool ");
-            }
-
-
-            @Override
-            public void onFinish() {
-
-                print(" running; do something extra in pool ");
-            }
-
-
-            @Override
-            public void onException(Exception e) {
-
-                print(" Exception! do something to rescue ");
-            }
-        }, 2000, new MainThreadCallBack() {
-            @Override
-            public void run() {
-
-                print(" callback is different with 'OnExecuteRunnable' ");
+                String msg = "exception";
+                printLog(msg);
+                print(msg);
             }
         });
     }
 
 
-    private boolean flag;
-
-
-    public void testSchedulerCancel(View view) {
+    public void testSchedulerCancel() {
 
         CancelTodo cancelTodo = new CancelTodo();
         Scheduler.todo(new Runnable() {
             @Override
             public void run() {
 
-                print(" test todo cancel");
+                String msg = "running";
+                printLog(msg);
+                print(msg);
             }
         }, 2000, cancelTodo);
 
-        if (flag) {
+        if (mFlag) {
             cancelTodo.cancel();
             Toast.makeText(this, "Cancel", Toast.LENGTH_SHORT).show();
+        } else {
+            String s = "2s 后";
+            printText(s);
+            addEnter();
+            print(s);
         }
-        flag = !flag;
+
+        mFlag = !mFlag;
     }
 
-
-    public static void clearText(TextView textView) {
-
-        textView.setText("");
-    }
-
-
-    public synchronized static void print(String text, TextView textView) {
-
-        String msg = ":" +
-                " Thread: " + Thread.currentThread().getName() +
-                " time: " + System.currentTimeMillis() +
-                " msg: " + text;
-        Log.i(TAG, msg);
-
-        CharSequence old = textView.getText();
-        textView.post(() -> textView.setText(old + "\n" + msg));
-
-    }
-
-
-    public synchronized static void print(String text) {
-
-        String msg = ":" +
-                " Thread: " + Thread.currentThread().getName() +
-                " time: " + System.currentTimeMillis() +
-                " msg: " + text;
-        Log.i(TAG, msg);
-
-    }
-
-    //============================ message ============================
+    /* 实现 OnMessageReceiveListener, 以接收消息 */
 
 
     @Override
     public void onReceive(int what, Object extra) {
 
-        print("receive: " + what + " extra: " + extra);
+        String s = "MainActivity receive: " + what + " extra: " + extra;
+        printLog(s);
+        print(s);
+        addEnter();
     }
 
 
     @Override
     public void onReceive(int what) {
 
-        print("receive: " + what);
+        String s = "MainActivity receive: " + what;
+        printLog(s);
+        print(s);
+        addEnter();
     }
 
 
-    public void testMessengerSend(View view) {
+    /* 如果一个类实现不了 OnMessageReceiveListener 接口,使用如下包装者模式,以实现通信 */
+
+    private MessengerReceiver mMessengerReceiver = new MessengerReceiver(this);
+
+    private static class MessengerReceiver implements OnMessageReceiveListener {
+
+
+        private WeakReference< MainActivity > mReference;
+
+
+        public MessengerReceiver(MainActivity activity) {
+
+            mReference = new WeakReference<>(activity);
+        }
+
+
+        @Override
+        public void onReceive(int what, Object extra) {
+
+            /* try catch 因为 mReference.get() 可能会为null */
+
+            try {
+                String s = "MessengerReceiver receive: " + what + " extra: " + extra;
+                mReference.get().printLog(s);
+                print(s);
+                mReference.get().addEnter();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+
+        @Override
+        public void onReceive(int what) {
+
+            /* try catch 因为 mReference.get() 可能会为null */
+
+            try {
+                String s = "MessengerReceiver receive: " + what;
+                mReference.get().printLog(s);
+                print(s);
+                mReference.get().addEnter();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    //============================ test messenger ============================
+
+
+    public void testMessengerSend() {
 
 
         /* message what 的奇偶性决定发送到哪个线程 */
@@ -387,105 +687,134 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
         Messengers.send(1, this);
 
-        /* 2 is  even number, the message will send to a async thread*/
+        /* 2 is even number, the message will send to a Messenger thread*/
 
         Messengers.send(2, this);
 
+        Messengers.send(1, mMessengerReceiver);
+        Messengers.send(2, mMessengerReceiver);
     }
 
 
-    public void testMessengerSendDelayed(View view) {
+    public void testMessengerSendDelayed() {
 
-        print("send delayed message");
+        String s = "send delayed message";
+        printText(s);
+        printLog(s);
+        addEnter();
 
         Messengers.send(3, 2000, this);
         Messengers.send(4, 2000, this);
+
+        Messengers.send(3, 2000, mMessengerReceiver);
+        Messengers.send(4, 2000, mMessengerReceiver);
     }
 
 
-    public void testMessengerSendWithExtra(View view) {
+    public void testMessengerSendWithExtra() {
 
-        Messengers.send(5, " hello main ", this);
-        Messengers.send(6, " hello main ", this);
+        String s = "send message with extra";
+        printText(s);
+        printLog(s);
+        addEnter();
 
-        Messengers.send(7, 2000, " hello main ", this);
-        Messengers.send(8, 2000, " hello main ", this);
+        Messengers.send(5, " hello ", this);
+        Messengers.send(6, " hello ", this);
+
+        Messengers.send(7, 2000, " hello ", this);
+        Messengers.send(8, 2000, " hello ", this);
+
+        Messengers.send(5, " hello ", mMessengerReceiver);
+        Messengers.send(6, " hello ", mMessengerReceiver);
+
+        Messengers.send(7, 2000, " hello ", mMessengerReceiver);
+        Messengers.send(8, 2000, " hello ", mMessengerReceiver);
     }
 
 
-    public void testMessengerRemove(View view) {
+    public void testMessengerRemove() {
 
-        Messengers.send(9, 2000, " hello main ", this);
-        Messengers.send(9, 2000, " hello main ", this);
-        Messengers.send(9, 2000, " hello main ", this);
+        Messengers.send(9, 2000, " hello ", this);
 
-        Messengers.send(9, 2000, " hello mainManager ", MainManager.getInstance());
-        Messengers.send(9, 2000, " hello mainManager ", MainManager.getInstance());
-        Messengers.send(9, 2000, " hello mainManager ", MainManager.getInstance());
+        Messengers.send(9, 2000, " hello mainManager ", mMessengerReceiver);
 
-        if (flag) {
+        if (mFlag) {
             Messengers.remove(9, this);
             Toast.makeText(this, "removed", Toast.LENGTH_SHORT).show();
+        } else {
+            String s = " 2s 后收到消息 ";
+            printText(s);
+            addEnter();
+            print(s);
         }
 
-        flag = !flag;
+        mFlag = !mFlag;
     }
 
-    //============================ bus ============================
+    //============================ mBus ============================
 
     private boolean running = false;
 
 
-    public void testBusGo(View view) {
-
-        if (running) {
-            return;
-        }
-
-        running = true;
+    public void testBusGo() {
 
         ObjectBus bus = new ObjectBus();
 
-        bus.go(() -> print(" do task 01 @Main"))
-                .toUnder(() -> {
+        bus.go(() -> {
+            String s = "task 01";
+            printLog(s);
+            print(s);
+        }).toUnder(() -> {
 
-                    print(" do task 02 @ThreadPools ");
+            String s = "task 02";
+            printLog(s);
+            print(s);
 
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).go(() -> {
 
-                })
-                .go(() -> {
+            String s = "task 03";
+            printLog(s);
+            print(s);
 
-                    print(" do task 03 @ThreadPools ");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+        }).toMain(() -> {
 
-                }).toMain(() -> print(" go back to @Main "))
-                .run();
+            String s = "task 04";
+            printLog(s);
+            print(s);
+
+            addEnter();
+            printText("在不同的线程上顺次执行");
+
+        }).run();
     }
 
 
-    public void testBusGoWithParams(View view) {
+    public void testBusGoWithParams() {
 
         ObjectBus bus = new ObjectBus();
 
         bus.go(() -> {
 
-            print(" do task 01 @Main");
             int j = 99 + 99;
+            String s = "take " + j;
+            printLog(s);
+            print(s);
+            addEnter();
+
             bus.take(j, "result");
 
         }).toUnder(() -> {
-
-            print(" do task 02 @ThreadPools ");
 
             try {
                 Thread.sleep(2000);
@@ -494,12 +823,16 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             }
 
             Integer result = (Integer) bus.get("result");
+
+            String s = "get from last Task " + result;
+            printLog(s);
+            print(s);
+            addEnter();
+
             int k = result + 1002;
             bus.take(k, "result");
 
         }).go(() -> {
-
-            print(" do task 03 @ThreadPools ");
 
             try {
                 Thread.sleep(1000);
@@ -508,30 +841,43 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             }
 
             Integer result = (Integer) bus.get("result");
+            String s = "get from last Task " + result;
+            printLog(s);
+            print(s);
+            addEnter();
+
             int l = result + 3000;
             bus.take(l, "result");
 
         }).toMain(() -> {
 
             Integer result = (Integer) bus.get("result");
-            print(" go back to @Main , result: " + result);
+            String s = "get final result " + result;
+            printLog(s);
+            print(s);
 
         }).run();
 
     }
 
 
-    ObjectBus bus = new ObjectBus();
+    ObjectBus mBus = new ObjectBus();
 
 
-    public void testBusControl(View view) {
+    public void testBusTakeRest() {
 
-        bus.go(new Runnable() {
+        mBus.go(new Runnable() {
 
             @Override
             public void run() {
 
-                print(" do task 01 ");
+                String s = "do task 01";
+                printLog(s);
+                print(s);
+
+                addEnter();
+
+                printText("take rest; wait for bus.stopRest()");
 
             }
 
@@ -548,22 +894,21 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
     }
 
 
-    public void goOn(View view) {
+    public void testBusStopRest() {
 
-        bus.stopRest();
-
+        mBus.stopRest();
     }
 
 
     public void testBusMessage(View view) {
 
-        bus.go(new Runnable() {
+        mBus.go(new Runnable() {
             @Override
             public void run() {
 
                 print(" do someThing  ");
             }
-        }).send(158, bus, MainManager.getInstance())
+        }).send(158, mBus, MainManager.getInstance())
                 .takeRest()
                 .go(new Runnable() {
                     @Override
@@ -579,7 +924,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     public void testBusMessageRegister(View view) {
 
-        bus.go(new Runnable() {
+        mBus.go(new Runnable() {
             @Override
             public void run() {
 
@@ -606,8 +951,8 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             }
         }).run();
 
-        Messengers.send(88, 3000, bus);
-        Messengers.send(87, 3000, bus);
+        Messengers.send(88, 3000, mBus);
+        Messengers.send(87, 3000, mBus);
 
     }
 
@@ -730,7 +1075,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void onBeforeRun(Runnable runnable) {
 
-                print("before take to bus" + runnable);
+                print("before take to mBus" + runnable);
                 bus.take("Hello runnable", "key");
             }
         }, new Runnable() {
@@ -739,7 +1084,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
                 String msg = (String) bus.get("key");
 
-                print(msg + " get from bus ");
+                print(msg + " get from mBus ");
             }
         }, new OnAfterRunAction< Runnable >() {
             @Override

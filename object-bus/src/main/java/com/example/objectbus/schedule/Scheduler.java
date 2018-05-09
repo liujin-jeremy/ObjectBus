@@ -11,6 +11,7 @@ import com.example.objectbus.schedule.run.AsyncThreadCallBack;
 import com.example.objectbus.schedule.run.MainThreadCallBack;
 
 import java.lang.ref.WeakReference;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -100,6 +101,19 @@ public class Scheduler {
 
 
     /**
+     * do something in background,With a delayed
+     *
+     * @param runnable something
+     * @param delayed  delayed time
+     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
+     */
+    public static void todo(Runnable runnable, int delayed) {
+
+        todoInternal(runnable, delayed, null, null);
+    }
+
+
+    /**
      * do something in background,then do the callBack on mainThread
      *
      * @param runnable something do in background
@@ -122,19 +136,6 @@ public class Scheduler {
     public static void todo(Runnable runnable, AsyncThreadCallBack callBack) {
 
         todoInternal(runnable, 0, callBack, null);
-    }
-
-
-    /**
-     * do something in background,With a delayed
-     *
-     * @param runnable something
-     * @param delayed  delayed time
-     * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
-     */
-    public static void todo(Runnable runnable, int delayed) {
-
-        todoInternal(runnable, delayed, null, null);
     }
 
 
@@ -412,6 +413,33 @@ public class Scheduler {
 
             mRunnable.run();
             sScheduleTask.sendMessage(mTag);
+        }
+    }
+
+    //============================ callableRunnable ============================
+
+    private static class CallableRunnable < T > implements Runnable {
+
+        private Callable< T > mCallable;
+        private T             mResult;
+
+
+        public CallableRunnable(Callable< T > callable) {
+
+            mCallable = callable;
+        }
+
+
+        @Override
+        public void run() {
+
+            mResult = AppExecutor.submitAndGet(mCallable);
+        }
+
+
+        public T getResult() {
+
+            return mResult;
         }
     }
 }

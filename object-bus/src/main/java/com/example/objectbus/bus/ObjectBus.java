@@ -597,6 +597,9 @@ public class ObjectBus implements OnMessageReceiveListener {
 
         if (runState == RUN_STATE_RESTING || runState == RUN_STATE_RESTING_AWHILE) {
 
+            if (mBusMessageManger == null) {
+                mBusMessageManger = new BusMessenger();
+            }
             mBusMessageManger.notifyBusStopRest();
         }
     }
@@ -965,6 +968,9 @@ public class ObjectBus implements OnMessageReceiveListener {
         @Override
         public void run() {
 
+            if (mBusMessageManger == null) {
+                mBusMessageManger = new BusMessenger();
+            }
             mBusMessageManger.notifyBusStopRestAfter(delayed);
         }
     }
