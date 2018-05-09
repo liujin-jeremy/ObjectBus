@@ -37,14 +37,17 @@ public class ObjectBus implements OnMessageReceiveListener {
     private static final int COMMAND_TAKE_REST        = 0b10000;
     private static final int COMMAND_TAKE_REST_AWHILE = 0b100000;
 
-
     /**
-     * record  run State is resting
+     * record run State if is resting
      */
     private static final int RUN_STATE_RUNNING        = 0X10EE;
     private static final int RUN_STATE_RESTING        = 0X11EE;
     private static final int RUN_STATE_RESTING_AWHILE = 0X100EE;
     private int runState;
+
+    private static final int THREAD_EXECUTOR = 0X10EEE;
+    private static final int THREAD_MAIN     = 0X11EEE;
+    private int threadCurrent;
 
     /**
      * how many station pass By
@@ -136,10 +139,27 @@ public class ObjectBus implements OnMessageReceiveListener {
 
         if (command.command == COMMAND_GO) {
 
-            Runnable runnable = command.getRunnable();
-            runnable.run();
+            if (threadCurrent == THREAD_EXECUTOR) {
 
-            toNextStation();
+                Runnable runnable = command.getRunnable();
+                mExecutorRunnable.setRunnable(runnable);
+                AppExecutor.execute(mExecutorRunnable);
+                return;
+
+            } else if (threadCurrent == THREAD_MAIN) {
+
+                BusMessenger messenger = mBusMessageManager;
+                Runnable runnable = command.getRunnable();
+                messenger.runOnMain(runnable);
+                return;
+
+            } else {
+
+                Runnable runnable = command.getRunnable();
+                runnable.run();
+                toNextStation();
+            }
+
             return;
         }
 
@@ -156,6 +176,7 @@ public class ObjectBus implements OnMessageReceiveListener {
             Runnable runnable = command.getRunnable();
             mExecutorRunnable.setRunnable(runnable);
             AppExecutor.execute(mExecutorRunnable);
+            threadCurrent = THREAD_EXECUTOR;
             return;
         }
 
@@ -171,8 +192,8 @@ public class ObjectBus implements OnMessageReceiveListener {
 
             BusMessenger messenger = mBusMessageManager;
             Runnable runnable = command.getRunnable();
-            messenger.setRunnable(runnable);
-            messenger.runOnMain();
+            messenger.runOnMain(runnable);
+            threadCurrent = THREAD_MAIN;
             return;
         }
 
@@ -593,7 +614,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     /**
      * when this called , if bus is resting , bus will go on
      */
-    public void stopRest() {
+    public synchronized void stopRest() {
 
         if (runState == RUN_STATE_RESTING || runState == RUN_STATE_RESTING_AWHILE) {
 
@@ -828,8 +849,9 @@ public class ObjectBus implements OnMessageReceiveListener {
         /**
          * run the {@link #mRunnable}at main
          */
-        void runOnMain() {
+        void runOnMain(Runnable runnable) {
 
+            setRunnable(runnable);
             Messengers.send(WHAT_MAIN, this);
         }
 
