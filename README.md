@@ -25,7 +25,7 @@ app.gradle
 
 ```
 dependencies {
-	implementation 'com.github.threekilogram:ObjectBus:1.3.2'
+	implementation 'com.github.threekilogram:ObjectBus:1.4'
 }
 ```
 
