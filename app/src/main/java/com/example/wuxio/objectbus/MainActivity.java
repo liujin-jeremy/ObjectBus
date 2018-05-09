@@ -699,6 +699,11 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     public void testMessengerSend() {
 
+        String s = "send message,消息what值的奇偶性决定在哪个线程回调";
+        printText(s);
+        print(s);
+        addEnter();
+        addEnter();
 
         /* message what 的奇偶性决定发送到哪个线程 */
 
@@ -719,7 +724,8 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
         String s = "send delayed message";
         printText(s);
-        printLog(s);
+        print(s);
+        addEnter();
         addEnter();
 
         Messengers.send(3, 2000, this);
@@ -734,7 +740,8 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
         String s = "send message with extra";
         printText(s);
-        printLog(s);
+        print(s);
+        addEnter();
         addEnter();
 
         Messengers.send(5, " hello ", this);
@@ -833,7 +840,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         bus.go(() -> {
 
             int j = 99 + 99;
-            String s = "take " + j;
+            String s = "take " + j + " to Bus";
             printLog(s);
             print(s);
             addEnter();
@@ -853,10 +860,14 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             String s = "get from last Task " + result;
             printLog(s);
             print(s);
-            addEnter();
 
             int k = result + 1002;
             bus.take(k, "result");
+
+            s = "take " + k + " to Bus";
+            printLog(s);
+            print(s);
+            addEnter();
 
         }).go(() -> {
 
@@ -870,10 +881,14 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             String s = "get from last Task " + result;
             printLog(s);
             print(s);
-            addEnter();
 
             int l = result + 3000;
             bus.take(l, "result");
+
+            s = "take " + l + " to Bus";
+            printLog(s);
+            print(s);
+            addEnter();
 
         }).toMain(() -> {
 
@@ -1036,8 +1051,6 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         Callable< String > callable = new Callable< String >() {
             @Override
             public String call() throws Exception {
-
-                Thread.sleep(1000);
 
                 return String.valueOf(1990);
             }

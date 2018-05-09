@@ -1,137 +1,141 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <item android:title="Scheduler">
+    <group android:checkableBehavior="single">
 
-        <menu>
+        <item android:title="Scheduler">
 
-            <item
-                    android:title="后台任务"
-                    android:id="@+id/menu_00"/>
+            <menu>
 
-            <item
-                    android:title="后台延时任务"
-                    android:id="@+id/menu_01"/>
+                <item
+                        android:title="后台任务"
+                        android:id="@+id/menu_00"/>
 
-            <item
-                    android:title="后台任务,主线程回调"
-                    android:id="@+id/menu_02"/>
+                <item
+                        android:title="后台延时任务"
+                        android:id="@+id/menu_01"/>
 
-            <item
-                    android:title="后台任务,后台回调"
-                    android:id="@+id/menu_03"/>
+                <item
+                        android:title="后台任务,主线程回调"
+                        android:id="@+id/menu_02"/>
 
-            <item
-                    android:title="监听任务进度"
-                    android:id="@+id/menu_04"/>
+                <item
+                        android:title="后台任务,后台回调"
+                        android:id="@+id/menu_03"/>
 
-            <item
-                    android:title="取消任务"
-                    android:id="@+id/menu_05"/>
+                <item
+                        android:title="监听任务进度"
+                        android:id="@+id/menu_04"/>
 
-        </menu>
+                <item
+                        android:title="取消任务"
+                        android:id="@+id/menu_05"/>
 
-    </item>
+            </menu>
 
-    <item android:title="AppExecutor">
+        </item>
 
-        <menu>
+        <item android:title="AppExecutor">
 
-            <item
-                    android:id="@+id/menu_06"
-                    android:title="提交Runnable到线程池"/>
+            <menu>
 
-            <item
-                    android:id="@+id/menu_07"
-                    android:title="提交Callable到线程池"/>
+                <item
+                        android:id="@+id/menu_06"
+                        android:title="提交Runnable到线程池"/>
 
-            <item
-                    android:id="@+id/menu_08"
-                    android:title="提交Callable到线程池,直接返回结果"/>
+                <item
+                        android:id="@+id/menu_07"
+                        android:title="提交Callable到线程池"/>
 
-            <item
-                    android:id="@+id/menu_09"
-                    android:title="提交一组Runnable到线程池"/>
+                <item
+                        android:id="@+id/menu_08"
+                        android:title="提交Callable到线程池,直接返回结果"/>
 
-            <item
-                    android:id="@+id/menu_10"
-                    android:title="提交一组Callable到线程池"/>
+                <item
+                        android:id="@+id/menu_09"
+                        android:title="提交一组Runnable到线程池"/>
 
-        </menu>
+                <item
+                        android:id="@+id/menu_10"
+                        android:title="提交一组Callable到线程池"/>
 
-    </item>
+            </menu>
 
-    <item android:title="Messenger">
+        </item>
 
-        <menu>
+        <item android:title="Messenger">
 
-            <item
-                    android:id="@+id/menu_11"
-                    android:title="发送消息给其他类"/>
+            <menu>
 
-            <item
-                    android:id="@+id/menu_12"
-                    android:title="发送延时消息给其他类"/>
+                <item
+                        android:id="@+id/menu_11"
+                        android:title="发送消息给其他类"/>
 
-            <item
-                    android:id="@+id/menu_13"
-                    android:title="发送带附件消息给其他类"/>
+                <item
+                        android:id="@+id/menu_12"
+                        android:title="发送延时消息给其他类"/>
 
-            <item
-                    android:id="@+id/menu_14"
-                    android:title="取消消息"/>
+                <item
+                        android:id="@+id/menu_13"
+                        android:title="发送带附件消息给其他类"/>
 
-        </menu>
+                <item
+                        android:id="@+id/menu_14"
+                        android:title="取消消息"/>
 
-    </item>
+            </menu>
 
-    <item android:title="ObjectBus">
+        </item>
 
-        <menu>
+        <item android:title="ObjectBus">
 
-            <item
-                    android:id="@+id/menu_15"
-                    android:title="ObjectBus简单使用"/>
+            <menu>
 
-            <item
-                    android:id="@+id/menu_16"
-                    android:title="ObjectBus保存变量以便后续使用"/>
+                <item
+                        android:id="@+id/menu_15"
+                        android:title="ObjectBus简单使用"/>
 
-            <item
-                    android:id="@+id/menu_17"
-                    android:title="ObjectBus 暂停"/>
+                <item
+                        android:id="@+id/menu_16"
+                        android:title="ObjectBus保存变量以便后续使用"/>
 
-            <item
-                    android:id="@+id/menu_18"
-                    android:title="ObjectBus 结束暂停"/>
+                <item
+                        android:id="@+id/menu_17"
+                        android:title="ObjectBus 暂停"/>
 
-            <item
-                    android:id="@+id/menu_19"
-                    android:title="ObjectBus 向外发送消息"/>
+                <item
+                        android:id="@+id/menu_18"
+                        android:title="ObjectBus 结束暂停"/>
 
-            <item
-                    android:id="@+id/menu_20"
-                    android:title="ObjectBus 注册消息"/>
+                <item
+                        android:id="@+id/menu_19"
+                        android:title="ObjectBus 向外发送消息"/>
 
-            <item
-                    android:id="@+id/menu_21"
-                    android:title="ObjectBus 后台执行callable并保存"/>
+                <item
+                        android:id="@+id/menu_20"
+                        android:title="ObjectBus 注册消息"/>
 
-            <item
-                    android:id="@+id/menu_22"
-                    android:title="ObjectBus 后台并发执行callable列表,并保存"/>
+                <item
+                        android:id="@+id/menu_21"
+                        android:title="ObjectBus 后台执行callable并保存"/>
 
-            <item
-                    android:id="@+id/menu_23"
-                    android:title="ObjectBus 后台并发执行Runnable列表"/>
+                <item
+                        android:id="@+id/menu_22"
+                        android:title="ObjectBus 后台并发执行callable列表,并保存"/>
 
-            <item
-                    android:id="@+id/menu_24"
-                    android:title="ObjectBus 监听任务执行"/>
+                <item
+                        android:id="@+id/menu_23"
+                        android:title="ObjectBus 后台并发执行Runnable列表"/>
+
+                <item
+                        android:id="@+id/menu_24"
+                        android:title="ObjectBus 监听任务执行"/>
 
 
-        </menu>
+            </menu>
 
-    </item>
+        </item>
+
+    </group>
 
 </menu>
