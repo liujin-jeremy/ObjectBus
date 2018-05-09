@@ -67,7 +67,7 @@ public class ObjectBus implements OnMessageReceiveListener {
      * {@link #stopRest()}:to stop bus rest
      * {@link TakeWhileRunnable#run()}: to top bus rest
      */
-    private BusMessenger mBusMessageManger;
+    private BusMessenger mBusMessageManager;
 
     /**
      * take customs to bus,{@link #take(Object, String)},{@link #get(String)},{@link #getOff(String)}
@@ -165,11 +165,11 @@ public class ObjectBus implements OnMessageReceiveListener {
 
             /* not on main, use messenger change to MainThread */
 
-            if (mBusMessageManger == null) {
-                mBusMessageManger = new BusMessenger();
+            if (mBusMessageManager == null) {
+                mBusMessageManager = new BusMessenger();
             }
 
-            BusMessenger messenger = mBusMessageManger;
+            BusMessenger messenger = mBusMessageManager;
             Runnable runnable = command.getRunnable();
             messenger.setRunnable(runnable);
             messenger.runOnMain();
@@ -597,11 +597,23 @@ public class ObjectBus implements OnMessageReceiveListener {
 
         if (runState == RUN_STATE_RESTING || runState == RUN_STATE_RESTING_AWHILE) {
 
-            if (mBusMessageManger == null) {
-                mBusMessageManger = new BusMessenger();
+            if (mBusMessageManager == null) {
+                mBusMessageManager = new BusMessenger();
             }
-            mBusMessageManger.notifyBusStopRest();
+            mBusMessageManager.notifyBusStopRest();
         }
+    }
+
+
+    public boolean isResting() {
+
+        return (runState == RUN_STATE_RESTING || runState == RUN_STATE_RESTING_AWHILE);
+    }
+
+
+    public boolean isRestingAWhile() {
+
+        return (runState == RUN_STATE_RESTING_AWHILE);
     }
 
     //============================ 开始执行任务 ============================
@@ -968,10 +980,10 @@ public class ObjectBus implements OnMessageReceiveListener {
         @Override
         public void run() {
 
-            if (mBusMessageManger == null) {
-                mBusMessageManger = new BusMessenger();
+            if (mBusMessageManager == null) {
+                mBusMessageManager = new BusMessenger();
             }
-            mBusMessageManger.notifyBusStopRestAfter(delayed);
+            mBusMessageManager.notifyBusStopRestAfter(delayed);
         }
     }
 
