@@ -9,6 +9,8 @@
 * 任意两个类之间通信
 * ObjectBus将以上功能串联.减少逻辑的割裂感
 
+> app 有更多完整示例
+
 ## 引入
 
 project.gradle
