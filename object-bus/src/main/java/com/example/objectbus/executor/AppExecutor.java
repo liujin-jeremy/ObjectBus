@@ -164,17 +164,17 @@ public class AppExecutor {
      *
      * @param runnableList need to do
      */
+    @SuppressWarnings("unchecked")
     public static void execute(List< Runnable > runnableList) {
 
-        Object object = new Object();
-        ExecutorCompletionService< Object > completionService =
-                new ExecutorCompletionService<>(sPoolExecutor);
+        ExecutorCompletionService completionService =
+                new ExecutorCompletionService(sPoolExecutor);
 
         int size = runnableList.size();
         for (int i = 0; i < size; i++) {
 
             Runnable runnable = runnableList.get(i);
-            completionService.submit(runnable, object);
+            completionService.submit(runnable, null);
         }
 
         for (int i = 0; i < size; i++) {
