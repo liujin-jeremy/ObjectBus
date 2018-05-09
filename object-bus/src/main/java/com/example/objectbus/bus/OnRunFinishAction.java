@@ -6,13 +6,13 @@ package com.example.objectbus.bus;
  * @param <T> runnable
  * @author wuxio 2018-05-06:10:20
  */
-public interface OnAfterRunAction < T extends Runnable > {
+public interface OnRunFinishAction < T extends Runnable > {
 
     /**
      * 懒执行,会在runnable 执行run之前执行
      *
-     * @param bus      bus
+     * @param bus      bus,use for take result
      * @param runnable runnable
      */
-    void onAfterRun(Object bus, T runnable);
+    void onRunFinished(Object bus, T runnable);
 }

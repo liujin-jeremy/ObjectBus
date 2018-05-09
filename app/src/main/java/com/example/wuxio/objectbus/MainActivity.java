@@ -8,14 +8,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.objectbus.bus.ObjectBus;
-import com.example.objectbus.bus.OnAfterRunAction;
 import com.example.objectbus.bus.OnBeforeRunAction;
+import com.example.objectbus.bus.OnRunExceptionHandler;
+import com.example.objectbus.bus.OnRunFinishAction;
 import com.example.objectbus.executor.AppExecutor;
 import com.example.objectbus.executor.OnExecuteRunnable;
 import com.example.objectbus.message.Messengers;
@@ -131,6 +131,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
         @Override
         public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 
+            CharSequence text = mTextLog.getText();
             clearLogText();
 
             switch (item.getItemId()) {
@@ -201,7 +202,25 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                     testBusTakeRest();
                     break;
                 case R.id.menu_18:
-                    testBusStopRest();
+                    testBusStopRest(text);
+                    break;
+                case R.id.menu_19:
+                    testBusSend();
+                    break;
+                case R.id.menu_20:
+                    testBusRegisterMessage();
+                    break;
+                case R.id.menu_21:
+                    testBusCallable();
+                    break;
+                case R.id.menu_22:
+                    testBusCallableList();
+                    break;
+                case R.id.menu_23:
+                    testBusRunnableList();
+                    break;
+                case R.id.menu_24:
+                    testBusListener();
                     break;
 
                 default:
@@ -766,16 +785,23 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             print(s);
         }).toUnder(() -> {
 
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             String s = "task 02";
             printLog(s);
             print(s);
 
+        }).go(() -> {
+
             try {
-                Thread.sleep(2000);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        }).go(() -> {
 
             String s = "task 03";
             printLog(s);
@@ -876,9 +902,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                 print(s);
 
                 addEnter();
-
-                printText("take rest; wait for bus.stopRest()");
-
+                printText("wait for stopRest() to call");
             }
 
         }).takeRest()
@@ -886,116 +910,126 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                     @Override
                     public void run() {
 
-                        print(" after take a rest go on do task 02 ");
-
+                        String s = "after take a rest go on do task 02";
+                        printLog(s);
+                        print(s);
                     }
                 }).run();
-
     }
 
 
-    public void testBusStopRest() {
+    public void testBusStopRest(CharSequence text) {
 
-        mBus.stopRest();
+        if (mBus.isResting()) {
+            printText(text.toString());
+            addEnter();
+            addEnter();
+            mBus.stopRest();
+        }
     }
 
 
-    public void testBusMessage(View view) {
+    public void testBusSend() {
 
         mBus.go(new Runnable() {
             @Override
             public void run() {
 
-                print(" do someThing  ");
+                String s = "do something";
+                printLog(s);
+                print(s);
+                s = "send a message";
+                printLog(s);
+                print(s);
+
             }
+
+            /* send 一般用于bus运行过程中,向外发送一条消息触发一个事件,既可以直接继续运行,也可以等待其它事件运行完成后在运行(配合 takeRest ) */
+
         }).send(158, mBus, MainManager.getInstance())
                 .takeRest()
                 .go(new Runnable() {
                     @Override
                     public void run() {
 
-                        print(" rest finished ");
+                        String s = "all finished";
+                        printLog(s);
+                        print(s);
                     }
-                })
-                .run();
-
+                }).run();
     }
 
 
-    public void testBusMessageRegister(View view) {
+    public void testBusRegisterMessage() {
 
         mBus.go(new Runnable() {
             @Override
             public void run() {
 
-                print(" do someThing  ");
+                String s = "do someThing";
+                printLog(s);
+                print(s);
+
+                addEnter();
+                s = "wait 3s";
+                printText(s);
+                addEnter();
+                addEnter();
             }
         }).registerMessage(88, new Runnable() {
+
+            /* 88偶数:注册一个后台线程消息,在后台线程接收处理消息 */
+
+
             @Override
             public void run() {
 
-                print(" receive message 88");
+                String s = "receive message 88";
+                printLog(s);
+                print(s);
+
+                mBus.stopRest();
             }
         }).registerMessage(87, new Runnable() {
+
+            /* 87奇数:注册一个主线程线程消息,在主线程接收处理消息 */
+
+
             @Override
             public void run() {
 
-                print(" receive message 87");
+                String s = "receive message 87";
+                printLog(s);
+                print(s);
+
+                mBus.stopRest();
             }
-        }).go(new Runnable() {
-            @Override
-            public void run() {
-
-                print(" do finished ");
-
-            }
-        }).run();
-
-        Messengers.send(88, 3000, mBus);
-        Messengers.send(87, 3000, mBus);
-
-    }
-
-
-    public void testBusCallableList(View view) {
-
-        ObjectBus bus = new ObjectBus();
-
-        List< Callable< String > > callableList = new ArrayList<>();
-
-        for (int i = 0; i < 5; i++) {
-
-            int j = i;
-
-            Callable< String > callable = new Callable< String >() {
-                @Override
-                public String call() throws Exception {
-
-                    Thread.sleep(1000);
-
-                    return String.valueOf(j);
-                }
-            };
-
-            callableList.add(callable);
-
-        }
-
-        bus.toUnder(callableList, "CAll_LIST")
+        }).takeRest()
                 .go(new Runnable() {
+
                     @Override
                     public void run() {
 
-                        List< String > result = (List< String >) bus.get("CAll_LIST");
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
 
-                        Log.i(TAG, "run:" + result);
+                        addEnter();
+
+                        String s = "do finished";
+                        printLog(s);
+                        print(s);
                     }
                 }).run();
 
+        Messengers.send(88, 3000, mBus);
+        Messengers.send(87, 3000, mBus);
     }
 
 
-    public void testBusCallable(View view) {
+    public void testBusCallable() {
 
         ObjectBus bus = new ObjectBus();
 
@@ -1009,44 +1043,97 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             }
         };
 
+        /* 在后台执行Callable 并保存为"CALL",后续可以使用该key读取该数据 */
+
+        /* toUnder(@NonNull Callable< T > callable, String key) 后台执行Callable 并保存为"CALL" */
         bus.toUnder(callable, "CAll")
                 .go(new Runnable() {
+
                     @Override
                     public void run() {
 
-                        String result = (String) bus.get("CAll");
+                        /* 读取上一步操作保存的callable返回值 */
 
-                        Log.i(TAG, "run:" + result);
+                        String result = "result: " + (String) bus.get("CAll") + " from Callable";
+                        printLog(result);
+                        print(result);
                     }
                 }).run();
-
     }
 
 
-    public void testBusRunnableList(View view) {
+    public void testBusCallableList() {
+
+        ObjectBus bus = new ObjectBus();
+
+        List< Callable< String > > callableList = new ArrayList<>();
+
+        for (int i = 0; i < 5; i++) {
+
+            int j = i;
+
+            Callable< String > callable = new Callable< String >() {
+                @Override
+                public String call() throws Exception {
+
+                    return String.valueOf("Hello " + j);
+                }
+            };
+
+            callableList.add(callable);
+        }
+
+        /* 在后台执行Callable列表 并保存为"CAll_LIST",后续可以使用该key读取该数据 */
+
+        bus.toUnder(callableList, "CAll_LIST")
+                .go(new Runnable() {
+
+                    @SuppressWarnings("unchecked")
+                    @Override
+                    public void run() {
+
+                        printText("callable list result:");
+                        addEnter();
+                        addEnter();
+
+                        List< String > stringList = (List< String >) bus.get("CAll_LIST");
+
+                        for (String s : stringList) {
+                            printLog(s);
+                            print(s);
+                        }
+                    }
+                }).run();
+    }
+
+
+    public void testBusRunnableList() {
 
         ObjectBus bus = new ObjectBus();
 
         List< Runnable > runnableList = new ArrayList<>();
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 6; i++) {
+
+            final int j = i;
 
             Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
 
                     try {
-                        print("start");
                         Thread.sleep(1000);
-                        print("end");
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+
+                    String s = "task " + j + " finished";
+                    printLog(s);
+                    print(s);
                 }
             };
 
             runnableList.add(runnable);
-
         }
 
         bus.toUnder(runnableList)
@@ -1054,14 +1141,22 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                     @Override
                     public void run() {
 
-                        print("all finished");
+                        addEnter();
+                        String s = "All finished";
+                        printLog(s);
+                        print(s);
+
+                        addEnter();
+                        s = "runnable list 执行完毕之后,才执行后面操作";
+                        printText(s);
+                        print(s);
                     }
                 }).run();
 
     }
 
 
-    public void testBusLazyGo(View view) {
+    public void testBusListener() {
 
         ObjectBus bus = new ObjectBus();
 
@@ -1069,28 +1164,58 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void run() {
 
-                print(" do something 01 ");
+                String s = " task 01 ";
+                printLog(s);
+                print(s);
+                addEnter();
             }
         }).go(new OnBeforeRunAction< Runnable >() {
             @Override
             public void onBeforeRun(Runnable runnable) {
 
-                print("before take to mBus" + runnable);
+                String s = " before task 02 ";
+                printLog(s);
+                print(s);
                 bus.take("Hello runnable", "key");
             }
         }, new Runnable() {
             @Override
             public void run() {
 
-                String msg = (String) bus.get("key");
+                mFlag = !mFlag;
 
-                print(msg + " get from mBus ");
+                if (mFlag) {
+                    String msg = (String) bus.getOff("key");
+
+                    String s = " task 02: " + " get from BeforeAction: " + msg;
+                    printLog(s);
+                    print(s);
+
+                } else {
+
+                    String s = " task 02: running";
+                    printLog(s);
+                    print(s);
+                    Toast.makeText(MainActivity.this, "Exception", Toast.LENGTH_SHORT).show();
+                    throw new RuntimeException("exception");
+                }
             }
-        }, new OnAfterRunAction< Runnable >() {
+        }, new OnRunFinishAction< Runnable >() {
             @Override
-            public void onAfterRun(Object bus, Runnable runnable) {
+            public void onRunFinished(Object bus, Runnable runnable) {
 
-                print("after run " + runnable);
+                String s = " after task 02 ";
+                printLog(s);
+                print(s);
+
+            }
+        }, new OnRunExceptionHandler() {
+            @Override
+            public void onException(Runnable runnable, Exception e) {
+
+                String s = " Exception ";
+                printLog(s);
+                print(s);
 
             }
         }).run();

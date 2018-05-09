@@ -141,34 +141,19 @@ public class ObjectBus implements OnMessageReceiveListener {
 
             if (threadCurrent == THREAD_EXECUTOR) {
 
-                if (mExecutorRunnable == null) {
-                    mExecutorRunnable = new ExecutorRunnable();
-                }
-
-                Runnable runnable = command.getRunnable();
-                mExecutorRunnable.setRunnable(runnable);
-                AppExecutor.execute(mExecutorRunnable);
-                return;
+                command.command = COMMAND_TO_UNDER;
 
             } else if (threadCurrent == THREAD_MAIN) {
 
-                if (mBusMessageManager == null) {
-                    mBusMessageManager = new BusMessenger();
-                }
-
-                BusMessenger messenger = mBusMessageManager;
-                Runnable runnable = command.getRunnable();
-                messenger.runOnMain(runnable);
-                return;
+                command.command = COMMAND_TO_MAIN;
 
             } else {
 
                 Runnable runnable = command.getRunnable();
                 runnable.run();
                 toNextStation();
+                return;
             }
-
-            return;
         }
 
         /* run runnable on threadPool */
@@ -360,7 +345,7 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     public < T extends Runnable > ObjectBus go(
             @NonNull T runnable,
-            OnAfterRunAction< T > afterRunAction) {
+            OnRunFinishAction< T > afterRunAction) {
 
         return go(null, runnable, afterRunAction);
     }
@@ -375,7 +360,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     public < T extends Runnable > ObjectBus go(
             OnBeforeRunAction< T > initializeAction,
             @NonNull T runnable,
-            OnAfterRunAction< T > afterRunAction) {
+            OnRunFinishAction< T > afterRunAction) {
 
         return go(initializeAction, runnable, afterRunAction, null);
     }
@@ -390,7 +375,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     public < T extends Runnable > ObjectBus go(
             OnBeforeRunAction< T > initializeAction,
             @NonNull T runnable,
-            OnAfterRunAction< T > afterRunAction,
+            OnRunFinishAction< T > afterRunAction,
             OnRunExceptionHandler handler) {
 
         mHowToPass.add(new Command(
@@ -423,7 +408,7 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     public < T extends Runnable > ObjectBus toUnder(
             @NonNull T runnable,
-            OnAfterRunAction< T > afterRunAction) {
+            OnRunFinishAction< T > afterRunAction) {
 
         return toUnder(null, runnable, afterRunAction);
     }
@@ -438,7 +423,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     public < T extends Runnable > ObjectBus toUnder(
             OnBeforeRunAction< T > initializeAction,
             @NonNull T runnable,
-            OnAfterRunAction< T > afterRunAction) {
+            OnRunFinishAction< T > afterRunAction) {
 
         return toUnder(initializeAction, runnable, afterRunAction, null);
     }
@@ -453,7 +438,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     public < T extends Runnable > ObjectBus toUnder(
             OnBeforeRunAction< T > initializeAction,
             @NonNull T runnable,
-            OnAfterRunAction< T > afterRunAction,
+            OnRunFinishAction< T > afterRunAction,
             OnRunExceptionHandler handler) {
 
         mHowToPass.add(new Command(
@@ -489,7 +474,7 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     public < T extends Runnable > ObjectBus toMain(
             @NonNull T runnable,
-            OnAfterRunAction< T > afterRunAction) {
+            OnRunFinishAction< T > afterRunAction) {
 
         return toMain(null, runnable, afterRunAction);
     }
@@ -504,7 +489,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     public < T extends Runnable > ObjectBus toMain(
             OnBeforeRunAction< T > initializeAction,
             @NonNull T runnable,
-            OnAfterRunAction< T > afterRunAction) {
+            OnRunFinishAction< T > afterRunAction) {
 
         return toMain(initializeAction, runnable, afterRunAction, null);
     }
@@ -519,7 +504,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     public < T extends Runnable > ObjectBus toMain(
             OnBeforeRunAction< T > initializeAction,
             @NonNull T runnable,
-            OnAfterRunAction< T > afterRunAction,
+            OnRunFinishAction< T > afterRunAction,
             OnRunExceptionHandler handler) {
 
         mHowToPass.add(new Command(
@@ -1094,27 +1079,25 @@ public class ObjectBus implements OnMessageReceiveListener {
     //============================ do extra action with runnable ============================
 
     /**
-     * use with {@link #go(OnBeforeRunAction, Runnable)} to run init before runnable run
-     *
-     * @see OnBeforeRunAction
+     * use with {@link #go(OnBeforeRunAction, Runnable, OnRunFinishAction, OnRunExceptionHandler)}
      */
     private class ExtraActionRunnable implements Runnable {
 
         private OnBeforeRunAction     mOnBeforeRunAction;
         private Runnable              mRunnable;
-        private OnAfterRunAction      mOnRunnableFinishAction;
+        private OnRunFinishAction     mOnRunnableFinishAction;
         private OnRunExceptionHandler mOnRunExceptionHandler;
 
 
         public ExtraActionRunnable(
-                OnBeforeRunAction OnBeforeRunAction,
+                OnBeforeRunAction onBeforeRunAction,
                 Runnable runnable,
-                OnAfterRunAction onRunnableFinishAction,
+                OnRunFinishAction onRunFinishAction,
                 OnRunExceptionHandler onRunExceptionHandler) {
 
-            mOnBeforeRunAction = OnBeforeRunAction;
+            mOnBeforeRunAction = onBeforeRunAction;
             mRunnable = runnable;
-            mOnRunnableFinishAction = onRunnableFinishAction;
+            mOnRunnableFinishAction = onRunFinishAction;
             mOnRunExceptionHandler = onRunExceptionHandler;
         }
 
@@ -1123,20 +1106,23 @@ public class ObjectBus implements OnMessageReceiveListener {
         @Override
         public void run() {
 
+            Runnable runnable = mRunnable;
+
             try {
                 if (mOnBeforeRunAction != null) {
-                    mOnBeforeRunAction.onBeforeRun(mRunnable);
+                    mOnBeforeRunAction.onBeforeRun(runnable);
                 }
 
-                mRunnable.run();
+                runnable.run();
 
                 if (mOnRunnableFinishAction != null) {
-                    mOnRunnableFinishAction.onAfterRun(ObjectBus.this, mRunnable);
+                    mOnRunnableFinishAction.onRunFinished(ObjectBus.this, runnable);
                 }
             } catch (Exception e) {
+
                 e.printStackTrace();
                 if (mOnRunExceptionHandler != null) {
-                    mOnRunExceptionHandler.onException(e);
+                    mOnRunExceptionHandler.onException(runnable, e);
                 }
             }
         }

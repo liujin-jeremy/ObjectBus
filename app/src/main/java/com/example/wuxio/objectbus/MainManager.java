@@ -34,7 +34,7 @@ public class MainManager implements OnMessageReceiveListener {
 
         if (what == 158) {
             ObjectBus bus = (ObjectBus) extra;
-            Messengers.send(159, 3000, bus, this);
+            Messengers.send(159, 1000, bus, this);
         }
 
         if (what == 159) {

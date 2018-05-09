@@ -105,6 +105,30 @@
                     android:id="@+id/menu_18"
                     android:title="ObjectBus 结束暂停"/>
 
+            <item
+                    android:id="@+id/menu_19"
+                    android:title="ObjectBus 向外发送消息"/>
+
+            <item
+                    android:id="@+id/menu_20"
+                    android:title="ObjectBus 注册消息"/>
+
+            <item
+                    android:id="@+id/menu_21"
+                    android:title="ObjectBus 后台执行callable并保存"/>
+
+            <item
+                    android:id="@+id/menu_22"
+                    android:title="ObjectBus 后台并发执行callable列表,并保存"/>
+
+            <item
+                    android:id="@+id/menu_23"
+                    android:title="ObjectBus 后台并发执行Runnable列表"/>
+
+            <item
+                    android:id="@+id/menu_24"
+                    android:title="ObjectBus 监听任务执行"/>
+
 
         </menu>
 
