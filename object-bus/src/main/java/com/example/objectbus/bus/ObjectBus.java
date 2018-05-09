@@ -141,12 +141,20 @@ public class ObjectBus implements OnMessageReceiveListener {
 
             if (threadCurrent == THREAD_EXECUTOR) {
 
+                if (mExecutorRunnable == null) {
+                    mExecutorRunnable = new ExecutorRunnable();
+                }
+
                 Runnable runnable = command.getRunnable();
                 mExecutorRunnable.setRunnable(runnable);
                 AppExecutor.execute(mExecutorRunnable);
                 return;
 
             } else if (threadCurrent == THREAD_MAIN) {
+
+                if (mBusMessageManager == null) {
+                    mBusMessageManager = new BusMessenger();
+                }
 
                 BusMessenger messenger = mBusMessageManager;
                 Runnable runnable = command.getRunnable();
@@ -644,6 +652,14 @@ public class ObjectBus implements OnMessageReceiveListener {
      * start run bus
      */
     public void run() {
+
+        final String mainThreadName = "main";
+
+        if (mainThreadName.equals(Thread.currentThread().getName())) {
+            threadCurrent = THREAD_MAIN;
+        } else {
+            threadCurrent = THREAD_EXECUTOR;
+        }
 
         runState = RUN_STATE_RUNNING;
         toNextStation();
