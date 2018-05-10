@@ -18,8 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Messengers {
 
-    private static SendHandler sSendHandler;
-    private static SendHandler sMainHandler;
+    private static ReceiveHandler sSendHandler;
+    private static ReceiveHandler sMainHandler;
 
     private static final AtomicInteger ATOMIC_INTEGER = new AtomicInteger();
 
@@ -28,15 +28,15 @@ public class Messengers {
 
         HandlerThread thread = new HandlerThread("Messengers");
         thread.start();
-        sSendHandler = new SendHandler(thread.getLooper());
-        sMainHandler = new SendHandler(Looper.getMainLooper());
+        sSendHandler = new ReceiveHandler(thread.getLooper());
+        sMainHandler = new ReceiveHandler(Looper.getMainLooper());
     }
 
 
     public static void init(Looper looper) {
 
-        sSendHandler = new SendHandler(looper);
-        sMainHandler = new SendHandler(Looper.getMainLooper());
+        sSendHandler = new ReceiveHandler(looper);
+        sMainHandler = new ReceiveHandler(Looper.getMainLooper());
     }
 
 
@@ -94,7 +94,7 @@ public class Messengers {
     public static void send(int what, int delayed, Object extra, @NonNull OnMessageReceiveListener who) {
 
         final int judge = 2;
-        SendHandler sendHandler;
+        ReceiveHandler sendHandler;
         if (what % judge == 0) {
             sendHandler = sSendHandler;
         } else {
@@ -109,6 +109,8 @@ public class Messengers {
 
         sendHandler.sendMessageDelayed(obtain, delayed);
     }
+
+    //============================ 移除一条消息监听 ============================
 
 
     /**
@@ -134,7 +136,7 @@ public class Messengers {
      * @param listener listener
      * @param handler  which handler listener at
      */
-    private static void clearListener(int what, OnMessageReceiveListener listener, SendHandler handler) {
+    private static void clearListener(int what, OnMessageReceiveListener listener, ReceiveHandler handler) {
 
         SparseArray< Holder > array = handler.MESSAGE_HOLDER_ARRAY;
         int size = array.size();
@@ -154,7 +156,7 @@ public class Messengers {
     /**
      * 发送消息的handler
      */
-    private static class SendHandler extends Handler {
+    private static class ReceiveHandler extends Handler {
 
         final SparseArray< Holder > MESSAGE_HOLDER_ARRAY = new SparseArray<>();
 
@@ -164,7 +166,7 @@ public class Messengers {
          *
          * @param looper looper
          */
-        private SendHandler(Looper looper) {
+        private ReceiveHandler(Looper looper) {
 
             super(looper);
         }

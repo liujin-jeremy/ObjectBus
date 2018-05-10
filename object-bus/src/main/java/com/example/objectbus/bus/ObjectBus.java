@@ -771,6 +771,7 @@ public class ObjectBus implements OnMessageReceiveListener {
             mMessageReceiveRunnable = new SparseArray<>();
         }
         mMessageReceiveRunnable.delete(what);
+        Messengers.remove(what, this);
     }
 
 
