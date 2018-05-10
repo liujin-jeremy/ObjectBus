@@ -2,6 +2,8 @@ package com.example.objectbus.bus;
 
 import android.util.SparseArray;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * @author wuxio 2018-05-10:11:21
  */
@@ -27,14 +29,35 @@ public class BusStation {
 
     //============================ care ============================
 
-    private SparseArray< ObjectBus >      mEmptyBus    = new SparseArray<>();
+    private SparseArray< ObjectBus > mEmptyBus = new SparseArray<>();
+    private AtomicInteger            mInteger  = new AtomicInteger();
 
 
-    public void obtainBus() {
+    /**
+     * @return new object bus
+     */
+    public ObjectBus obtainBus() {
 
-        if (mEmptyBus.size() > 0) {
-            ObjectBus bus = mEmptyBus.get(0);
-            bus.clearRunnable();
+        for (int i = 0; i < mEmptyBus.size(); i++) {
+            int key = mEmptyBus.keyAt(i);
+            ObjectBus bus = mEmptyBus.get(key);
+            if (bus != null) {
+                mEmptyBus.delete(key);
+                return bus;
+            }
         }
+
+        return new ObjectBus();
+    }
+
+
+    /**
+     * @param bus recycle bus
+     */
+    public void recycle(ObjectBus bus) {
+
+        int key = mInteger.getAndAdd(1);
+        bus.initToNew();
+        mEmptyBus.put(key, bus);
     }
 }

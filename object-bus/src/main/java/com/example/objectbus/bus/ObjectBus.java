@@ -22,8 +22,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ObjectBus implements OnMessageReceiveListener {
 
-    private static final String TAG = "ObjectBus";
-
     /**
      * command used for {@link Command} to how to do runnable
      */
@@ -94,7 +92,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     /**
      * 将状态还原为初始值
      */
-    public void obtain() {
+    public void initToNew() {
 
         clearRunnable();
         clearMessageReceiveRunnable();
@@ -736,12 +734,14 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     public void clearPassenger() {
 
-        mExtras.clear();
+        if (mExtras != null) {
+            mExtras.clear();
+        }
     }
 
     //============================ bus message register ============================
 
-    private SparseArray< Runnable > mMessageReceiveRunnable = new SparseArray<>();
+    private SparseArray< Runnable > mMessageReceiveRunnable;
 
 
     /**
@@ -754,6 +754,9 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     public ObjectBus registerMessage(int what, Runnable runnable) {
 
+        if (mMessageReceiveRunnable == null) {
+            mMessageReceiveRunnable = new SparseArray<>();
+        }
         mMessageReceiveRunnable.put(what, runnable);
         return this;
     }
@@ -764,6 +767,9 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     public void unRegisterMessage(int what) {
 
+        if (mMessageReceiveRunnable == null) {
+            mMessageReceiveRunnable = new SparseArray<>();
+        }
         mMessageReceiveRunnable.delete(what);
     }
 
@@ -773,12 +779,18 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     public void clearMessageReceiveRunnable() {
 
-        mMessageReceiveRunnable.clear();
+        if (mMessageReceiveRunnable != null) {
+            mMessageReceiveRunnable.clear();
+        }
     }
 
 
     @Override
     public void onReceive(int what) {
+
+        if (mMessageReceiveRunnable == null) {
+            return;
+        }
 
         /* when bus receive a message run the runnable register to what  */
 

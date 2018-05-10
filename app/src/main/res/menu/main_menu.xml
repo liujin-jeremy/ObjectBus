@@ -8,28 +8,28 @@
             <menu>
 
                 <item
-                        android:title="后台任务"
-                        android:id="@+id/menu_00"/>
+                        android:id="@+id/menu_00"
+                        android:title="后台任务"/>
 
                 <item
-                        android:title="后台延时任务"
-                        android:id="@+id/menu_01"/>
+                        android:id="@+id/menu_01"
+                        android:title="后台延时任务"/>
 
                 <item
-                        android:title="后台任务,主线程回调"
-                        android:id="@+id/menu_02"/>
+                        android:id="@+id/menu_02"
+                        android:title="后台任务,主线程回调"/>
 
                 <item
-                        android:title="后台任务,后台回调"
-                        android:id="@+id/menu_03"/>
+                        android:id="@+id/menu_03"
+                        android:title="后台任务,后台回调"/>
 
                 <item
-                        android:title="监听任务进度"
-                        android:id="@+id/menu_04"/>
+                        android:id="@+id/menu_04"
+                        android:title="监听任务进度"/>
 
                 <item
-                        android:title="取消任务"
-                        android:id="@+id/menu_05"/>
+                        android:id="@+id/menu_05"
+                        android:title="取消任务"/>
 
             </menu>
 
@@ -131,6 +131,18 @@
                         android:id="@+id/menu_24"
                         android:title="ObjectBus 监听任务执行"/>
 
+
+            </menu>
+
+        </item>
+
+        <item android:title="BusStation">
+
+            <menu>
+
+                <item
+                        android:id="@+id/menu_25"
+                        android:title="全局创建/回收"/>
 
             </menu>
 

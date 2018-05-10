@@ -12,6 +12,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.objectbus.bus.BusStation;
 import com.example.objectbus.bus.ObjectBus;
 import com.example.objectbus.bus.OnBeforeRunAction;
 import com.example.objectbus.bus.OnRunExceptionHandler;
@@ -221,6 +222,11 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                     break;
                 case R.id.menu_24:
                     testBusListener();
+                    break;
+
+                /* BusStation */
+                case R.id.menu_25:
+                    testBusStation();
                     break;
 
                 default:
@@ -1230,6 +1236,57 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                 printLog(s);
                 print(s);
 
+            }
+        }).run();
+    }
+
+
+    public void testBusStation() {
+
+        ObjectBus bus00 = BusStation.getInstance().obtainBus();
+        ObjectBus bus01 = BusStation.getInstance().obtainBus();
+        ObjectBus bus02 = BusStation.getInstance().obtainBus();
+
+        bus02.registerMessage(1, new Runnable() {
+            @Override
+            public void run() {
+
+                ObjectBus bus = BusStation.getInstance().obtainBus();
+                bus.go(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        String s = "do task 02 " + bus;
+                        printLog(s);
+                        print(s);
+                    }
+                }).run();
+            }
+        });
+
+        bus00.go(new Runnable() {
+            @Override
+            public void run() {
+
+                String s = "do task 01 " + bus00;
+                printLog(s);
+                print(s);
+
+                BusStation.getInstance().recycle(bus00);
+                Messengers.send(1, bus02);
+            }
+        }).run();
+
+        bus01.go(new Runnable() {
+            @Override
+            public void run() {
+
+                String s = "do task 01 " + bus01;
+                printLog(s);
+                print(s);
+
+                BusStation.getInstance().recycle(bus01);
+                Messengers.send(1, bus02);
             }
         }).run();
     }
