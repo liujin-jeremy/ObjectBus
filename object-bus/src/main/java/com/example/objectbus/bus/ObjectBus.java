@@ -57,7 +57,7 @@ public class ObjectBus implements OnMessageReceiveListener {
     /**
      * how to pass every station
      */
-    private ArrayList< Command > mHowToPass = new ArrayList<>();
+    private final ArrayList< Command > mHowToPass = new ArrayList<>();
 
     /**
      * used do runnable at {@link com.example.objectbus.executor.AppExecutor},used by
@@ -88,6 +88,19 @@ public class ObjectBus implements OnMessageReceiveListener {
 
     }
 
+    //============================ init to original ============================
+
+
+    /**
+     * 将状态还原为初始值
+     */
+    public void obtain() {
+
+        clearRunnable();
+        clearMessageReceiveRunnable();
+        clearPassenger();
+    }
+
     //============================ core ============================
 
 
@@ -105,28 +118,37 @@ public class ObjectBus implements OnMessageReceiveListener {
      */
     private void toNextStation() {
 
-        int size = mHowToPass.size();
+        synchronized (mHowToPass) {
 
-        if (size <= 0) {
-            return;
-        }
+            int size = mHowToPass.size();
 
-        int index = mPassBy.getAndAdd(1);
-        if (index < size) {
+            if (size <= 0) {
+                return;
+            }
 
-            Command command = mHowToPass.get(index);
-            doCommand(command);
-        } else {
+            int index = mPassBy.getAndAdd(1);
+            if (index < size) {
 
-            mPassBy.getAndAdd(-1);
+                Command command = mHowToPass.get(index);
+                doCommand(command);
+            } else {
+
+                mPassBy.getAndAdd(-1);
+            }
         }
     }
 
 
+    /**
+     * 推荐所有任务执行完成后,清除所有任务(因为可能存在内存泄漏,在所有任务完成后放弃对任务的引用,释放资源),
+     * 如果任务没有完成调用该方法,任务也会清除掉,需要用户自己保证所有任务已经执行完成,在调用该方法
+     */
     public void clearRunnable() {
 
-        mHowToPass.clear();
-        mPassBy.set(0);
+        synchronized (mHowToPass) {
+            mHowToPass.clear();
+            mPassBy.set(0);
+        }
     }
 
 
@@ -640,13 +662,17 @@ public class ObjectBus implements OnMessageReceiveListener {
 
         final String mainThreadName = "main";
 
+        /* 标记当前线程 */
         if (mainThreadName.equals(Thread.currentThread().getName())) {
             threadCurrent = THREAD_MAIN;
         } else {
             threadCurrent = THREAD_EXECUTOR;
         }
 
+        /* 标记当前运行状态 */
         runState = RUN_STATE_RUNNING;
+
+        /* 开始 */
         toNextStation();
     }
 
@@ -704,6 +730,15 @@ public class ObjectBus implements OnMessageReceiveListener {
         return getExtras().remove(key);
     }
 
+
+    /**
+     * 清除所有乘客
+     */
+    public void clearPassenger() {
+
+        mExtras.clear();
+    }
+
     //============================ bus message register ============================
 
     private SparseArray< Runnable > mMessageReceiveRunnable = new SparseArray<>();
@@ -730,6 +765,15 @@ public class ObjectBus implements OnMessageReceiveListener {
     public void unRegisterMessage(int what) {
 
         mMessageReceiveRunnable.delete(what);
+    }
+
+
+    /**
+     * 清除所有注册的消息的行动
+     */
+    public void clearMessageReceiveRunnable() {
+
+        mMessageReceiveRunnable.clear();
     }
 
 
