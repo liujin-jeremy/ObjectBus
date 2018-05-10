@@ -279,7 +279,7 @@ public class ObjectBus implements OnMessageReceiveListener {
      * @param <T>      result type
      * @return self
      */
-    public < T > ObjectBus toUnder(@NonNull Callable< T > callable, String key) {
+    public < T, C extends Callable< T > > ObjectBus toUnder(@NonNull C callable, String key) {
 
         mHowToPass.add(new Command(
                 COMMAND_CALLABLE,
@@ -297,11 +297,11 @@ public class ObjectBus implements OnMessageReceiveListener {
      * @param runnableList task to run
      * @return self
      */
-    public ObjectBus toUnder(@NonNull List< Runnable > runnableList) {
+    public < T extends Runnable > ObjectBus toUnder(@NonNull List< T > runnableList) {
 
         mHowToPass.add(new Command(
                 COMMAND_MULTI_RUNNABLE,
-                new ListRunnable(runnableList))
+                new ListRunnable<>(runnableList))
         );
         return this;
     }
@@ -315,7 +315,9 @@ public class ObjectBus implements OnMessageReceiveListener {
      * @param <T>          result type
      * @return self
      */
-    public < T > ObjectBus toUnder(@NonNull List< Callable< T > > callableList, String key) {
+    public < T, C extends Callable< T > > ObjectBus toUnder(
+            @NonNull List< C > callableList,
+            String key) {
 
         mHowToPass.add(new Command(
                 COMMAND_MULTI_CALLABLE,
@@ -459,14 +461,16 @@ public class ObjectBus implements OnMessageReceiveListener {
             OnBeforeRunAction< T > initializeAction,
             @NonNull T runnable,
             OnRunFinishAction< T > afterRunAction,
-            OnRunExceptionHandler handler) {
+            OnRunExceptionHandler< T > handler) {
 
         mHowToPass.add(new Command(
-                COMMAND_TO_UNDER,
-                new ExtraActionRunnable(
-                        initializeAction,
-                        runnable,
-                        afterRunAction, handler))
+                        COMMAND_TO_UNDER,
+                        new ExtraActionRunnable<>(
+                                initializeAction,
+                                runnable,
+                                afterRunAction,
+                                handler)
+                )
         );
         return this;
     }
@@ -525,14 +529,16 @@ public class ObjectBus implements OnMessageReceiveListener {
             OnBeforeRunAction< T > initializeAction,
             @NonNull T runnable,
             OnRunFinishAction< T > afterRunAction,
-            OnRunExceptionHandler handler) {
+            OnRunExceptionHandler< T > handler) {
 
         mHowToPass.add(new Command(
-                COMMAND_TO_MAIN,
-                new ExtraActionRunnable(
-                        initializeAction,
-                        runnable,
-                        afterRunAction, handler))
+                        COMMAND_TO_MAIN,
+                        new ExtraActionRunnable<>(
+                                initializeAction,
+                                runnable,
+                                afterRunAction,
+                                handler)
+                )
         );
         return this;
     }
@@ -1069,12 +1075,12 @@ public class ObjectBus implements OnMessageReceiveListener {
 
     //============================ list runnable ============================
 
-    private class ListRunnable implements Runnable {
+    private class ListRunnable < T extends Runnable > implements Runnable {
 
-        private List< Runnable > mRunnableList;
+        private List< T > mRunnableList;
 
 
-        public ListRunnable(List< Runnable > runnableList) {
+        public ListRunnable(List< T > runnableList) {
 
             mRunnableList = runnableList;
         }
@@ -1112,13 +1118,13 @@ public class ObjectBus implements OnMessageReceiveListener {
 
     //============================ multi runnable Concurrent ============================
 
-    private class ConcurrentRunnable < T > implements Runnable {
+    private class ConcurrentRunnable < T, C extends Callable< T > > implements Runnable {
 
-        java.util.List< Callable< T > > mCallableList;
+        List< C > mCallableList;
         private String key;
 
 
-        ConcurrentRunnable(List< Callable< T > > callableList, String key) {
+        ConcurrentRunnable(List< C > callableList, String key) {
 
             mCallableList = callableList;
             this.key = key;
@@ -1138,19 +1144,19 @@ public class ObjectBus implements OnMessageReceiveListener {
     /**
      * use with {@link #go(OnBeforeRunAction, Runnable, OnRunFinishAction, OnRunExceptionHandler)}
      */
-    private class ExtraActionRunnable implements Runnable {
+    private class ExtraActionRunnable < T extends Runnable > implements Runnable {
 
-        private OnBeforeRunAction     mOnBeforeRunAction;
-        private Runnable              mRunnable;
-        private OnRunFinishAction     mOnRunnableFinishAction;
-        private OnRunExceptionHandler mOnRunExceptionHandler;
+        private OnBeforeRunAction< T >     mOnBeforeRunAction;
+        private T                          mRunnable;
+        private OnRunFinishAction< T >     mOnRunnableFinishAction;
+        private OnRunExceptionHandler< T > mOnRunExceptionHandler;
 
 
         public ExtraActionRunnable(
-                OnBeforeRunAction onBeforeRunAction,
-                Runnable runnable,
-                OnRunFinishAction onRunFinishAction,
-                OnRunExceptionHandler onRunExceptionHandler) {
+                OnBeforeRunAction< T > onBeforeRunAction,
+                T runnable,
+                OnRunFinishAction< T > onRunFinishAction,
+                OnRunExceptionHandler< T > onRunExceptionHandler) {
 
             mOnBeforeRunAction = onBeforeRunAction;
             mRunnable = runnable;
@@ -1163,7 +1169,7 @@ public class ObjectBus implements OnMessageReceiveListener {
         @Override
         public void run() {
 
-            Runnable runnable = mRunnable;
+            T runnable = mRunnable;
 
             try {
                 if (mOnBeforeRunAction != null) {

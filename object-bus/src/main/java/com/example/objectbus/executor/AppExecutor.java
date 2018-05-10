@@ -86,7 +86,7 @@ public class AppExecutor {
      * @param <T>      type
      * @return use {@link Future#get()} to get result
      */
-    public static < T > Future< T > submit(Callable< T > callable) {
+    public static < T, C extends Callable< T > > Future< T > submit(C callable) {
 
         /* 使用try..catch 增加程序健壮性,防止线程意外结束 */
 
@@ -113,7 +113,7 @@ public class AppExecutor {
      * @param <T>      result type
      * @return result, or null if Exception
      */
-    public static < T > T submitAndGet(Callable< T > callable) {
+    public static < T, C extends Callable< T > > T submitAndGet(C callable) {
 
         /* 使用try..catch 增加程序健壮性,防止线程意外结束 */
 
@@ -141,7 +141,7 @@ public class AppExecutor {
      * @param <T>          result type
      * @return use {@link CompletionService#take()} to get {@link Future#get()}
      */
-    public static < T > CompletionService< T > submit(List< Callable< T > > callableList) {
+    public static < T, C extends Callable< T > > CompletionService< T > submit(List< C > callableList) {
 
         ExecutorCompletionService< T > completionService = new ExecutorCompletionService<>(sPoolExecutor);
 
@@ -165,7 +165,7 @@ public class AppExecutor {
      * @param runnableList need to do
      */
     @SuppressWarnings("unchecked")
-    public static void execute(List< Runnable > runnableList) {
+    public static < T extends Runnable > void execute(List< T > runnableList) {
 
         ExecutorCompletionService completionService =
                 new ExecutorCompletionService(sPoolExecutor);
@@ -191,7 +191,7 @@ public class AppExecutor {
     }
 
 
-    public static < T > List< T > submitAndGet(List< Callable< T > > callableList) {
+    public static < T, C extends Callable< T > > List< T > submitAndGet(List< C > callableList) {
 
         ExecutorCompletionService< T > completionService = new ExecutorCompletionService<>(sPoolExecutor);
 
