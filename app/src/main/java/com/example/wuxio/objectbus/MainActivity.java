@@ -1251,7 +1251,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             @Override
             public void run() {
 
-                ObjectBus bus = BusStation.getInstance().obtainBus();
+                ObjectBus bus = BusStation.callNewBus();
                 bus.go(new Runnable() {
                     @Override
                     public void run() {
@@ -1272,7 +1272,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                 printLog(s);
                 print(s);
 
-                BusStation.getInstance().recycle(bus00);
+                BusStation.recycle(bus00);
                 Messengers.send(1, bus02);
             }
         }).run();
@@ -1285,7 +1285,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                 printLog(s);
                 print(s);
 
-                BusStation.getInstance().recycle(bus01);
+                BusStation.recycle(bus01);
                 Messengers.send(1, bus02);
             }
         }).run();

@@ -54,10 +54,30 @@ public class BusStation {
     /**
      * @param bus recycle bus
      */
-    public void recycle(ObjectBus bus) {
+    public void recycleBus(ObjectBus bus) {
 
         int key = mInteger.getAndAdd(1);
         bus.initToNew();
         mEmptyBus.put(key, bus);
+    }
+
+    //============================ static Simple method ============================
+
+
+    /**
+     * @return a new empty ObjectBus
+     */
+    public static ObjectBus callNewBus() {
+
+        return getInstance().obtainBus();
+    }
+
+
+    /**
+     * @param bus recycle bus
+     */
+    public static void recycle(ObjectBus bus) {
+
+        getInstance().recycleBus(bus);
     }
 }
