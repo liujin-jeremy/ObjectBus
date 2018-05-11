@@ -27,9 +27,11 @@ app.gradle
 
 ```
 dependencies {
-	implementation 'com.github.threekilogram:ObjectBus:1.4'
+	implementation 'com.github.threekilogram:ObjectBus:${version}'
 }
 ```
+
+[version 版本号在这](https://github.com/threekilogram/ObjectBus/releases)
 
 ## 库初始化
 
