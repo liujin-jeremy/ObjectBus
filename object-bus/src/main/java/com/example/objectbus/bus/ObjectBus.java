@@ -268,11 +268,43 @@ public class ObjectBus implements OnMessageReceiveListener {
         return this;
     }
 
-    //============================ callable 执行 ============================
+    //============================ mCallable 执行 ============================
 
 
     /**
-     * to do callable on BackThread and save value
+     * call callable on current thread,and save result
+     *
+     * @param callable to call
+     * @param key      use this key to save result
+     * @param <T>      result type
+     * @param <C>      callable
+     * @return self
+     */
+    public < T, C extends Callable< T > > ObjectBus go(@NonNull C callable, @NonNull String key) {
+
+        mHowToPass.add(new Command(COMMAND_GO, new CallableSelfCallRunnable<>(callable, key)));
+        return this;
+    }
+
+
+    /**
+     * call callableList on current thread,and save result
+     *
+     * @param callableList to call
+     * @param key          use this key to save result
+     * @param <T>          result type
+     * @param <C>          callable
+     * @return self
+     */
+    public < T, C extends Callable< T > > ObjectBus go(@NonNull List< C > callableList, @NonNull String key) {
+
+        mHowToPass.add(new Command(COMMAND_GO, new CallableListSelfCallRunnable<>(callableList, key)));
+        return this;
+    }
+
+
+    /**
+     * to do mCallable on BackThread and save value
      *
      * @param callable need run
      * @param key      key for save
@@ -308,7 +340,7 @@ public class ObjectBus implements OnMessageReceiveListener {
 
 
     /**
-     * to do callable on BackThread and save every result value as list
+     * to do mCallable on BackThread and save every result value as list
      *
      * @param callableList need run
      * @param key          key for save
@@ -1093,15 +1125,15 @@ public class ObjectBus implements OnMessageReceiveListener {
         }
     }
 
-    //============================ callable Runnable ============================
+    //============================ mCallable Runnable ============================
 
-    private class CallableRunnable < T > implements Runnable {
+    private class CallableRunnable < T, C extends Callable< T > > implements Runnable {
 
-        private Callable< T > mCallable;
-        private String        key;
+        private C      mCallable;
+        private String key;
 
 
-        public CallableRunnable(Callable< T > callable, String key) {
+        public CallableRunnable(C callable, String key) {
 
             this.key = key;
             mCallable = callable;
@@ -1116,7 +1148,6 @@ public class ObjectBus implements OnMessageReceiveListener {
         }
     }
 
-    //============================ multi runnable Concurrent ============================
 
     private class ConcurrentRunnable < T, C extends Callable< T > > implements Runnable {
 
@@ -1136,6 +1167,72 @@ public class ObjectBus implements OnMessageReceiveListener {
 
             List< T > list = AppExecutor.submitAndGet(mCallableList);
             take(list, key);
+        }
+    }
+
+    //============================ callable self call runnable ============================
+
+    private class CallableSelfCallRunnable < T, C extends Callable< T > > implements Runnable {
+
+        private C      mCallable;
+        private String key;
+
+
+        public CallableSelfCallRunnable(C callable, String key) {
+
+            mCallable = callable;
+            this.key = key;
+        }
+
+
+        @Override
+        public void run() {
+
+            try {
+                T call = mCallable.call();
+                if (key != null) {
+                    take(call, key);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
+    }
+
+    private class CallableListSelfCallRunnable < T, C extends Callable< T > > implements Runnable {
+
+        private List< C > mCallableList;
+        private String    key;
+
+
+        public CallableListSelfCallRunnable(List< C > callableList, String key) {
+
+            mCallableList = callableList;
+            this.key = key;
+        }
+
+
+        @Override
+        public void run() {
+
+            int size = mCallableList.size();
+            List< T > result = new ArrayList<>(size);
+
+            for (int i = 0; i < size; i++) {
+                C c = mCallableList.get(i);
+                try {
+                    T call = c.call();
+                    result.add(call);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (key != null) {
+                take(result, key);
+            }
         }
     }
 
