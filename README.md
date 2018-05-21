@@ -40,483 +40,269 @@ BusConfig.init();
 或者自己调用 Scheduler.init() 及其重载方法; 调用 Messengers.init() 及其重载方法; 调用 AppExecutor.init()  及其重载方法
 ```
 
-## ObjectBus
+## 异步任务
 
 该类可以在不同的线程上串行执行任务
 
-### 示例 1 
-
-在主线程调用,中间跳转到后台执行耗时任务,最后回到主线程
+#### 执行后台任务
 
 ```
 ObjectBus bus = new ObjectBus();
 
-bus.go(new Runnable() {			--> 此处 go 运行在调用 run() 的线程
-    @Override
-    public void run() {
-        print(" do task 01 @Main");
-    }
-}).toUnder(new Runnable() {		--> toUnder 将会将任务带到后台线程执行
-    @Override
-    public void run() {
-        print(" do task 02 @ThreadPools ");
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-}).go(new Runnable() {		--> 此处的 go 因为前面的操作切换到了后台线程,所以在后台线程执行
-    @Override
-    public void run() {
-        print(" do task 03 @ThreadPools ");
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-}).toMain(new Runnable() {		--> toMain 会将操作带到主线程执行
-    @Override
-    public void run() {
-        print(" go back to @Main ");
-    }
+bus.toUnder(() -> {
+    
+	// 参数是一个 Runnable(封装需要在后台执行的操作) , 使用Lambda简化
+	// do something In threadPool
+
 }).run();
-
 ```
 
-log: 
-
-```
-I/MainActivity: : Thread: main time: 1525417849121 msg:  do task 01 @Main
-I/MainActivity: : Thread: AppThread-0 time: 1525417849121 msg:  do task 02 @ThreadPools 
-I/MainActivity: : Thread: AppThread-0 time: 1525417851121 msg:  do task 03 @ThreadPools 
-I/MainActivity: : Thread: main time: 1525417852124 msg:  go back to @Main 
-
-// thread 切换: main --> AppThread-0 --> AppThread-0 --> main
-// 时间变化: 49121 --> 49121(sleep 2s) --> 51121(sleep 1s) --> 52124
-```
-
->根据 log 可以看出任务由主线程切换到后台最后回到主线程,串行完成任务
-
-简化上面示例为 Lambda
-
-```
-ObjectBus bus = new ObjectBus();
-bus.go(() -> print(" do task 01 @Main"))
-        .toUnder(() -> {
-            print(" do task 02 @ThreadPools ");
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        })
-        .go(() -> {
-            print(" do task 03 @ThreadPools ");
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }).toMain(() -> print(" go back to @Main "))
-        .run();
-```
-
-### 示例 2 
-
-携带参数到 bus,或者保存中间变量到 bus 用于后续操作
+#### 执行后台任务,之后切换主线程
 
 ```
 ObjectBus bus = new ObjectBus();
 
-bus.go(() -> {
-
-    print(" do task 01 @Main");
-    int j = 99 + 99;
-    bus.takeAs(j, "result");		--> bus 使用 takeAs 保存一个变量,后续可以继续对这个变量进行操作
-
-}).toUnder(() -> {
-
-    print(" do task 02 @ThreadPools ");
-    try {
-        Thread.sleep(2000);
-    } catch (InterruptedException e) {
-        e.printStackTrace();
-    }
-    Integer result = (Integer) bus.get("result");
-    int k = result + 1002;
-    bus.takeAs(k, "result");
-
-}).go(() -> {
-
-    print(" do task 03 @ThreadPools ");
-    try {
-        Thread.sleep(1000);
-    } catch (InterruptedException e) {
-        e.printStackTrace();
-    }
-    Integer result = (Integer) bus.get("result");
-    int l = result + 3000;
-    bus.takeAs(l, "result");
+bus.toUnder(() -> {
+   
+	// do something In threadPool
 
 }).toMain(() -> {
-
-    Integer result = (Integer) bus.get("result");
-    print(" go back to @Main , result: " + result); --> 打印 "result"  
+    
+	// 后台任务执行完成之后,回到主线程继续执行后续任务
 
 }).run();
 ```
 
-log:
+#### 线程切换
 
 ```
-I/MainActivity: : Thread: main time: 1525419527205 msg:  do task 01 @Main
-I/MainActivity: : Thread: AppThread-0 time: 1525419527205 msg:  do task 02 @ThreadPools 
-I/MainActivity: : Thread: AppThread-0 time: 1525419529207 msg:  do task 03 @ThreadPools 
-I/MainActivity: : Thread: main time: 1525419530209 msg:  go back to @Main , result: 4200
-```
+ObjectBus bus = new ObjectBus();
 
-> 正确 : 4200=99+99+1002+3000
+bus.toUnder(() -> {
+    
+	// ThreadPool
 
-### 控制ObjectBus执行流程
+}).toMain(() -> {
+    
+	// MainThread
 
-暂停执行
+})..toUnder(() -> {
+    
+	// ThreadPool
 
-```
-bus.go(new Runnable() {
-    @Override
-    public void run() {
-        print(" do task 01 ");
-    }
-}).takeRest()			--> 使用 takeRest 暂停执行
-        .go(new Runnable() {
-            @Override
-            public void run() {
-                print(" after take a rest go on do task 02 ");
-            }
-        }).run();
-```
+}).toMain(() -> {
+    
+	// MainThread
 
-恢复执行
-
-```
-bus.stopRest();
-```
-
-![](img/bus01.gif) 
-
-log:
-
-```
-I/MainActivity: : Thread: main time: 1525420360068 msg:  do task 01 
-I/MainActivity: : Thread: AppThread-1 time: 1525420361952 msg:  after take a rest go on do task 02 
-```
-
-### 与其他类通信
-
-```
-bus.go(new Runnable() {
-    @Override
-    public void run() {
-        print(" do someThing  ");
-    }
-}).send(158, bus, MainManager.getInstance())		--> 使用 send 可以与其他类进行通信
-        .takeRest()
-        .go(new Runnable() {
-            @Override
-            public void run() {
-                print(" rest finished ");
-            }
-        })
-        .run();
-```
-
->MainManager收到消息之后延迟3s,控制bus 继续执行
-
-log
-
-```
-I/MainActivity: : Thread: main time: 1525423712822 msg:  do someThing  
-I/MainActivity: : Thread: AppThread-0 time: 1525423715826 msg:  rest finished  --> 相差3s
-```
-
-### 注册一个消息
-
-注册一个消息,收到该消息时执行操作
-
-```
-bus.go(new Runnable() {
-    @Override
-    public void run() {
-        print(" do someThing  ");
-    }
-}).registerMessage(88, new Runnable() {
-    @Override
-    public void run() {
-        print(" receive message ");
-    }
-}).go(new Runnable() {
-    @Override
-    public void run() {
-        print(" do finished ");
-    }
 }).run();
 ```
 
-发送消息
+#### go操作
 
-```
-Messengers.send(88, 3000, bus);
-```
-
-log
-
-```
-I/MainActivity: : Thread: main time: 1525424289586 msg:  do someThing  
-I/MainActivity: : Thread: main time: 1525424289586 msg:  do finished 
-I/MainActivity: : Thread: AppThread-0 time: 1525424292591 msg:  receive message  --> 收到消息执行操作
-```
-
-### callable
+>go操作用于简化编程,它不具备线程切换能力,它之前的操作位于哪个线程,他就在哪个线程继续执行
 
 ```
 ObjectBus bus = new ObjectBus();
+bus.go(() -> {
+   
+	// go 没有线程切换能力,在那个线程调用的 run(),就在哪个线程开始执行go里面的操作
 
-Callable< String > callable = new Callable< String >() {
+}).toUnder(() -> {
+   
+	// 切换到后台
+
+}).go(() -> {
+    
+	// 继续在后台执行
+
+}).toMain(() -> {
+    
+	// 切换回主线程
+
+}).run();
+```
+
+#### 线程间传递变量,在传递过程中对变量进行操作
+
+>该操作主要用于向后续操作传递参数
+
+```
+ObjectBus bus = new ObjectBus();
+bus.go(() -> {
+    
+	// do something then save result
+
+    bus.take("key", XXX);
+
+}).toUnder(() -> {
+    
+
+    XXX result = (XXX) bus.get("key");
+   
+	// do something with params from last operation , then save it, because after operation need it
+
+    bus.take("key", XXX);
+
+}).go(() -> {
+   
+    XXX result = (XXX) bus.get("key");
+   
+	// get Params from last operation , then do something with result, and save
+	 
+    bus.take("key", XXX);
+   
+}).toMain(() -> {
+   
+	XXX result = (XXX) bus.get("key");
+
+	// finaly resume reult
+   
+}).run();
+```
+
+#### 控制一串任务的暂停/恢复
+
+>主要用于在一串任务执行过程中,中间任务需要暂停,等待时机合适再继续执行
+
+```
+ObjectBus mBus = new ObjectBus();
+```
+```
+mBus.go(new Runnable() {
     @Override
-    public String call() throws Exception {
-        Thread.sleep(1000);
-        return String.valueOf(1990);
+    public void run() {
+        
+		// do something, then need wait a signal to continue
+		// 执行一些任务,之后的任务需要其他的东西,现在可能没有,需要等待
+
     }
-};
-
-bus.toUnder(callable, "CAll")
+}).takeRest()			-->  	使用该方法等待
         .go(new Runnable() {
             @Override
             public void run() {
-                String result = (String) bus.get("CAll");
-                Log.i(TAG, "run:" + result);
+
+				  // 执行后续的任务,在 mBus.stopRest() 调用之后执行
+
             }
         }).run();
 ```
-
-![](img/bus03.gif)
-
 ```
-I/MainActivity: run:1990
+mBus.stopRest();		--> 在时机合适时停止等待,继续后面的任务
 ```
 
-### 多任务并发执行(有返回值)
+#### 执行任务过程中,向外发送消息
+
+>该方法主要用于监听执行进度; 或者执行完一个任务,触发另一个事件
 
 ```
-ObjectBus bus = new ObjectBus();
-
-List< Callable< String > > callableList = new ArrayList<>();
-for (int i = 0; i < 10; i++) {
-    int j = i;
-    Callable< String > callable = new Callable< String >() {
-        @Override
-        public String call() throws Exception {
-            Thread.sleep(1000);
-            return String.valueOf(j);
-        }
-    };
-    callableList.add(callable);
-}
-
-bus.toUnder(callableList, "CAll_LIST")
+mBus.go(new Runnable() {
+   
+	// do something
+   
+}).send(158, mBus, MainManager.getInstance())		--> 	发送一条消息给一个类
+        .takeRest()		--> 	等待消息回应之后继续进行
         .go(new Runnable() {
-            @Override
-            public void run() {
-                List< String > result = (List< String >) bus.get("CAll_LIST");
-                Log.i(TAG, "run:" + result);
-            }
+           
+			// 执行消息回应之后的操作
+
         }).run();
-
 ```
 
-![](img/bus02.gif)
+#### 并发执行一堆任务
 
 ```
-I/MainActivity: run:[0, 1, 3, 2, 4]
-```
-
-###  多任务并发执行
-
-```
-ObjectBus bus = new ObjectBus();
-
+// 将需要处理的任务添加到列表
 List< Runnable > runnableList = new ArrayList<>();
-for (int i = 0; i < 4; i++) {
-    Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            try {
-                print("start");
-                Thread.sleep(1000);
-                print("end");
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    };
-    runnableList.add(runnable);
-}
 
-bus.toUnder(runnableList)
+runnableList.add(XXX);
+runnableList.add(XXX);
+runnableList.add(XXX);
+
+bus.toUnder(runnableList)	--> 后台并发执行
         .go(new Runnable() {
-            @Override
-            public void run() {
-                print("all finished");
-            }
+           
+			//此处执行执行完任务列表之后的操作
+
         }).run();
-```
-
-![](img/bus04.gif)
-
-## Messengers
-
-该类用于任意两个类之间进行通信,可以指定接收线程
-
-### 示例 1
-
-实现接口 `com.example.objectbus.message.OnMessageReceiveListener`
 
 ```
-@Override
-public void onReceive(int what, Object extra) {
-    print("receive: " + what + " extra: " + extra);
-}
-@Override
-public void onReceive(int what) {
-    print("receive: " + what);
-}
-```
+
+#### 更多方法参考示例
+
+* callable 执行,并保存结果
+* callable列表并发执行,并保存结果列表
+* 监听单个任务执行情况
+* ObjectBus执行过程中通信
+
+## 通信
+
+>该类主要用于类在不同线程之间通信
 
 #### 发送消息
 
-```
-Messengers.send(1, this); --> 数字的奇偶性决定接收在那个线程,奇数主线程,偶数后台线程
-Messengers.send(2, this);
-```
-
-log:
+>可以发送消息给任何实现了 `OnMessageReceiveListener` 接口的类
 
 ```
- I/MainActivity: : Thread: Messengers time: 1525424829634 msg: receive: 2
- I/MainActivity: : Thread: main time: 1525424829650 msg: receive: 1
+class MessengerReceiver implements OnMessageReceiveListener{
+
+	@Override
+	public void onReceive(int what) {
+	   
+		//该方法在 Messengers 发送消息的时候回调
+		//what 代表是哪条消息
+
+	}
+
+	@Override
+	public void onReceive(int what, Object extra) {
+		
+		//该方法在 Messengers 发送带附件的消息的时候回调
+		//what 代表是哪条消息
+		//extra 代表附带的附件
+	    
+	}
+}
+```
+```
+mMessengerReceiver = new MessengerReceiver(...);
+
+// 使用 Messengers 可以发送一条消息给接收者
+
+Messengers.send(1, mMessengerReceiver);
+Messengers.send(2, mMessengerReceiver);
+
+// 以上 1/2 代表消息标识,数字不同消息不同, 同时还决定了接收者在哪个线程接收到消息,如果是奇数则在主线程接收,如果是偶数则在 Messengers 线程接收
 ```
 
-#### 发送延时消息
+#### 发送延迟消息
 
 ```
-Messengers.send(3, 2000, this);
-Messengers.send(4, 2000, this);
+Messengers.send(3, 2000, mMessengerReceiver);	//3 是消息标识,并且表明在主线程接收消息, 2000 是延时时间(毫秒), mMessengerReceiver 是接收者
+Messengers.send(4, 2000, mMessengerReceiver);	//4 是消息标识,并且表明在Messengers线程接收消息, 2000 是延时时间(毫秒), mMessengerReceiver 是接收者
 ```
 
-![](img/msg01.gif)
+#### 发送带附件的消息
 
 ```
-I/MainActivity: : Thread: main time: 1525425061268 msg: send delayed message
-I/MainActivity: : Thread: main time: 1525425063269 msg: receive: 3
-I/MainActivity: : Thread: Messengers time: 1525425063270 msg: receive: 4
-```
+" hello "是消息附带的附件,该附件可以是任何类
 
-#### 发送附带信息的消息
+Messengers.send(5, " hello ", mMessengerReceiver);
+Messengers.send(6, " hello ", mMessengerReceiver);
 
-```
-Messengers.send(5, " hello main ", this);
-Messengers.send(6, " hello main ", this);
-Messengers.send(7, 2000, " hello main ", this);
-Messengers.send(8, 2000, " hello main ", this);
-```
-
-![](img/msg02.gif)
-
-## Scheduler
-
-该类用于线程调度
-
-### 后台任务
+Messengers.send(7, 2000, " hello ", mMessengerReceiver);
+Messengers.send(8, 2000, " hello ", mMessengerReceiver);
 
 ```
-Scheduler.todo(new Runnable() {
-    @Override
-    public void run() {
-        print(" test todo 01");
-    }
-});
-```
+>如果需要发送多个附件,请封装成一个类发送
 
-log
+#### 取消消息发送
 
 ```
-I/MainActivity: : Thread: AppThread-0 time: 1525425553389 msg:  test todo 01
+//发送一条延时消息给 mMessengerReceiver
+Messengers.send(9, 2000, " hello mainManager ", mMessengerReceiver);
 ```
-
-### 后台延时任务
-
 ```
-Scheduler.todo(new Runnable() {
-    @Override
-    public void run() {
-        print(" test todo delayed01", mLogText01);
-    }
-}, 2000);
-```
-
-log
-
-```
-I/MainActivity: : Thread: main time: 1525425698585 msg:  start delayed task 
-I/MainActivity: : Thread: AppThread-0 time: 1525425700590 msg:  test todo delayed01		--> 相差 2s
-```
-
-### 使用回调
-
-#### 后台执行任务,主线程进行回调
-
-```
-Scheduler.todo(new Runnable() {
-    @Override
-    public void run() {
-        print(" todo back ");
-    }
-}, new MainThreadCallBack() {
-    @Override
-    public void run() {
-        print(" callback main ");
-    }
-});
-```
-
-log
-
-```
-I/MainActivity: : Thread: AppThread-2 time: 1525425803886 msg:  todo back 
-I/MainActivity: : Thread: main time: 1525425803904 msg:  callback main 
-```
-
-#### 后台执行任务,后台进行回调
-
-```
-Scheduler.todo(new Runnable() {
-    @Override
-    public void run() {
-        print(" todo back ");
-    }
-}, new AsyncThreadCallBack() {
-    @Override
-    public void run() {
-        print(" callback async ");
-    }
-});
-```
-
-log
-
-```
-I/MainActivity: : Thread: AppThread-1 time: 1525425995369 msg:  todo back 
-I/MainActivity: : Thread: Messengers time: 1525425995369 msg:  callback async 
+//取消 mMessengerReceiver 的标识 9 的消息的发送 
+Messengers.remove(9, mMessengerReceiver);	--> 9 表示取消哪条消息,  mMessengerReceiver表示接收9消息的那个接收者, 
+												一条消息需要消息标识和消息接收方才能唯一确定
 ```
