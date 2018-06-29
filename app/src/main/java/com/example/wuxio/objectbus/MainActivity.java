@@ -12,13 +12,13 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.objectbus.bus.BusStation;
+import com.example.objectbus.bus.ObjectBusStation;
 import com.example.objectbus.bus.ObjectBus;
 import com.example.objectbus.bus.OnBeforeRunAction;
 import com.example.objectbus.bus.OnRunExceptionHandler;
 import com.example.objectbus.bus.OnRunFinishAction;
 import com.example.objectbus.executor.AppExecutor;
-import com.example.objectbus.executor.OnExecuteRunnable;
+import com.example.objectbus.executor.BaseExecuteRunnable;
 import com.example.objectbus.message.Messengers;
 import com.example.objectbus.message.OnMessageReceiveListener;
 import com.example.objectbus.schedule.CancelTodo;
@@ -224,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                     testBusListener();
                     break;
 
-                /* BusStation */
+                /* ObjectBusStation */
                 case R.id.menu_25:
                     testBusStation();
                     break;
@@ -552,7 +552,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     public void testSchedulerTodoWithListener() {
 
-        Scheduler.todo(new OnExecuteRunnable() {
+        Scheduler.todo(new BaseExecuteRunnable() {
 
             @Override
             public void onStart() {
@@ -599,6 +599,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                 printLog(msg);
                 print(msg);
             }
+
         });
     }
 
@@ -1243,15 +1244,15 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
     public void testBusStation() {
 
-        ObjectBus bus00 = BusStation.getInstance().obtainBus();
-        ObjectBus bus01 = BusStation.getInstance().obtainBus();
-        ObjectBus bus02 = BusStation.getInstance().obtainBus();
+        ObjectBus bus00 = ObjectBusStation.getInstance().obtainBus();
+        ObjectBus bus01 = ObjectBusStation.getInstance().obtainBus();
+        ObjectBus bus02 = ObjectBusStation.getInstance().obtainBus();
 
         bus02.registerMessage(1, new Runnable() {
             @Override
             public void run() {
 
-                ObjectBus bus = BusStation.callNewBus();
+                ObjectBus bus = ObjectBusStation.callNewBus();
                 bus.go(new Runnable() {
                     @Override
                     public void run() {
@@ -1272,7 +1273,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                 printLog(s);
                 print(s);
 
-                BusStation.recycle(bus00);
+                ObjectBusStation.recycle(bus00);
                 Messengers.send(1, bus02);
             }
         }).run();
@@ -1285,7 +1286,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                 printLog(s);
                 print(s);
 
-                BusStation.recycle(bus01);
+                ObjectBusStation.recycle(bus01);
                 Messengers.send(1, bus02);
             }
         }).run();
