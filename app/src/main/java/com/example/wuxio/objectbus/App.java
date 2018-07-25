@@ -1,7 +1,6 @@
 package com.example.wuxio.objectbus;
 
 import android.app.Application;
-
 import com.example.objectbus.ObjectBusConfig;
 
 /**
@@ -9,11 +8,13 @@ import com.example.objectbus.ObjectBusConfig;
  */
 public class App extends Application {
 
-    @Override
-    public void onCreate() {
+      private static final String TAG = App.class.getSimpleName();
 
-        super.onCreate();
+      @Override
+      public void onCreate () {
 
-        ObjectBusConfig.init();
-    }
+            super.onCreate();
+
+            ObjectBusConfig.init();
+      }
 }

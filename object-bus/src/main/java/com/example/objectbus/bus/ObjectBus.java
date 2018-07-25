@@ -304,10 +304,11 @@ public class ObjectBus implements OnMessageReceiveListener {
        */
       public <T, C extends Callable<T>> ObjectBus toUnder (@NonNull C callable, String key) {
 
-            mHowToPass.add(new Command(
-                               COMMAND_CALLABLE,
-                               new CallableRunnable<>(callable, key)
-                           )
+            mHowToPass.add(
+                new Command(
+                    COMMAND_CALLABLE,
+                    new CallableRunnable<>(callable, key)
+                )
             );
             return this;
       }
