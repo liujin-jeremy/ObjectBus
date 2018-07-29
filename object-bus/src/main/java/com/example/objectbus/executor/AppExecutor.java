@@ -1,14 +1,12 @@
 package com.example.objectbus.executor;
 
 import android.support.annotation.NonNull;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -25,6 +23,12 @@ public class AppExecutor {
       private static ThreadPoolExecutor sPoolExecutor;
 
       public static void init () {
+
+            /* 防止重复初始化 */
+
+            if(sPoolExecutor != null) {
+                  return;
+            }
 
             sPoolExecutor = new ThreadPoolExecutor(
                 3,
