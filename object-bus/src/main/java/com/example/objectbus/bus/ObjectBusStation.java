@@ -1,7 +1,6 @@
 package com.example.objectbus.bus;
 
-import android.util.SparseArray;
-
+import android.support.v4.util.ArrayMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -27,8 +26,8 @@ public class ObjectBusStation {
 
       //============================ care ============================
 
-      private SparseArray<ObjectBus> mEmptyBus = new SparseArray<>();
-      private AtomicInteger          mInteger  = new AtomicInteger();
+      private ArrayMap<Integer, ObjectBus> mEmptyBus = new ArrayMap<>();
+      private AtomicInteger                mInteger  = new AtomicInteger();
 
       /**
        * @return new object bus
@@ -39,7 +38,7 @@ public class ObjectBusStation {
                   int key = mEmptyBus.keyAt(i);
                   ObjectBus bus = mEmptyBus.get(key);
                   if(bus != null) {
-                        mEmptyBus.delete(key);
+                        mEmptyBus.remove(key);
                         return bus;
                   }
             }
@@ -52,8 +51,8 @@ public class ObjectBusStation {
        */
       public void recycleBus (ObjectBus bus) {
 
-            int key = mInteger.getAndAdd(1);
             bus.initToNew();
+            int key = mInteger.getAndAdd(1);
             mEmptyBus.put(key, bus);
       }
 
