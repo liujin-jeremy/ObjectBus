@@ -21,57 +21,62 @@ public class Scheduler {
       /**
        * 保存任务
        */
-      static final transient SparseArray<Runnable>                RUNNABLE          = new SparseArray<>();
+      static final transient SparseArray<Runnable> RUNNABLE = new SparseArray<>();
+
       /**
        * 保存回调
        */
       static final transient SparseArray<WeakReference<Runnable>> CALLBACK_RUNNABLE =
           new SparseArray<>();
+
       /**
        * 生成一个标记,{@link #RUNNABLE}使用该标记存储后台任务{@link Runnable}
        */
-      private static final   AtomicInteger                        ATOMIC_INTEGER    = new AtomicInteger();
+      private static final AtomicInteger ATOMIC_INTEGER = new AtomicInteger();
+
       /**
        * 用于发送消息,进行任务调度
        */
-      private static ScheduleTask  sScheduleTask;
+      private static ScheduleTask sScheduleTask;
+
       /**
        * 用于有callback的任务的存储,该int起始11,每次增加2, 用于{@link #CALLBACK_RUNNABLE}保存{@link MainThreadCallBack}
        */
       private static AtomicInteger sMainInteger;
+
       /**
        * 用于有callback的任务的存储,该int起始12,每次增加2, 用于{@link #CALLBACK_RUNNABLE}保存{@link
        * AsyncThreadCallBack}
        */
       private static AtomicInteger sOtherInteger;
 
-      private Scheduler () {
+      private Scheduler ( ) {
 
       }
 
       /**
        * 初始化
        */
-      public static void init () {
+      public static void init ( ) {
 
             initField();
             AppExecutor.init();
       }
 
-      private static void initField () {
+      private static void initField ( ) {
 
             /* 防止多次初始化 */
 
-            if(sMainInteger == null) {
-                  sMainInteger = new AtomicInteger(11);
+            if( sMainInteger == null ) {
+                  sMainInteger = new AtomicInteger( 11 );
             }
 
-            if(sOtherInteger == null) {
+            if( sOtherInteger == null ) {
 
-                  sOtherInteger = new AtomicInteger(12);
+                  sOtherInteger = new AtomicInteger( 12 );
             }
 
-            if(sScheduleTask == null) {
+            if( sScheduleTask == null ) {
 
                   sScheduleTask = new ScheduleTask();
             }
@@ -80,10 +85,10 @@ public class Scheduler {
       /**
        * 初始化
        */
-      public static void init (ThreadPoolExecutor poolExecutor) {
+      public static void init ( ThreadPoolExecutor poolExecutor ) {
 
             initField();
-            AppExecutor.init(poolExecutor);
+            AppExecutor.init( poolExecutor );
       }
 
       //============================ 后台任务不可取消 ============================
@@ -95,9 +100,9 @@ public class Scheduler {
        *
        * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
        */
-      public static void todo (Runnable runnable) {
+      public static void todo ( Runnable runnable ) {
 
-            todoInternal(runnable, 0, null, null);
+            todoInternal( runnable, 0, null, null );
       }
 
       /**
@@ -106,8 +111,9 @@ public class Scheduler {
        * MainThreadCallBack} used ,will call on mainThread,if {@link AsyncThreadCallBack}used ,will
        * call on {@link Messengers}'s thread,
        *
-       * @param runnable background task,use {@link OnExecuteRunnable}could listen runnable execute
-       * station
+       * @param runnable background task,use {@link OnExecuteRunnable}could listen runnable
+       *     execute
+       *     station
        * @param delayed delayed
        * @param callback callBack to do when finish
        * @param cancelTodo container used for cancel {@code runnable}
@@ -116,54 +122,54 @@ public class Scheduler {
           Runnable runnable,
           int delayed,
           Runnable callback,
-          CancelTodo cancelTodo) {
+          CancelTodo cancelTodo ) {
 
             Runnable todoRunnable;
 
-            if(cancelTodo != null) {
+            if( cancelTodo != null ) {
                   cancelTodo.init();
             }
 
-            if(callback == null) {
+            if( callback == null ) {
                   todoRunnable = runnable;
             } else {
 
                   int tag;
 
-                  if(callback instanceof MainThreadCallBack) {
+                  if( callback instanceof MainThreadCallBack ) {
 
-                        tag = sMainInteger.addAndGet(2);
-                        CALLBACK_RUNNABLE.put(tag, new WeakReference<>(callback));
-                        todoRunnable = new CallbackRunnable(runnable, tag);
+                        tag = sMainInteger.addAndGet( 2 );
+                        CALLBACK_RUNNABLE.put( tag, new WeakReference<>( callback ) );
+                        todoRunnable = new CallbackRunnable( runnable, tag );
                   } else {
 
-                        tag = sOtherInteger.addAndGet(2);
-                        CALLBACK_RUNNABLE.put(tag, new WeakReference<>(callback));
-                        todoRunnable = new CallbackRunnable(runnable, tag);
+                        tag = sOtherInteger.addAndGet( 2 );
+                        CALLBACK_RUNNABLE.put( tag, new WeakReference<>( callback ) );
+                        todoRunnable = new CallbackRunnable( runnable, tag );
                   }
 
-                  if(cancelTodo != null) {
-                        cancelTodo.setTag(tag);
-                        cancelTodo.setCallback(callback);
+                  if( cancelTodo != null ) {
+                        cancelTodo.setTag( tag );
+                        cancelTodo.setCallback( callback );
                   }
             }
 
             /* 使用一个标识,标记延时任务 */
             Message obtain = Message.obtain();
 
-            int key = ATOMIC_INTEGER.addAndGet(1);
+            int key = ATOMIC_INTEGER.addAndGet( 1 );
             obtain.arg1 = key;
-            RUNNABLE.put(key, todoRunnable);
+            RUNNABLE.put( key, todoRunnable );
 
 
             /* 记录给cancelTodo */
 
-            if(cancelTodo != null) {
-                  cancelTodo.setKey(key);
-                  cancelTodo.setTodoRunnable(todoRunnable);
+            if( cancelTodo != null ) {
+                  cancelTodo.setKey( key );
+                  cancelTodo.setTodoRunnable( todoRunnable );
             }
 
-            sScheduleTask.sendDelayedMessage(obtain, delayed);
+            sScheduleTask.sendDelayedMessage( obtain, delayed );
       }
 
       /**
@@ -174,9 +180,9 @@ public class Scheduler {
        *
        * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
        */
-      public static void todo (Runnable runnable, int delayed) {
+      public static void todo ( Runnable runnable, int delayed ) {
 
-            todoInternal(runnable, delayed, null, null);
+            todoInternal( runnable, delayed, null, null );
       }
 
       /**
@@ -187,9 +193,9 @@ public class Scheduler {
        *
        * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
        */
-      public static void todo (Runnable runnable, MainThreadCallBack callBack) {
+      public static void todo ( Runnable runnable, MainThreadCallBack callBack ) {
 
-            todoInternal(runnable, 0, callBack, null);
+            todoInternal( runnable, 0, callBack, null );
       }
 
       /**
@@ -200,9 +206,9 @@ public class Scheduler {
        *
        * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
        */
-      public static void todo (Runnable runnable, AsyncThreadCallBack callBack) {
+      public static void todo ( Runnable runnable, AsyncThreadCallBack callBack ) {
 
-            todoInternal(runnable, 0, callBack, null);
+            todoInternal( runnable, 0, callBack, null );
       }
 
       /**
@@ -214,9 +220,9 @@ public class Scheduler {
        *
        * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
        */
-      public static void todo (Runnable runnable, int delayed, MainThreadCallBack callback) {
+      public static void todo ( Runnable runnable, int delayed, MainThreadCallBack callback ) {
 
-            todoInternal(runnable, delayed, callback, null);
+            todoInternal( runnable, delayed, callback, null );
       }
 
       //============================ 后台任务,可取消 ============================
@@ -230,9 +236,9 @@ public class Scheduler {
        *
        * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
        */
-      public static void todo (Runnable runnable, int delayed, AsyncThreadCallBack callback) {
+      public static void todo ( Runnable runnable, int delayed, AsyncThreadCallBack callback ) {
 
-            todoInternal(runnable, delayed, callback, null);
+            todoInternal( runnable, delayed, callback, null );
       }
 
       /**
@@ -242,9 +248,9 @@ public class Scheduler {
        *
        * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
        */
-      public static void todo (Runnable runnable, CancelTodo cancelTodo) {
+      public static void todo ( Runnable runnable, CancelTodo cancelTodo ) {
 
-            todoInternal(runnable, 0, null, cancelTodo);
+            todoInternal( runnable, 0, null, cancelTodo );
       }
 
       /**
@@ -256,9 +262,9 @@ public class Scheduler {
        * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
        */
       public static void todo (
-          Runnable runnable, MainThreadCallBack callBack, CancelTodo cancelTodo) {
+          Runnable runnable, MainThreadCallBack callBack, CancelTodo cancelTodo ) {
 
-            todoInternal(runnable, 0, callBack, cancelTodo);
+            todoInternal( runnable, 0, callBack, cancelTodo );
       }
 
       /**
@@ -270,9 +276,9 @@ public class Scheduler {
        * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
        */
       public static void todo (
-          Runnable runnable, AsyncThreadCallBack callBack, CancelTodo cancelTodo) {
+          Runnable runnable, AsyncThreadCallBack callBack, CancelTodo cancelTodo ) {
 
-            todoInternal(runnable, 0, callBack, cancelTodo);
+            todoInternal( runnable, 0, callBack, cancelTodo );
       }
 
       /**
@@ -283,9 +289,9 @@ public class Scheduler {
        *
        * @see #todoInternal(Runnable, int, Runnable, CancelTodo)
        */
-      public static void todo (Runnable runnable, int delayed, CancelTodo cancelTodo) {
+      public static void todo ( Runnable runnable, int delayed, CancelTodo cancelTodo ) {
 
-            todoInternal(runnable, delayed, null, cancelTodo);
+            todoInternal( runnable, delayed, null, cancelTodo );
       }
 
       /**
@@ -301,9 +307,9 @@ public class Scheduler {
           Runnable runnable,
           int delayed,
           MainThreadCallBack callback,
-          CancelTodo cancelTodo) {
+          CancelTodo cancelTodo ) {
 
-            todoInternal(runnable, delayed, callback, cancelTodo);
+            todoInternal( runnable, delayed, callback, cancelTodo );
       }
 
       /**
@@ -319,9 +325,9 @@ public class Scheduler {
           Runnable runnable,
           int delayed,
           AsyncThreadCallBack callback,
-          CancelTodo cancelTodo) {
+          CancelTodo cancelTodo ) {
 
-            todoInternal(runnable, delayed, callback, cancelTodo);
+            todoInternal( runnable, delayed, callback, cancelTodo );
       }
 
       //============================ schedule task to pool ============================
@@ -330,18 +336,18 @@ public class Scheduler {
 
             static final int WHAT_DELAYED_MESSAGE = 2;
 
-            void sendMessage (int what) {
+            void sendMessage ( int what ) {
 
-                  Messengers.send(what, this);
+                  Messengers.send( what, this );
             }
 
-            void sendDelayedMessage (Message message, int delayed) {
+            void sendDelayedMessage ( Message message, int delayed ) {
 
-                  Messengers.send(WHAT_DELAYED_MESSAGE, delayed, message, this);
+                  Messengers.send( WHAT_DELAYED_MESSAGE, delayed, message, this );
             }
 
             @Override
-            public void onReceive (int what, Object extra) {
+            public void onReceive ( int what, Object extra ) {
 
                   /* 此处处理的是后台任务 */
 
@@ -352,19 +358,19 @@ public class Scheduler {
                   SparseArray<Runnable> runnable = RUNNABLE;
                   try {
 
-                        Runnable needExecute = runnable.get(msg.arg1);
-                        if(needExecute != null) {
-                              AppExecutor.execute(needExecute);
+                        Runnable needExecute = runnable.get( msg.arg1 );
+                        if( needExecute != null ) {
+                              AppExecutor.execute( needExecute );
                         }
-                        runnable.delete(msg.arg1);
+                        runnable.delete( msg.arg1 );
                   } catch(Exception e) {
 
-                        runnable.delete(msg.arg1);
+                        runnable.delete( msg.arg1 );
                   }
             }
 
             @Override
-            public void onReceive (int what) {
+            public void onReceive ( int what ) {
 
                   /* 此处处理的是callBack的任务 */
                   /* try catch 是因为,外部会调用callbackRunnable.remove(int);取消任务,而持有的弱引用也可能会消失 */
@@ -372,11 +378,11 @@ public class Scheduler {
                   SparseArray<WeakReference<Runnable>> callbackRunnable = CALLBACK_RUNNABLE;
                   try {
 
-                        callbackRunnable.get(what).get().run();
-                        callbackRunnable.delete(what);
+                        callbackRunnable.get( what ).get().run();
+                        callbackRunnable.delete( what );
                   } catch(Exception e) {
 
-                        callbackRunnable.delete(what);
+                        callbackRunnable.delete( what );
                   }
             }
       }
@@ -393,17 +399,17 @@ public class Scheduler {
             private Runnable mRunnable;
             private int      mTag;
 
-            CallbackRunnable (Runnable runnable, int tag) {
+            CallbackRunnable ( Runnable runnable, int tag ) {
 
                   mRunnable = runnable;
                   this.mTag = tag;
             }
 
             @Override
-            public void run () {
+            public void run ( ) {
 
                   mRunnable.run();
-                  sScheduleTask.sendMessage(mTag);
+                  sScheduleTask.sendMessage( mTag );
             }
       }
 
@@ -414,20 +420,20 @@ public class Scheduler {
             private Callable<T> mCallable;
             private T           mResult;
 
-            public CallableRunnable (Callable<T> callable) {
+            public CallableRunnable ( Callable<T> callable ) {
 
                   mCallable = callable;
             }
 
-            public T getResult () {
+            public T getResult ( ) {
 
                   return mResult;
             }
 
             @Override
-            public void run () {
+            public void run ( ) {
 
-                  mResult = AppExecutor.submitAndGet(mCallable);
+                  mResult = AppExecutor.submitAndGet( mCallable );
             }
       }
 }
