@@ -9,7 +9,6 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -18,19 +17,19 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author wuxio 2018-04-30:1:06
  */
-public class AppExecutor {
+public class PoolThreadExecutor {
 
-      private static ThreadPoolExecutor sPoolExecutor;
+      private static java.util.concurrent.ThreadPoolExecutor sPoolExecutor;
 
-      public static void init () {
+      public static void init ( ) {
 
             /* 防止重复初始化 */
 
-            if(sPoolExecutor != null) {
+            if( sPoolExecutor != null ) {
                   return;
             }
 
-            sPoolExecutor = new ThreadPoolExecutor(
+            sPoolExecutor = new java.util.concurrent.ThreadPoolExecutor(
                 3,
                 6,
                 60,
@@ -40,15 +39,15 @@ public class AppExecutor {
             );
       }
 
-      public static void init (ThreadPoolExecutor poolExecutor) {
+      public static void init ( java.util.concurrent.ThreadPoolExecutor poolExecutor ) {
 
             sPoolExecutor = poolExecutor;
       }
 
       @Deprecated
-      public static void init (ThreadFactory threadFactory) {
+      public static void init ( ThreadFactory threadFactory ) {
 
-            sPoolExecutor = new ThreadPoolExecutor(
+            sPoolExecutor = new java.util.concurrent.ThreadPoolExecutor(
                 3,
                 6,
                 60,
@@ -59,20 +58,20 @@ public class AppExecutor {
       }
 
       /**
-       * 后台执行任务,如果需要监听执行情况请使用{@link OnExecuteRunnable}
+       * 后台执行任务,如果需要监听执行情况请使用{@link com.threekilogram.objectbus.runnable.Executable}
        *
        * @param runnable 执行的任务
        */
-      public static void execute (@NonNull Runnable runnable) {
+      public static void execute ( @NonNull Runnable runnable ) {
 
             /* 使用try..catch 增加程序健壮性,防止线程意外结束 */
 
             try {
-                  sPoolExecutor.execute(runnable);
+                  sPoolExecutor.execute( runnable );
             } catch(Exception e) {
 
-                  if(sPoolExecutor == null) {
-                        throw new RuntimeException(" you should  call init() first");
+                  if( sPoolExecutor == null ) {
+                        throw new RuntimeException( " you should  call init() first" );
                   } else {
                         e.printStackTrace();
                   }
@@ -87,17 +86,17 @@ public class AppExecutor {
        *
        * @return use {@link Future#get()} to get result
        */
-      public static <T, C extends Callable<T>> Future<T> submit (C callable) {
+      public static <T, C extends Callable<T>> Future<T> submit ( C callable ) {
 
             /* 使用try..catch 增加程序健壮性,防止线程意外结束 */
 
             try {
 
-                  return sPoolExecutor.submit(callable);
+                  return sPoolExecutor.submit( callable );
             } catch(Exception e) {
 
-                  if(sPoolExecutor == null) {
-                        throw new RuntimeException(" you should  call init() first");
+                  if( sPoolExecutor == null ) {
+                        throw new RuntimeException( " you should  call init() first" );
                   } else {
                         e.printStackTrace();
                   }
@@ -114,18 +113,18 @@ public class AppExecutor {
        *
        * @return result, or null if Exception
        */
-      public static <T, C extends Callable<T>> T submitAndGet (C callable) {
+      public static <T, C extends Callable<T>> T submitAndGet ( C callable ) {
 
             /* 使用try..catch 增加程序健壮性,防止线程意外结束 */
 
             try {
 
-                  Future<T> future = sPoolExecutor.submit(callable);
+                  Future<T> future = sPoolExecutor.submit( callable );
                   return future.get();
             } catch(Exception e) {
 
-                  if(sPoolExecutor == null) {
-                        throw new RuntimeException(" you should  call init() first");
+                  if( sPoolExecutor == null ) {
+                        throw new RuntimeException( " you should  call init() first" );
                   } else {
                         e.printStackTrace();
                   }
@@ -142,17 +141,18 @@ public class AppExecutor {
        *
        * @return use {@link CompletionService#take()} to get {@link Future#get()}
        */
-      public static <T, C extends Callable<T>> CompletionService<T> submit (List<C> callableList) {
+      public static <T, C extends Callable<T>> CompletionService<T> submit (
+          List<C> callableList ) {
 
             ExecutorCompletionService<T> completionService = new ExecutorCompletionService<>(
-                sPoolExecutor);
+                sPoolExecutor );
 
             int size = callableList.size();
-            for(int i = 0; i < size; i++) {
+            for( int i = 0; i < size; i++ ) {
 
                   try {
-                        Callable<T> callable = callableList.get(i);
-                        completionService.submit(callable);
+                        Callable<T> callable = callableList.get( i );
+                        completionService.submit( callable );
                   } catch(Exception e) {
                         e.printStackTrace();
                   }
@@ -166,19 +166,19 @@ public class AppExecutor {
        * @param runnableList need to do
        */
       @SuppressWarnings("unchecked")
-      public static <T extends Runnable> void execute (List<T> runnableList) {
+      public static <T extends Runnable> void execute ( List<T> runnableList ) {
 
             ExecutorCompletionService completionService =
-                new ExecutorCompletionService(sPoolExecutor);
+                new ExecutorCompletionService( sPoolExecutor );
 
             int size = runnableList.size();
-            for(int i = 0; i < size; i++) {
+            for( int i = 0; i < size; i++ ) {
 
-                  Runnable runnable = runnableList.get(i);
-                  completionService.submit(runnable, null);
+                  Runnable runnable = runnableList.get( i );
+                  completionService.submit( runnable, null );
             }
 
-            for(int i = 0; i < size; i++) {
+            for( int i = 0; i < size; i++ ) {
 
                   try {
 
@@ -190,25 +190,25 @@ public class AppExecutor {
             }
       }
 
-      public static <T, C extends Callable<T>> List<T> submitAndGet (List<C> callableList) {
+      public static <T, C extends Callable<T>> List<T> submitAndGet ( List<C> callableList ) {
 
             ExecutorCompletionService<T> completionService = new ExecutorCompletionService<>(
-                sPoolExecutor);
+                sPoolExecutor );
 
             int size = callableList.size();
-            for(int i = 0; i < size; i++) {
-                  Callable<T> callable = callableList.get(i);
-                  completionService.submit(callable);
+            for( int i = 0; i < size; i++ ) {
+                  Callable<T> callable = callableList.get( i );
+                  completionService.submit( callable );
             }
 
-            List<T> results = new ArrayList<>(size);
+            List<T> results = new ArrayList<>( size );
 
-            for(int i = 0; i < size; i++) {
+            for( int i = 0; i < size; i++ ) {
 
                   try {
 
                         T t = completionService.take().get();
-                        results.add(t);
+                        results.add( t );
                   } catch(Exception e) {
                         e.printStackTrace();
                   }
@@ -222,9 +222,9 @@ public class AppExecutor {
       /**
        * 不再添加任务,执行完所有任务
        */
-      public static void shutDown () {
+      public static void shutDown ( ) {
 
-            if(!sPoolExecutor.isShutdown()) {
+            if( !sPoolExecutor.isShutdown() ) {
                   sPoolExecutor.shutdownNow();
             }
       }
@@ -232,7 +232,7 @@ public class AppExecutor {
       /**
        * 立即停止,未执行的不再执行,正在执行的任务如果判断{@link Thread#isInterrupted()}可以得到true;如果有抛出异常的代码则任务结束
        */
-      public static void shutDownNow () {
+      public static void shutDownNow ( ) {
 
             sPoolExecutor.shutdownNow();
       }
@@ -242,9 +242,9 @@ public class AppExecutor {
       private static class AppThreadFactory implements ThreadFactory {
 
             @Override
-            public Thread newThread (@NonNull Runnable r) {
+            public Thread newThread ( @NonNull Runnable r ) {
 
-                  return new AppThread(r);
+                  return new AppThread( r );
             }
       }
 
@@ -252,11 +252,11 @@ public class AppExecutor {
 
             private static AtomicInteger sInt = new AtomicInteger();
 
-            public AppThread (Runnable target) {
+            public AppThread ( Runnable target ) {
 
-                  super(target);
-                  setName("AppThread-" + sInt.getAndAdd(1));
-                  setPriority(Thread.NORM_PRIORITY - 1);
+                  super( target );
+                  setName( "AppThread-" + sInt.getAndAdd( 1 ) );
+                  setPriority( Thread.NORM_PRIORITY - 1 );
             }
       }
 }

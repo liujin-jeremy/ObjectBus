@@ -16,10 +16,10 @@ import com.threekilogram.objectbus.bus.ObjectBusStation;
 import com.threekilogram.objectbus.bus.OnBeforeRunAction;
 import com.threekilogram.objectbus.bus.OnRunExceptionHandler;
 import com.threekilogram.objectbus.bus.OnRunFinishAction;
-import com.threekilogram.objectbus.executor.AppExecutor;
-import com.threekilogram.objectbus.executor.BaseExecuteRunnable;
+import com.threekilogram.objectbus.executor.PoolThreadExecutor;
 import com.threekilogram.objectbus.message.Messengers;
 import com.threekilogram.objectbus.message.OnMessageReceiveListener;
+import com.threekilogram.objectbus.runnable.Executable;
 import com.threekilogram.objectbus.schedule.CancelTodo;
 import com.threekilogram.objectbus.schedule.Scheduler;
 import com.threekilogram.objectbus.schedule.run.AsyncThreadCallBack;
@@ -114,131 +114,9 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             mLog = mLog + "\n";
       }
 
-      class MainNavigationItemClick implements NavigationView.OnNavigationItemSelectedListener {
-
-            @Override
-            public boolean onNavigationItemSelected (@NonNull MenuItem item) {
-
-                  CharSequence text = mTextLog.getText();
-                  clearLogText();
-
-                  switch(item.getItemId()) {
-
-                        /* Scheduler */
-
-                        case R.id.menu_00:
-                              testSchedulerTodo();
-                              break;
-                        case R.id.menu_01:
-                              testSchedulerTodoDelayed();
-                              break;
-                        case R.id.menu_02:
-                              testSchedulerTodoMainCallBack();
-                              break;
-                        case R.id.menu_03:
-                              testSchedulerTodoAsyncCallBack();
-                              break;
-                        case R.id.menu_04:
-                              testSchedulerTodoWithListener();
-                              break;
-                        case R.id.menu_05:
-                              testSchedulerCancel();
-                              break;
-
-                        /* AppExecutor */
-
-                        case R.id.menu_06:
-                              testExecutorRunnable();
-                              break;
-                        case R.id.menu_07:
-                              testExecutorCallable();
-                              break;
-                        case R.id.menu_08:
-                              testExecutorCallableAndGet();
-                              break;
-                        case R.id.menu_09:
-                              testExecutorRunnableList();
-                              break;
-                        case R.id.menu_10:
-                              testExecutorCallableList();
-                              break;
-
-                        /* Messenger */
-
-                        case R.id.menu_11:
-                              testMessengerSend();
-                              break;
-                        case R.id.menu_12:
-                              testMessengerSendDelayed();
-                              break;
-                        case R.id.menu_13:
-                              testMessengerSendWithExtra();
-                              break;
-                        case R.id.menu_14:
-                              testMessengerRemove();
-                              break;
-
-                        /* ObjectBus */
-
-                        case R.id.menu_15:
-                              testBusGo();
-                              break;
-                        case R.id.menu_16:
-                              testBusGoWithParams();
-                              break;
-                        case R.id.menu_17:
-                              testBusTakeRest();
-                              break;
-                        case R.id.menu_18:
-                              testBusStopRest(text);
-                              break;
-                        case R.id.menu_19:
-                              testBusSend();
-                              break;
-                        case R.id.menu_20:
-                              testBusRegisterMessage();
-                              break;
-                        case R.id.menu_21:
-                              testBusCallable();
-                              break;
-                        case R.id.menu_22:
-                              testBusCallableList();
-                              break;
-                        case R.id.menu_23:
-                              testBusRunnableList();
-                              break;
-                        case R.id.menu_24:
-                              testBusListener();
-                              break;
-
-                        /* ObjectBusStation */
-                        case R.id.menu_25:
-                              testBusStation();
-                              break;
-
-                        /* print all thread */
-
-                        case R.id.menu_26:
-                              getAllThreads();
-                              break;
-                        case R.id.menu_27:
-                              printAllThreads();
-                              break;
-
-                        default:
-                              break;
-                  }
-
-                  closeDrawer();
-                  return true;
-            }
-      }
-
-      //============================ AppExecutor ============================
-
       public void testExecutorRunnable () {
 
-            AppExecutor.execute(new Runnable() {
+            PoolThreadExecutor.execute( new Runnable() {
 
                   @Override
                   public void run () {
@@ -249,9 +127,11 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
             });
       }
 
+      //============================ PoolThreadExecutor ============================
+
       public void testExecutorCallable () {
 
-            Future<String> submit = AppExecutor.submit(new Callable<String>() {
+            Future<String> submit = PoolThreadExecutor.submit( new Callable<String>() {
 
                   @Override
                   public String call () throws Exception {
@@ -290,7 +170,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
                         /* submitAndGet 会阻塞调用线程,推荐和Scheduler配合,在后台读取结果 */
 
-                        String get = AppExecutor.submitAndGet(new Callable<String>() {
+                        String get = PoolThreadExecutor.submitAndGet( new Callable<String>() {
 
                               @Override
                               public String call () throws Exception {
@@ -326,7 +206,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                   runnableList.add(runnable);
             }
 
-            AppExecutor.execute(runnableList);
+            PoolThreadExecutor.execute( runnableList );
       }
 
       public void testExecutorCallableList () {
@@ -358,7 +238,7 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                               callableList.add(callable);
                         }
 
-                        List<String> stringList = AppExecutor.submitAndGet(callableList);
+                        List<String> stringList = PoolThreadExecutor.submitAndGet( callableList );
 
                         int length = stringList.size();
                         for(int i = 0; i < length; i++) {
@@ -372,6 +252,47 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
                         printText(s);
                   }
             });
+      }
+
+      public void testSchedulerTodoWithListener ( ) {
+
+            Scheduler.todo( new Executable() {
+
+                  @Override
+                  public void onStart ( ) {
+
+                        String msg = "task start";
+                        printLog( msg );
+                        print( msg );
+                  }
+
+                  @Override
+                  public void onExecute ( ) {
+
+                        String msg = "task running";
+                        printLog( msg );
+                        print( msg );
+
+                        try {
+                              Thread.sleep( 1000 );
+                        } catch(InterruptedException e) {
+                              e.printStackTrace();
+                        }
+
+                        mFlag = !mFlag;
+                        if( mFlag ) {
+                              throw new RuntimeException( "null" );
+                        }
+                  }
+
+                  @Override
+                  public void onFinish ( ) {
+
+                        String msg = "task finish";
+                        printLog( msg );
+                        print( msg );
+                  }
+            } );
       }
 
       //============================ scheduler ============================
@@ -550,53 +471,124 @@ public class MainActivity extends AppCompatActivity implements OnMessageReceiveL
 
       private boolean mFlag;
 
-      public void testSchedulerTodoWithListener () {
+      class MainNavigationItemClick implements NavigationView.OnNavigationItemSelectedListener {
 
-            Scheduler.todo(new BaseExecuteRunnable() {
+            @Override
+            public boolean onNavigationItemSelected ( @NonNull MenuItem item ) {
 
-                  @Override
-                  public void onStart () {
+                  CharSequence text = mTextLog.getText();
+                  clearLogText();
 
-                        String msg = "task start";
-                        printLog(msg);
-                        print(msg);
+                  switch( item.getItemId() ) {
+
+                        /* Scheduler */
+
+                        case R.id.menu_00:
+                              testSchedulerTodo();
+                              break;
+                        case R.id.menu_01:
+                              testSchedulerTodoDelayed();
+                              break;
+                        case R.id.menu_02:
+                              testSchedulerTodoMainCallBack();
+                              break;
+                        case R.id.menu_03:
+                              testSchedulerTodoAsyncCallBack();
+                              break;
+                        case R.id.menu_04:
+                              testSchedulerTodoWithListener();
+                              break;
+                        case R.id.menu_05:
+                              testSchedulerCancel();
+                              break;
+
+                        /* PoolThreadExecutor */
+
+                        case R.id.menu_06:
+                              testExecutorRunnable();
+                              break;
+                        case R.id.menu_07:
+                              testExecutorCallable();
+                              break;
+                        case R.id.menu_08:
+                              testExecutorCallableAndGet();
+                              break;
+                        case R.id.menu_09:
+                              testExecutorRunnableList();
+                              break;
+                        case R.id.menu_10:
+                              testExecutorCallableList();
+                              break;
+
+                        /* Messenger */
+
+                        case R.id.menu_11:
+                              testMessengerSend();
+                              break;
+                        case R.id.menu_12:
+                              testMessengerSendDelayed();
+                              break;
+                        case R.id.menu_13:
+                              testMessengerSendWithExtra();
+                              break;
+                        case R.id.menu_14:
+                              testMessengerRemove();
+                              break;
+
+                        /* ObjectBus */
+
+                        case R.id.menu_15:
+                              testBusGo();
+                              break;
+                        case R.id.menu_16:
+                              testBusGoWithParams();
+                              break;
+                        case R.id.menu_17:
+                              testBusTakeRest();
+                              break;
+                        case R.id.menu_18:
+                              testBusStopRest( text );
+                              break;
+                        case R.id.menu_19:
+                              testBusSend();
+                              break;
+                        case R.id.menu_20:
+                              testBusRegisterMessage();
+                              break;
+                        case R.id.menu_21:
+                              testBusCallable();
+                              break;
+                        case R.id.menu_22:
+                              testBusCallableList();
+                              break;
+                        case R.id.menu_23:
+                              testBusRunnableList();
+                              break;
+                        case R.id.menu_24:
+                              testBusListener();
+                              break;
+
+                        /* ObjectBusStation */
+                        case R.id.menu_25:
+                              testBusStation();
+                              break;
+
+                        /* print all thread */
+
+                        case R.id.menu_26:
+                              getAllThreads();
+                              break;
+                        case R.id.menu_27:
+                              printAllThreads();
+                              break;
+
+                        default:
+                              break;
                   }
 
-                  @Override
-                  public void onExecute () {
-
-                        String msg = "task running";
-                        printLog(msg);
-                        print(msg);
-
-                        try {
-                              Thread.sleep(1000);
-                        } catch(InterruptedException e) {
-                              e.printStackTrace();
-                        }
-
-                        mFlag = !mFlag;
-                        if(mFlag) {
-                              throw new RuntimeException("null");
-                        }
-                  }
-
-                  @Override
-                  public void onFinish () {
-
-                        String msg = "task finish";
-                        printLog(msg);
-                        print(msg);
-                  }
-
-                  @Override
-                  public void onException (Exception e) {
-
-                        String msg = "exception";
-                        printLog(msg);
-                        print(msg);
-                  }
-            });
+                  closeDrawer();
+                  return true;
+            }
       }
 
       public void testSchedulerCancel () {

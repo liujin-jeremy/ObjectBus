@@ -4,11 +4,9 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.util.ArrayMap;
 import android.util.SparseArray;
-
-import com.threekilogram.objectbus.executor.AppExecutor;
+import com.threekilogram.objectbus.executor.PoolThreadExecutor;
 import com.threekilogram.objectbus.message.Messengers;
 import com.threekilogram.objectbus.message.OnMessageReceiveListener;
-
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +56,7 @@ public class ObjectBus implements OnMessageReceiveListener {
       private final ArrayList<Command> mHowToPass = new ArrayList<>();
 
       /**
-       * used do runnable at {@link com.threekilogram.objectbus.executor.AppExecutor},used by {@link
+       * used do runnable at {@link PoolThreadExecutor},used by {@link
        * #COMMAND_TO_UNDER}
        */
       private ExecutorRunnable mExecutorRunnable;
@@ -179,7 +177,7 @@ public class ObjectBus implements OnMessageReceiveListener {
 
                   Runnable runnable = command.getRunnable();
                   mExecutorRunnable.setRunnable(runnable);
-                  AppExecutor.execute(mExecutorRunnable);
+                  PoolThreadExecutor.execute( mExecutorRunnable );
                   threadCurrent = THREAD_EXECUTOR;
                   return;
             }
@@ -229,7 +227,7 @@ public class ObjectBus implements OnMessageReceiveListener {
 
       /**
        * run runnable on current thread; if call {@link #toUnder(Runnable)} current thread will be
-       * {@link com.threekilogram.objectbus.executor.AppExecutor} thread; if call {@link
+       * {@link PoolThreadExecutor} thread; if call {@link
        * #toMain(Runnable)} current thread will be main thread;
        *
        * @param runnable runnable to run
@@ -245,7 +243,7 @@ public class ObjectBus implements OnMessageReceiveListener {
       //============================ 后台执行 ============================
 
       /**
-       * run runnable on {@link com.threekilogram.objectbus.executor.AppExecutor} thread
+       * run runnable on {@link PoolThreadExecutor} thread
        *
        * @param runnable runnable to run
        *
@@ -316,7 +314,7 @@ public class ObjectBus implements OnMessageReceiveListener {
       //============================ 并发多任务后台执行 ============================
 
       /**
-       * run list of runnable on {@link com.threekilogram.objectbus.executor.AppExecutor} thread
+       * run list of runnable on {@link PoolThreadExecutor} thread
        *
        * @param runnableList task to run
        *
@@ -436,7 +434,7 @@ public class ObjectBus implements OnMessageReceiveListener {
       }
 
       /**
-       * run runnable on {@link com.threekilogram.objectbus.executor.AppExecutor} thread
+       * run runnable on {@link PoolThreadExecutor} thread
        *
        * @param runnable runnable to run
        *
@@ -450,21 +448,7 @@ public class ObjectBus implements OnMessageReceiveListener {
       }
 
       /**
-       * run runnable on {@link com.threekilogram.objectbus.executor.AppExecutor} thread
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus toUnder (
-          @NonNull T runnable,
-          OnRunFinishAction<T> afterRunAction) {
-
-            return toUnder(null, runnable, afterRunAction);
-      }
-
-      /**
-       * run runnable on {@link com.threekilogram.objectbus.executor.AppExecutor} thread
+       * run runnable on {@link PoolThreadExecutor} thread
        *
        * @param runnable runnable to run
        *
@@ -479,7 +463,7 @@ public class ObjectBus implements OnMessageReceiveListener {
       }
 
       /**
-       * run runnable on {@link com.threekilogram.objectbus.executor.AppExecutor} thread
+       * run runnable on {@link PoolThreadExecutor} thread
        *
        * @param runnable runnable to run
        *
@@ -502,6 +486,20 @@ public class ObjectBus implements OnMessageReceiveListener {
                            )
             );
             return this;
+      }
+
+      /**
+       * run runnable on {@link PoolThreadExecutor} thread
+       *
+       * @param runnable runnable to run
+       *
+       * @return self
+       */
+      public <T extends Runnable> ObjectBus toUnder (
+          @NonNull T runnable,
+          OnRunFinishAction<T> afterRunAction ) {
+
+            return toUnder( null, runnable, afterRunAction );
       }
 
       /**
@@ -841,7 +839,7 @@ public class ObjectBus implements OnMessageReceiveListener {
 
                   /* run on thread pool */
 
-                  AppExecutor.execute(runnable);
+                  PoolThreadExecutor.execute( runnable );
             } else {
 
                   /* run on MainThread */
@@ -884,7 +882,7 @@ public class ObjectBus implements OnMessageReceiveListener {
       //============================ executor runnable  ============================
 
       /**
-       * use take task to do in the {@link com.threekilogram.objectbus.executor.AppExecutor}
+       * use take task to do in the {@link PoolThreadExecutor}
        * <p>
        * {@link #mExecutorRunnable}
        */
@@ -900,7 +898,7 @@ public class ObjectBus implements OnMessageReceiveListener {
             @Override
             public void run () {
 
-                  /* this will run on  AppExecutor */
+                  /* this will run on  PoolThreadExecutor */
 
                   Runnable runnable = mRunnable;
                   if(runnable != null) {
@@ -1108,7 +1106,7 @@ public class ObjectBus implements OnMessageReceiveListener {
             @Override
             public void run () {
 
-                  AppExecutor.execute(mRunnableList);
+                  PoolThreadExecutor.execute( mRunnableList );
             }
       }
 
@@ -1128,7 +1126,7 @@ public class ObjectBus implements OnMessageReceiveListener {
             @Override
             public void run () {
 
-                  T t = AppExecutor.submitAndGet(mCallable);
+                  T t = PoolThreadExecutor.submitAndGet( mCallable );
                   take(t, key);
             }
       }
@@ -1147,7 +1145,7 @@ public class ObjectBus implements OnMessageReceiveListener {
             @Override
             public void run () {
 
-                  List<T> list = AppExecutor.submitAndGet(mCallableList);
+                  List<T> list = PoolThreadExecutor.submitAndGet( mCallableList );
                   take(list, key);
             }
       }

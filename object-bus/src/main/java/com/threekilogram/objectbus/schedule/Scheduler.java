@@ -2,15 +2,13 @@ package com.threekilogram.objectbus.schedule;
 
 import android.os.Message;
 import android.util.SparseArray;
-import com.threekilogram.objectbus.executor.AppExecutor;
-import com.threekilogram.objectbus.executor.OnExecuteRunnable;
+import com.threekilogram.objectbus.executor.PoolThreadExecutor;
 import com.threekilogram.objectbus.message.Messengers;
 import com.threekilogram.objectbus.message.OnMessageReceiveListener;
 import com.threekilogram.objectbus.schedule.run.AsyncThreadCallBack;
 import com.threekilogram.objectbus.schedule.run.MainThreadCallBack;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -60,7 +58,7 @@ public class Scheduler {
       public static void init ( ) {
 
             initField();
-            AppExecutor.init();
+            PoolThreadExecutor.init();
       }
 
       private static void initField ( ) {
@@ -85,10 +83,10 @@ public class Scheduler {
       /**
        * 初始化
        */
-      public static void init ( ThreadPoolExecutor poolExecutor ) {
+      public static void init ( java.util.concurrent.ThreadPoolExecutor poolExecutor ) {
 
             initField();
-            AppExecutor.init( poolExecutor );
+            PoolThreadExecutor.init( poolExecutor );
       }
 
       //============================ 后台任务不可取消 ============================
@@ -111,7 +109,7 @@ public class Scheduler {
        * MainThreadCallBack} used ,will call on mainThread,if {@link AsyncThreadCallBack}used ,will
        * call on {@link Messengers}'s thread,
        *
-       * @param runnable background task,use {@link OnExecuteRunnable}could listen runnable
+       * @param runnable background task,use {@link ExecutableRunnable}could listen runnable
        *     execute
        *     station
        * @param delayed delayed
@@ -360,7 +358,7 @@ public class Scheduler {
 
                         Runnable needExecute = runnable.get( msg.arg1 );
                         if( needExecute != null ) {
-                              AppExecutor.execute( needExecute );
+                              PoolThreadExecutor.execute( needExecute );
                         }
                         runnable.delete( msg.arg1 );
                   } catch(Exception e) {
@@ -392,7 +390,7 @@ public class Scheduler {
       /**
        * 包装任务,使其具有回调,后台执行完成之后,根据{@link #mTag}的奇偶性, 在不同的线程回调监听{@link Messengers#send(int,
        * OnMessageReceiveListener)}, 可以肯定的是,肯定不再执行任务的线程回调监听,如果需要在后台执行完之后,继续进行一些操作, 请使用{@link
-       * OnExecuteRunnable},该接口具有执行情况的监听
+       * ExecutableRunnable},该接口具有执行情况的监听
        */
       private static class CallbackRunnable implements Runnable {
 
@@ -433,7 +431,7 @@ public class Scheduler {
             @Override
             public void run ( ) {
 
-                  mResult = AppExecutor.submitAndGet( mCallable );
+                  mResult = PoolThreadExecutor.submitAndGet( mCallable );
             }
       }
 }

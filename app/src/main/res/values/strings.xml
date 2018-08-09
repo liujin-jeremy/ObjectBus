@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">ObjectBus</string>
-    <string name="objectBus_info">ObjectBus:就像一辆车,有时跑在主线程,有时跑在后台线程,有时带着乘客,有时没有乘客,有时在服务区休息等待,有时像分身一样同时跑在许多条后台线路上,有时发出一条消息,有时等待一条消息</string>
-    <string name="log">运行Log:</string>
+      <string name="app_name">ObjectBus</string>
+      <string name="objectBus_info">ObjectBus:就像一辆车,有时跑在主线程,有时跑在后台线程,有时带着乘客,有时没有乘客,有时在服务区休息等待,有时像分身一样同时跑在许多条后台线路上,有时发出一条消息,有时等待一条消息</string>
+      <string name="log">运行Log:</string>
 </resources>
