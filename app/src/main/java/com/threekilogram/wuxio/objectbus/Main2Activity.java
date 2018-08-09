@@ -5,7 +5,8 @@ import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import com.threekilogram.objectbus.action.Actions;
+import com.threekilogram.objectbus.bus.ObjectBus;
+import com.threekilogram.objectbus.bus.ObjectBus.Predicate;
 
 /**
  * @author liujin
@@ -15,7 +16,7 @@ public class Main2Activity extends AppCompatActivity {
       private static final String TAG = Main2Activity.class.getSimpleName();
       private ConstraintLayout mRoot;
 
-      private Actions mActions;
+      private ObjectBus mObjectBus;
 
       @Override
       protected void onCreate ( Bundle savedInstanceState ) {
@@ -23,7 +24,7 @@ public class Main2Activity extends AppCompatActivity {
             super.onCreate( savedInstanceState );
             setContentView( R.layout.activity_main2 );
             initView();
-            mActions = Actions.newListActions();
+            mObjectBus = ObjectBus.newListActions();
       }
 
       private void initView ( ) {
@@ -33,32 +34,32 @@ public class Main2Activity extends AppCompatActivity {
 
       public void addMain ( View view ) {
 
-            mActions.toMain( new MainRunnable() );
+            mObjectBus.toMain( new MainRunnable() );
       }
 
       public void toPool ( View view ) {
 
-            mActions.toPool( new MainRunnable() );
+            mObjectBus.toPool( new MainRunnable() );
       }
 
       public void toMainDelayed ( View view ) {
 
-            mActions.toMain( 2000, new MainRunnable() );
+            mObjectBus.toMain( 2000, new MainRunnable() );
       }
 
       public void toPoolDelayed ( View view ) {
 
-            mActions.toPool( 2000, new MainRunnable() );
+            mObjectBus.toPool( 2000, new MainRunnable() );
       }
 
       public void run ( View view ) {
 
-            mActions.run();
+            mObjectBus.run();
       }
 
       public void size ( View view ) {
 
-            int i = mActions.remainSize();
+            int i = mObjectBus.remainSize();
             log( String.valueOf( i ) );
       }
 
@@ -75,54 +76,78 @@ public class Main2Activity extends AppCompatActivity {
 
       public void isRunning ( View view ) {
 
-            log( Boolean.toString( mActions.isRunning() ) );
+            log( Boolean.toString( mObjectBus.isRunning() ) );
       }
 
       public void pause ( View view ) {
 
-            mActions.pause();
+            mObjectBus.pause();
       }
 
       public void resume ( View view ) {
 
-            mActions.resume();
+            mObjectBus.resume();
       }
 
       public void clearAll ( View view ) {
 
-            mActions.cancelAll();
+            mObjectBus.cancelAll();
       }
 
       public void clearOne ( View view ) {
 
             MainRunnable runnable = new MainRunnable();
-            mActions.toPool( runnable );
-            mActions.cancel( runnable );
+            mObjectBus.toPool( runnable );
+            mObjectBus.cancel( runnable );
             log( "cancel " + runnable );
       }
 
       public void list ( View view ) {
 
-            if( mActions != null ) {
-                  mActions.cancelAll();
+            if( mObjectBus != null ) {
+                  mObjectBus.cancelAll();
             }
-            mActions = Actions.newListActions();
+            mObjectBus = ObjectBus.newListActions();
       }
 
       public void queue ( View view ) {
 
-            if( mActions != null ) {
-                  mActions.cancelAll();
+            if( mObjectBus != null ) {
+                  mObjectBus.cancelAll();
             }
-            mActions = Actions.newQueueActions();
+            mObjectBus = ObjectBus.newQueueActions();
       }
 
       public void fixSize ( View view ) {
 
-            if( mActions != null ) {
-                  mActions.cancelAll();
+            if( mObjectBus != null ) {
+                  mObjectBus.cancelAll();
             }
-            mActions = Actions.newFixSizeQueueActions( 3 );
+            mObjectBus = ObjectBus.newFixSizeQueueActions( 3 );
+      }
+
+      public void ifFalseFalse ( View view ) {
+
+            mObjectBus.ifFalse( new Predicate() {
+
+                  @Override
+                  public boolean test ( ObjectBus bus ) {
+
+                        return false;
+                  }
+            } );
+      }
+
+      public void ifTrueFalse ( View view ) {
+
+            mObjectBus.ifTrue( new Predicate() {
+
+                  @Override
+                  public boolean test ( ObjectBus bus ) {
+
+                        return false;
+                  }
+            } );
       }
 
       private class MainRunnable implements Runnable {

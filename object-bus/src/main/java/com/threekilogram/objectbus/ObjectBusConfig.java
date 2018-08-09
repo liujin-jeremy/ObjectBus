@@ -1,7 +1,7 @@
 package com.threekilogram.objectbus;
 
+import com.threekilogram.objectbus.executor.PoolThreadExecutor;
 import com.threekilogram.objectbus.message.Messengers;
-import com.threekilogram.objectbus.schedule.Scheduler;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -14,14 +14,13 @@ public final class ObjectBusConfig {
        */
       private static AtomicBoolean isInit = new AtomicBoolean();
 
-      public static void init () {
+      public static void init ( ) {
 
-            if(isInit.get()) {
-                  return;
+            if( !isInit.get() ) {
+
+                  isInit.set( true );
+                  Messengers.init();
+                  PoolThreadExecutor.init();
             }
-
-            isInit.set(true);
-            Scheduler.init();
-            Messengers.init();
       }
 }

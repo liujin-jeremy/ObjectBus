@@ -1,1263 +1,784 @@
 package com.threekilogram.objectbus.bus;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.util.ArrayMap;
-import android.util.SparseArray;
+import com.threekilogram.objectbus.executor.MainThreadExecutor;
 import com.threekilogram.objectbus.executor.PoolThreadExecutor;
 import com.threekilogram.objectbus.message.Messengers;
 import com.threekilogram.objectbus.message.OnMessageReceiveListener;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.List;
+import com.threekilogram.objectbus.runnable.Executable;
+import java.util.LinkedList;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 该类穿梭于线程之间,顺序执行各种操作
- *
- * @author wuxio 2018-05-03:16:16
+ * @author: Liujin
+ * @version: V1.0
+ * @date: 2018-08-08
+ * @time: 15:19
  */
-public class ObjectBus implements OnMessageReceiveListener {
+public class ObjectBus {
 
+      private static final int MAIN_THREAD = BusExecute.RUN_IN_MAIN_THREAD;
+      private static final int POOL_THREAD = BusExecute.RUN_IN_POOL_THREAD;
       /**
-       * command used for {@link Command} to how to do runnable
+       * 所有任务
        */
-      private static final int COMMAND_GO               = 0b1;
-      private static final int COMMAND_SEND             = 0b1;
-      private static final int COMMAND_TO_UNDER         = 0b10;
-      private static final int COMMAND_CALLABLE         = 0b10;
-      private static final int COMMAND_MULTI_CALLABLE   = 0b10;
-      private static final int COMMAND_MULTI_RUNNABLE   = 0b10;
-      private static final int COMMAND_TO_MAIN          = 0b100;
-      private static final int COMMAND_TAKE_REST        = 0b10000;
-      private static final int COMMAND_TAKE_REST_AWHILE = 0b100000;
-
+      private final RunnableContainer mRunnableContainer;
       /**
-       * record run State if is resting
+       * 是否正在运行
        */
-      private static final int RUN_STATE_RUNNING        = 0X10EE;
-      private static final int RUN_STATE_RESTING        = 0X11EE;
-      private static final int RUN_STATE_RESTING_AWHILE = 0X100EE;
-      private int runState;
-
-      private static final int THREAD_EXECUTOR = 0X10EEE;
-      private static final int THREAD_MAIN     = 0X11EEE;
-      private int threadCurrent;
-
+      private final AtomicBoolean isLooping = new AtomicBoolean();
       /**
-       * how many station pass By
+       * 是否暂停了
        */
-      private AtomicInteger mPassBy = new AtomicInteger();
-
+      private final AtomicBoolean isPaused  = new AtomicBoolean();
       /**
-       * how to pass every station
+       * 保存结果
        */
-      private final ArrayList<Command> mHowToPass = new ArrayList<>();
+      private ArrayMap<String, Object> mResults;
 
-      /**
-       * used do runnable at {@link PoolThreadExecutor},used by {@link
-       * #COMMAND_TO_UNDER}
-       */
-      private ExecutorRunnable mExecutorRunnable;
+      private ObjectBus ( RunnableContainer container ) {
 
-      /**
-       * used do runnable at MainThread with {@link #COMMAND_TO_MAIN}, {@link #stopRest()}:to stop
-       * bus rest {@link TakeWhileRunnable#run()}: to top bus rest
-       */
-      private BusMessenger mBusMessageManager;
-
-      /**
-       * take customs to bus,{@link #take(Object, String)},{@link #get(String)},{@link
-       * #getOff(String)}
-       */
-      private ArrayMap<String, Object> mExtras;
-
-      /**
-       * do nothing just take a rest ,{@link #COMMAND_TAKE_REST},because {@link Command#Command(int,
-       * Runnable)} not null,so need a runnable to take place
-       */
-      private RestRunnable mRestRunnable;
-
-      public ObjectBus () {
-
-      }
-
-      //============================ init to original ============================
-
-      /**
-       * 将状态还原为初始值
-       */
-      public void initToNew () {
-
-            clearRunnable();
-            clearMessageReceiveRunnable();
-            clearPassenger();
-      }
-
-      //============================ core ============================
-
-      /**
-       * @return did how many task
-       */
-      public int getPassBy () {
-
-            return mPassBy.get();
+            mRunnableContainer = container;
       }
 
       /**
-       * to next station
+       * @return 使用list管理的任务集, 按照添加顺序执行任务
        */
-      private void toNextStation () {
+      public static ObjectBus newListActions ( ) {
 
-            synchronized(mHowToPass) {
-
-                  int size = mHowToPass.size();
-
-                  if(size <= 0) {
-                        return;
-                  }
-
-                  int index = mPassBy.getAndAdd(1);
-                  if(index < size) {
-
-                        Command command = mHowToPass.get(index);
-                        doCommand(command);
-                  } else {
-
-                        mPassBy.getAndAdd(-1);
-                  }
-            }
+            return new ObjectBus( new ListRunnableContainer() );
       }
 
       /**
-       * 推荐所有任务执行完成后,清除所有任务(因为可能存在内存泄漏,在所有任务完成后放弃对任务的引用,释放资源), 如果任务没有完成调用该方法,任务也会清除掉,需要用户自己保证所有任务已经执行完成,在调用该方法
+       * @return 使用list管理的任务集, 按照添加顺序执行任务
        */
-      public void clearRunnable () {
+      public static ObjectBus newQueueActions ( ) {
 
-            synchronized(mHowToPass) {
-                  mHowToPass.clear();
-                  mPassBy.set(0);
-            }
+            return new ObjectBus( new QueueRunnableContainer() );
       }
 
       /**
-       * @param command use command to run runnable
+       * @return 使用list管理的任务集, 按照添加顺序执行任务,有固定任务上限
        */
-      private void doCommand (Command command) {
+      public static ObjectBus newFixSizeQueueActions ( int maxSize ) {
 
-            /* run runnable on current thread, current thread depends on before command run on which */
-
-            if(command.command == COMMAND_GO) {
-
-                  if(threadCurrent == THREAD_EXECUTOR) {
-
-                        command.command = COMMAND_TO_UNDER;
-                  } else if(threadCurrent == THREAD_MAIN) {
-
-                        command.command = COMMAND_TO_MAIN;
-                  } else {
-
-                        Runnable runnable = command.getRunnable();
-                        runnable.run();
-                        toNextStation();
-                        return;
-                  }
-            }
-
-            /* run runnable on threadPool */
-
-            if(command.command == COMMAND_TO_UNDER) {
-
-                  /* not in pool change to pool */
-
-                  if(mExecutorRunnable == null) {
-                        mExecutorRunnable = new ExecutorRunnable();
-                  }
-
-                  Runnable runnable = command.getRunnable();
-                  mExecutorRunnable.setRunnable(runnable);
-                  PoolThreadExecutor.execute( mExecutorRunnable );
-                  threadCurrent = THREAD_EXECUTOR;
-                  return;
-            }
-
-            /* run runnable on MainThread */
-
-            if(command.command == COMMAND_TO_MAIN) {
-
-                  /* not on main, use messenger change to MainThread */
-
-                  if(mBusMessageManager == null) {
-                        mBusMessageManager = new BusMessenger();
-                  }
-
-                  BusMessenger messenger = mBusMessageManager;
-                  Runnable runnable = command.getRunnable();
-                  messenger.runOnMain(runnable);
-                  threadCurrent = THREAD_MAIN;
-                  return;
-            }
-
-            /* bus take a rest */
-
-            if(command.command == COMMAND_TAKE_REST) {
-
-                  runState = RUN_STATE_RESTING;
-
-                  /* did'nt toNextStation(), wait util stopRest() called */
-
-                  return;
-            }
-
-            /* bus take a while, then go on */
-
-            if(command.command == COMMAND_TAKE_REST_AWHILE) {
-
-                  /* just take a while, when time up toNextStation(), or stopRest() called toNextStation() */
-
-                  runState = RUN_STATE_RESTING_AWHILE;
-                  command.getRunnable().run();
-
-                  //return;
-            }
-      }
-
-      //============================ flow action ============================
-
-      /**
-       * run runnable on current thread; if call {@link #toUnder(Runnable)} current thread will be
-       * {@link PoolThreadExecutor} thread; if call {@link
-       * #toMain(Runnable)} current thread will be main thread;
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public ObjectBus go (@NonNull Runnable runnable) {
-
-            mHowToPass.add(new Command(COMMAND_GO, runnable));
-            return this;
-      }
-
-      //============================ 后台执行 ============================
-
-      /**
-       * run runnable on {@link PoolThreadExecutor} thread
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public ObjectBus toUnder (@NonNull Runnable runnable) {
-
-            mHowToPass.add(new Command(COMMAND_TO_UNDER, runnable));
-            return this;
-      }
-
-      //============================ mCallable 执行 ============================
-
-      /**
-       * call callable on current thread,and save result
-       *
-       * @param callable to call
-       * @param key use this key to save result
-       * @param <T> result type
-       * @param <C> callable
-       *
-       * @return self
-       */
-      public <T, C extends Callable<T>> ObjectBus go (@NonNull C callable, @NonNull String key) {
-
-            mHowToPass.add(new Command(COMMAND_GO, new CallableSelfCallRunnable<>(callable, key)));
-            return this;
+            return new ObjectBus( new FixSizeQueueRunnableContainer( maxSize ) );
       }
 
       /**
-       * call callableList on current thread,and save result
-       *
-       * @param callableList to call
-       * @param key use this key to save result
-       * @param <T> result type
-       * @param <C> callable
-       *
-       * @return self
-       */
-      public <T, C extends Callable<T>> ObjectBus go (
-          @NonNull List<C> callableList, @NonNull String key) {
-
-            mHowToPass.add(
-                new Command(COMMAND_GO, new CallableListSelfCallRunnable<>(callableList, key)));
-            return this;
-      }
-
-      /**
-       * to do mCallable on BackThread and save value
-       *
-       * @param callable need run
-       * @param key key for save
-       * @param <T> result type
-       *
-       * @return self
-       */
-      public <T, C extends Callable<T>> ObjectBus toUnder (@NonNull C callable, String key) {
-
-            mHowToPass.add(
-                new Command(
-                    COMMAND_CALLABLE,
-                    new CallableRunnable<>(callable, key)
-                )
-            );
-            return this;
-      }
-
-      //============================ 并发多任务后台执行 ============================
-
-      /**
-       * run list of runnable on {@link PoolThreadExecutor} thread
-       *
-       * @param runnableList task to run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus toUnder (@NonNull List<T> runnableList) {
-
-            mHowToPass.add(new Command(
-                               COMMAND_MULTI_RUNNABLE,
-                               new ListRunnable<>(runnableList)
-                           )
-            );
-            return this;
-      }
-
-      /**
-       * to do mCallable on BackThread and save every result value as list
-       *
-       * @param callableList need run
-       * @param key key for save
-       * @param <T> result type
-       *
-       * @return self
-       */
-      public <T, C extends Callable<T>> ObjectBus toUnder (
-          @NonNull List<C> callableList,
-          String key) {
-
-            mHowToPass.add(new Command(
-                               COMMAND_MULTI_CALLABLE,
-                               new ConcurrentRunnable<>(callableList, key)
-                           )
-            );
-            return this;
-      }
-
-      //============================ 主线程任务 ============================
-
-      /**
-       * run runnable on main thread
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public ObjectBus toMain (@NonNull Runnable runnable) {
-
-            mHowToPass.add(new Command(COMMAND_TO_MAIN, runnable));
-            return this;
-      }
-
-      //============================ 额外任务 ============================
-
-      /**
-       * @param action this will call after last runnable, before this runnable run,could do some
-       * Initialize action to runnable
-       * @param runnable runnable
-       * @param <T> type of runnable
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus go (
-          OnBeforeRunAction<T> action,
-          @NonNull T runnable) {
-
-            return go(action, runnable, null);
-      }
-
-      /**
-       * @param runnable runnable runnable
-       * @param afterRunAction this will call after runnable.run
-       * @param <T> type of runnable
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus go (
-          @NonNull T runnable,
-          OnRunFinishAction<T> afterRunAction) {
-
-            return go(null, runnable, afterRunAction);
-      }
-
-      /**
-       * @param initializeAction call after last runnable, before this runnable run
-       * @param runnable runnable
-       * @param afterRunAction this will call after runnable.run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus go (
-          OnBeforeRunAction<T> initializeAction,
-          @NonNull T runnable,
-          OnRunFinishAction<T> afterRunAction) {
-
-            return go(initializeAction, runnable, afterRunAction, null);
-      }
-
-      /**
-       * @param initializeAction call after last runnable, before this runnable run
-       * @param runnable runnable
-       * @param afterRunAction this will call after runnable.run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus go (
-          OnBeforeRunAction<T> initializeAction,
-          @NonNull T runnable,
-          OnRunFinishAction<T> afterRunAction,
-          OnRunExceptionHandler handler) {
-
-            mHowToPass.add(new Command(
-                               COMMAND_GO,
-                               new ExtraActionRunnable(initializeAction, runnable, afterRunAction, handler)
-                           )
-            );
-            return this;
-      }
-
-      /**
-       * run runnable on {@link PoolThreadExecutor} thread
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus toUnder (
-          OnBeforeRunAction<T> beforeRunAction,
-          @NonNull T runnable) {
-
-            return toUnder(beforeRunAction, runnable, null);
-      }
-
-      /**
-       * run runnable on {@link PoolThreadExecutor} thread
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus toUnder (
-          OnBeforeRunAction<T> initializeAction,
-          @NonNull T runnable,
-          OnRunFinishAction<T> afterRunAction) {
-
-            return toUnder(initializeAction, runnable, afterRunAction, null);
-      }
-
-      /**
-       * run runnable on {@link PoolThreadExecutor} thread
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus toUnder (
-          OnBeforeRunAction<T> initializeAction,
-          @NonNull T runnable,
-          OnRunFinishAction<T> afterRunAction,
-          OnRunExceptionHandler<T> handler) {
-
-            mHowToPass.add(new Command(
-                               COMMAND_TO_UNDER,
-                               new ExtraActionRunnable<>(
-                                   initializeAction,
-                                   runnable,
-                                   afterRunAction,
-                                   handler
-                               )
-                           )
-            );
-            return this;
-      }
-
-      /**
-       * run runnable on {@link PoolThreadExecutor} thread
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus toUnder (
-          @NonNull T runnable,
-          OnRunFinishAction<T> afterRunAction ) {
-
-            return toUnder( null, runnable, afterRunAction );
-      }
-
-      /**
-       * run runnable on main thread
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus toMain (
-          OnBeforeRunAction<T> initializeAction,
-          @NonNull T runnable) {
-
-            return toMain(initializeAction, runnable, null);
-      }
-
-      /**
-       * run runnable on main thread
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus toMain (
-          @NonNull T runnable,
-          OnRunFinishAction<T> afterRunAction) {
-
-            return toMain(null, runnable, afterRunAction);
-      }
-
-      /**
-       * run runnable on main thread
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus toMain (
-          OnBeforeRunAction<T> initializeAction,
-          @NonNull T runnable,
-          OnRunFinishAction<T> afterRunAction) {
-
-            return toMain(initializeAction, runnable, afterRunAction, null);
-      }
-
-      /**
-       * run runnable on main thread
-       *
-       * @param runnable runnable to run
-       *
-       * @return self
-       */
-      public <T extends Runnable> ObjectBus toMain (
-          OnBeforeRunAction<T> initializeAction,
-          @NonNull T runnable,
-          OnRunFinishAction<T> afterRunAction,
-          OnRunExceptionHandler<T> handler) {
-
-            mHowToPass.add(new Command(
-                               COMMAND_TO_MAIN,
-                               new ExtraActionRunnable<>(
-                                   initializeAction,
-                                   runnable,
-                                   afterRunAction,
-                                   handler
-                               )
-                           )
-            );
-            return this;
-      }
-
-      //============================ 向外发送消息 ============================
-
-      /**
-       * send message on current thread
-       *
-       * @param what message what
-       * @param listener receiver
-       *
-       * @return self
-       */
-      public ObjectBus send (int what, OnMessageReceiveListener listener) {
-
-            return sendDelayed(what, 0, null, listener);
-      }
-
-      /**
-       * send message on current thread
-       *
-       * @param what message what
-       * @param extra extra msg
-       * @param listener receiver
-       *
-       * @return self
-       */
-      public ObjectBus send (int what, Object extra, OnMessageReceiveListener listener) {
-
-            return sendDelayed(what, 0, extra, listener);
-      }
-
-      /**
-       * send message on current thread
-       *
-       * @param what message what
-       * @param listener receiver
-       *
-       * @return self
-       */
-      public ObjectBus sendDelayed (int what, int delayed, OnMessageReceiveListener listener) {
-
-            return sendDelayed(what, delayed, null, listener);
-      }
-
-      /**
-       * send message on current thread
-       *
-       * @param what message what
-       * @param extra extra msg
-       * @param listener receiver
-       *
-       * @return self
-       */
-      @SuppressWarnings("WeakerAccess")
-      public ObjectBus sendDelayed (
-          int what, int delayed, Object extra, OnMessageReceiveListener listener) {
-
-            mHowToPass
-                .add(new Command(COMMAND_SEND, new SendRunnable(what, delayed, extra, listener)));
-            return this;
-      }
-
-      //============================ 暂停/恢复 ============================
-
-      /**
-       * take a rest ,util {@link #stopRest()} called
-       */
-      public ObjectBus takeRest () {
-
-            if(mRestRunnable == null) {
-                  mRestRunnable = new RestRunnable();
-            }
-            mHowToPass.add(new Command(COMMAND_TAKE_REST, mRestRunnable));
-            return this;
-      }
-
-      /**
-       * take a rest for a while ,util time up, or {@link #stopRest()} called
-       *
-       * @param millisecond time to rest
-       *
-       * @return self
-       */
-      public ObjectBus takeRest (int millisecond) {
-
-            mHowToPass
-                .add(new Command(COMMAND_TAKE_REST_AWHILE, new TakeWhileRunnable(millisecond)));
-            return this;
-      }
-
-      /**
-       * when this called , if bus is resting , bus will go on
-       */
-      public synchronized void stopRest () {
-
-            if(runState == RUN_STATE_RESTING || runState == RUN_STATE_RESTING_AWHILE) {
-
-                  if(mBusMessageManager == null) {
-                        mBusMessageManager = new BusMessenger();
-                  }
-                  mBusMessageManager.notifyBusStopRest();
-            }
-      }
-
-      public boolean isResting () {
-
-            return (runState == RUN_STATE_RESTING || runState == RUN_STATE_RESTING_AWHILE);
-      }
-
-      public boolean isRestingAWhile () {
-
-            return (runState == RUN_STATE_RESTING_AWHILE);
-      }
-
-      //============================ 开始执行任务 ============================
-
-      /**
-       * start run bus
-       */
-      public void run () {
-
-            final String mainThreadName = "main";
-
-            /* 标记当前线程 */
-            if(mainThreadName.equals(Thread.currentThread().getName())) {
-                  threadCurrent = THREAD_MAIN;
-            } else {
-                  threadCurrent = THREAD_EXECUTOR;
-            }
-
-            /* 标记当前运行状态 */
-            runState = RUN_STATE_RUNNING;
-
-            /* 开始 */
-            toNextStation();
-      }
-
-      //============================ 添加/删除乘客操作 ============================
-
-      /**
-       * lazy init
-       *
-       * @return {@link #mExtras}
-       */
-      private ArrayMap<String, Object> getExtras () {
-
-            if(mExtras == null) {
-                  mExtras = new ArrayMap<>();
-            }
-            return mExtras;
-      }
-
-      /**
-       * take extra to bus,could use key to get
-       *
-       * @param extra extra to bus
-       * @param key key
-       */
-      public void take (Object extra, String key) {
-
-            getExtras().put(key, extra);
-      }
-
-      /**
-       * get the extra
+       * 保存一个变量
        *
        * @param key key
-       *
-       * @return extra
+       * @param result 变量
        */
-      @Nullable
-      public Object get (String key) {
+      public void setResult ( String key, Object result ) {
 
-            return getExtras().get(key);
+            if( mResults == null ) {
+                  mResults = new ArrayMap<>();
+            }
+            mResults.put( key, result );
       }
 
       /**
-       * get and remove extra
+       * 读取保存的变量
        *
        * @param key key
+       * @param <T> 变量类型
        *
-       * @return extra
+       * @return 变量, 如果没有该key返回null
        */
-      @Nullable
-      public Object getOff (String key) {
+      @SuppressWarnings("unchecked")
+      public <T> T getResult ( String key ) {
 
-            return getExtras().remove(key);
+            Object result = mResults.get( key );
+
+            return result == null ? null : (T) result;
       }
 
       /**
-       * 清除所有乘客
+       * 读取保存的变量,并且移除该变量
+       *
+       * @param key key
+       * @param <T> 变量类型
+       *
+       * @return 变量, 如果没有该key返回null
        */
-      public void clearPassenger () {
+      @SuppressWarnings("unchecked")
+      public <T> T getResultOff ( String key ) {
 
-            if(mExtras != null) {
-                  mExtras.clear();
-            }
+            Object result = mResults.remove( key );
+
+            return result == null ? null : (T) result;
       }
 
-      //============================ bus message register ============================
-
-      private SparseArray<Runnable> mMessageReceiveRunnable;
-
       /**
-       * when {@link Messengers#send(int, OnMessageReceiveListener)} to bus ,bus will do the
-       * runnable
+       * 主线程执行任务
        *
-       * @param what msg what, nofity when what is even number (偶数), bus will run the runnable on
-       * the threadPool, else will run the runnable on MainThread
-       * @param runnable what to do when receive msg
+       * @param runnable 任务
        *
-       * @return self
+       * @return 链式调用
        */
-      public ObjectBus registerMessage (int what, Runnable runnable) {
+      public ObjectBus toMain ( Runnable runnable ) {
 
-            if(mMessageReceiveRunnable == null) {
-                  mMessageReceiveRunnable = new SparseArray<>();
+            if( runnable == null ) {
+                  return this;
             }
-            mMessageReceiveRunnable.put(what, runnable);
+
+            BusExecute execute = new BusExecute();
+            execute.mThread = MAIN_THREAD;
+            execute.mObjectBus = this;
+            execute.mRunnable = runnable;
+            mRunnableContainer.add( execute );
+
             return this;
       }
 
       /**
-       * unRegister a message
-       */
-      public void unRegisterMessage (int what) {
-
-            if(mMessageReceiveRunnable == null) {
-                  mMessageReceiveRunnable = new SparseArray<>();
-            }
-            mMessageReceiveRunnable.delete(what);
-            Messengers.remove(what, this);
-      }
-
-      /**
-       * 清除所有注册的消息的行动
-       */
-      public void clearMessageReceiveRunnable () {
-
-            if(mMessageReceiveRunnable != null) {
-                  mMessageReceiveRunnable.clear();
-            }
-      }
-
-      @Override
-      public void onReceive (int what, Object extra) {
-
-      }
-
-      @Override
-      public void onReceive (int what) {
-
-            if(mMessageReceiveRunnable == null) {
-                  return;
-            }
-
-            /* when bus receive a message run the runnable register to what  */
-
-            Runnable runnable = mMessageReceiveRunnable.get(what);
-
-            if(runnable == null) {
-                  return;
-            }
-
-            final int judge = 2;
-
-            if(what % judge == 0) {
-
-                  /* run on thread pool */
-
-                  PoolThreadExecutor.execute( runnable );
-            } else {
-
-                  /* run on MainThread */
-
-                  runnable.run();
-            }
-      }
-
-      //============================ command for Bus run runnable ============================
-
-      /**
-       * record how to run runnable
-       */
-      private class Command {
-
-            /**
-             * one of {@link #COMMAND_GO} {@link #COMMAND_SEND} {@link #COMMAND_TAKE_REST} {@link
-             * #COMMAND_TO_MAIN} {@link #COMMAND_TO_UNDER} {@link #COMMAND_TAKE_REST_AWHILE}
-             * <p>
-             * bus use this command to decide what to do
-             */
-            private int      command;
-            /**
-             * the runnable the user want to do,bus will run runnable with command
-             */
-            private Runnable mRunnable;
-
-            Command (int command, @NonNull Runnable runnable) {
-
-                  this.command = command;
-                  mRunnable = runnable;
-            }
-
-            Runnable getRunnable () {
-
-                  return mRunnable;
-            }
-      }
-
-      //============================ executor runnable  ============================
-
-      /**
-       * use take task to do in the {@link PoolThreadExecutor}
-       * <p>
-       * {@link #mExecutorRunnable}
-       */
-      private class ExecutorRunnable implements Runnable {
-
-            private Runnable mRunnable;
-
-            void setRunnable (Runnable runnable) {
-
-                  mRunnable = runnable;
-            }
-
-            @Override
-            public void run () {
-
-                  /* this will run on  PoolThreadExecutor */
-
-                  Runnable runnable = mRunnable;
-                  if(runnable != null) {
-                        runnable.run();
-                  }
-                  toNextStation();
-            }
-      }
-
-      //============================ communicate ============================
-
-      /**
-       * bus use this to communicate with {@link Messengers}
-       */
-      private class BusMessenger implements OnMessageReceiveListener {
-
-            /**
-             * when receive this msg, take bus to Main Thread to run
-             */
-            private static final int WHAT_MAIN = 3;
-            /**
-             * used with {@link #WHAT_MAIN},when receive {@link #WHAT_MAIN},run this runnable on
-             * mainThread
-             */
-            private Runnable mRunnable;
-
-            void setRunnable (Runnable runnable) {
-
-                  mRunnable = runnable;
-            }
-
-            /**
-             * run the {@link #mRunnable}at main
-             */
-            void runOnMain (Runnable runnable) {
-
-                  setRunnable(runnable);
-                  Messengers.send(WHAT_MAIN, this);
-            }
-
-            /**
-             * when receive this msg take bus to last Command run Thread to go on
-             */
-            private static final int WHAT_STOP_REST    = 4;
-            /**
-             * when receive this msg means bus rest time up, need go on
-             */
-            private static final int WHAT_REST_TIME_UP = 6;
-
-            /**
-             * notify bus to next station if bus is RESTING, called from {@link #stopRest()}, when
-             * this called bus must in resting
-             */
-            void notifyBusStopRest () {
-
-                  runState = RUN_STATE_RUNNING;
-                  Messengers.send(WHAT_STOP_REST, this);
-            }
-
-            /**
-             * notify bus to next station when bus is RESTING
-             */
-            void notifyBusStopRestAfter (int millisecond) {
-
-                  Messengers.send(WHAT_REST_TIME_UP, millisecond, this);
-            }
-
-            @Override
-            public void onReceive (int what, Object extra) {
-
-            }
-
-            @Override
-            public void onReceive (int what) {
-
-                  /* run runnable on main */
-
-                  if(what == WHAT_MAIN) {
-                        if(mRunnable != null) {
-                              mRunnable.run();
-                        }
-                        toNextStation();
-                        return;
-                  }
-
-                  /* stop bus rest */
-
-                  if(what == WHAT_STOP_REST) {
-
-                        /* this is running at Messengers#Thread not in threadPool or MainThread*/
-                        /* if before bus rest it run on pool thread ,goto pool; if on main thread ,go to main */
-                        toNextStation();
-                        return;
-                  }
-
-                  /* time up to notify bus to go on */
-
-                  if(what == WHAT_REST_TIME_UP) {
-
-                        if(runState == RUN_STATE_RESTING_AWHILE) {
-                              notifyBusStopRest();
-                        }
-                  }
-            }
-      }
-
-      //============================ Send runnable ============================
-
-      /**
-       * used to send Message with {@link #COMMAND_SEND} {@link #sendDelayed(int, int, Object,
-       * OnMessageReceiveListener)}
+       * 主线程执行任务
        *
-       * @see Messengers#send(int, int, Object, OnMessageReceiveListener)
+       * @param runnable 任务
+       *
+       * @return 链式调用
        */
-      private class SendRunnable implements Runnable {
+      public ObjectBus toMain ( int delayed, Runnable runnable ) {
 
-            private int                                     what;
-            private int                                     delayed;
-            private Object                                  extra;
-            private WeakReference<OnMessageReceiveListener> mListenerWeakReference;
-
-            SendRunnable (
-                int what, int delayed, Object extra,
-                @NonNull OnMessageReceiveListener receiveListener) {
-
-                  this.what = what;
-                  this.extra = extra;
-                  this.delayed = delayed;
-                  this.mListenerWeakReference = new WeakReference<>(receiveListener);
+            if( runnable == null ) {
+                  return this;
             }
 
-            @Override
-            public void run () {
+            DelayExecute execute = new DelayExecute();
+            execute.mThread = MAIN_THREAD;
+            execute.mObjectBus = this;
+            execute.mRunnable = runnable;
+            execute.mDelayed = delayed;
+            mRunnableContainer.add( execute );
 
-                  /* send message */
+            return this;
+      }
 
-                  OnMessageReceiveListener who = mListenerWeakReference.get();
+      /**
+       * 线程池执行任务
+       *
+       * @param runnable 任务
+       *
+       * @return 链式调用
+       */
+      public ObjectBus toPool ( Runnable runnable ) {
 
-                  if(who == null) {
-                        return;
-                  }
+            if( runnable == null ) {
+                  return this;
+            }
 
-                  if(extra == null) {
+            BusExecute execute = new BusExecute();
+            execute.mThread = POOL_THREAD;
+            execute.mObjectBus = this;
+            execute.mRunnable = runnable;
+            mRunnableContainer.add( execute );
 
-                        Messengers.send(what, delayed, who);
+            return this;
+      }
+
+      /**
+       * 线程池执行任务
+       *
+       * @param runnable 任务
+       *
+       * @return 链式调用
+       */
+      public ObjectBus toPool ( int delayed, Runnable runnable ) {
+
+            if( runnable == null ) {
+                  return this;
+            }
+
+            DelayExecute execute = new DelayExecute();
+            execute.mThread = POOL_THREAD;
+            execute.mObjectBus = this;
+            execute.mRunnable = runnable;
+            execute.mDelayed = delayed;
+            mRunnableContainer.add( execute );
+
+            return this;
+      }
+
+      /**
+       * 如果{@code test}返回true,继续执行后面的任务,否则清除所有任务,注意在后台线程测试
+       *
+       * @param test 测试是否继续执行后面的任务
+       *
+       * @return bus
+       */
+      public ObjectBus ifTrue ( Predicate test ) {
+
+            if( test == null ) {
+                  return null;
+            }
+            PredicateExecute execute = new PredicateExecute();
+            execute.mObjectBus = this;
+            execute.mThread = POOL_THREAD;
+            execute.mPredicate = test;
+            execute.mResult = true;
+            mRunnableContainer.add( execute );
+
+            return this;
+      }
+
+      /**
+       * 如果{@code test}返回false,继续执行后面的任务,否则清除所有任务,注意在后台线程测试
+       *
+       * @param test 测试是否继续执行后面的任务
+       *
+       * @return bus
+       */
+
+      public ObjectBus ifFalse ( Predicate test ) {
+
+            if( test == null ) {
+                  return null;
+            }
+            PredicateExecute execute = new PredicateExecute();
+            execute.mObjectBus = this;
+            execute.mThread = POOL_THREAD;
+            execute.mPredicate = test;
+            execute.mResult = false;
+            mRunnableContainer.add( execute );
+
+            return this;
+      }
+
+      /**
+       * 循环取出下一个任务执行,直到所有任务执行完毕
+       */
+      private void loop ( ) {
+
+            if( isPaused.get() ) {
+                  return;
+            }
+
+            try {
+
+                  BusExecute executable = mRunnableContainer.next();
+
+                  if( executable.mThread == BusExecute.RUN_IN_MAIN_THREAD ) {
+
+                        MainThreadExecutor.execute( executable );
                   } else {
 
-                        Messengers.send(what, delayed, extra, who);
+                        PoolThreadExecutor.execute( executable );
                   }
+            } catch(Exception e) {
+
+                  isLooping.set( false );
             }
       }
-
-      //============================ rest Runnable ============================
 
       /**
-       * used with {@link #COMMAND_TAKE_REST}, because {@link Command#Command(int, Runnable)} not
-       * null,so create a do Nothing runnable
+       * 开始执行所有任务
        */
-      private class RestRunnable implements Runnable {
+      public void run ( ) {
 
-            @Override
-            public void run () {
-
-                  /* take a rest, do nothing */
-
+            if( !isLooping.get() ) {
+                  isLooping.set( true );
+                  loop();
             }
       }
-
-      //============================ take a while Runnable ============================
 
       /**
-       * used with {@link #COMMAND_TAKE_REST_AWHILE} , send a delayed message, to call {@link
-       * #stopRest()}
+       * 根据返回值决定是否执行后面的任务
        */
-      private class TakeWhileRunnable implements Runnable {
+      public interface Predicate {
 
-            private int delayed;
+            /**
+             * 测试是否还继续执行任务
+             *
+             * @param bus bus
+             *
+             * @return true :
+             */
+            boolean test ( ObjectBus bus );
+      }
 
-            TakeWhileRunnable (int delayed) {
+      /**
+       * 是否正在运行
+       *
+       * @return true:正在运行
+       */
+      public boolean isRunning ( ) {
 
-                  this.delayed = delayed;
+            return isLooping.get();
+      }
+
+      /**
+       * 清除所有任务
+       */
+      public void cancelAll ( ) {
+
+            mRunnableContainer.deleteAll();
+      }
+
+      /**
+       * 取消任务
+       *
+       * @param runnable 任务需要取消
+       */
+      @SuppressWarnings("SuspiciousMethodCalls")
+      public void cancel ( Runnable runnable ) {
+
+            if( runnable == null ) {
+                  return;
             }
 
-            @Override
-            public void run () {
+            mRunnableContainer.delete( runnable );
+      }
 
-                  if(mBusMessageManager == null) {
-                        mBusMessageManager = new BusMessenger();
-                  }
-                  mBusMessageManager.notifyBusStopRestAfter(delayed);
+      /**
+       * 暂停任务
+       */
+      public void pause ( ) {
+
+            if( isPaused.get() ) {
+                  return;
+            }
+
+            isPaused.set( true );
+      }
+
+      /**
+       * 恢复任务
+       */
+      public void resume ( ) {
+
+            if( isPaused.get() ) {
+
+                  isPaused.set( false );
+                  loop();
             }
       }
 
-      //============================ list runnable ============================
+      /**
+       * 剩余任务数量
+       */
+      public int remainSize ( ) {
 
-      private class ListRunnable<T extends Runnable> implements Runnable {
-
-            private List<T> mRunnableList;
-
-            public ListRunnable (List<T> runnableList) {
-
-                  mRunnableList = runnableList;
-            }
-
-            @Override
-            public void run () {
-
-                  PoolThreadExecutor.execute( mRunnableList );
-            }
+            return mRunnableContainer.remainSize();
       }
 
-      //============================ mCallable Runnable ============================
+      // ========================= 内部类 =========================
 
-      private class CallableRunnable<T, C extends Callable<T>> implements Runnable {
+      /**
+       * 如何放置任务,如何取出任务
+       */
+      public interface RunnableContainer {
 
-            private C      mCallable;
-            private String key;
+            /**
+             * 添加任务
+             *
+             * @param runnable 任务
+             */
+            void add ( BusExecute runnable );
 
-            public CallableRunnable (C callable, String key) {
+            /**
+             * 删除任务
+             *
+             * @param runnable 任务
+             */
+            void delete ( Runnable runnable );
 
-                  this.key = key;
-                  mCallable = callable;
-            }
+            /**
+             * 清除所有任务
+             */
+            void deleteAll ( );
 
-            @Override
-            public void run () {
+            /**
+             * 下一个任务,或者异常{@link ArrayIndexOutOfBoundsException},或者null
+             *
+             * @return runnable
+             */
+            BusExecute next ( );
 
-                  T t = PoolThreadExecutor.submitAndGet( mCallable );
-                  take(t, key);
-            }
+            /**
+             * 剩余任务数量
+             *
+             * @return 剩余任务
+             */
+            int remainSize ( );
       }
 
-      private class ConcurrentRunnable<T, C extends Callable<T>> implements Runnable {
+      /**
+       * 使用list保存任务,先添加的先执行
+       */
+      private static class ListRunnableContainer implements RunnableContainer {
 
-            List<C> mCallableList;
-            private String key;
+            private final LinkedList<BusExecute> mExecutes = new LinkedList<>();
 
-            ConcurrentRunnable (List<C> callableList, String key) {
+            @Override
+            public void add ( BusExecute execute ) {
 
-                  mCallableList = callableList;
-                  this.key = key;
+                  mExecutes.add( execute );
             }
 
             @Override
-            public void run () {
-
-                  List<T> list = PoolThreadExecutor.submitAndGet( mCallableList );
-                  take(list, key);
-            }
-      }
-
-      //============================ callable self call runnable ============================
-
-      private class CallableSelfCallRunnable<T, C extends Callable<T>> implements Runnable {
-
-            private C      mCallable;
-            private String key;
-
-            public CallableSelfCallRunnable (C callable, String key) {
-
-                  mCallable = callable;
-                  this.key = key;
-            }
-
-            @Override
-            public void run () {
+            public void delete ( Runnable runnable ) {
 
                   try {
-                        T call = mCallable.call();
-                        if(key != null) {
-                              take(call, key);
+                        for( BusExecute execute : mExecutes ) {
+
+                              if( execute.mRunnable == runnable ) {
+                                    mExecutes.remove( execute );
+                                    return;
+                              }
                         }
+                  } catch(Exception e) {
+
+                        e.printStackTrace();
+                  }
+            }
+
+            @Override
+            public void deleteAll ( ) {
+
+                  mExecutes.clear();
+            }
+
+            @Override
+            public BusExecute next ( ) {
+
+                  return mExecutes.pollFirst();
+            }
+
+            @Override
+            public int remainSize ( ) {
+
+                  return mExecutes.size();
+            }
+      }
+
+      /**
+       * 使用队列形式保存任务,后添加的先执行
+       */
+      private static class QueueRunnableContainer implements RunnableContainer {
+
+            private final LinkedList<BusExecute> mExecutes = new LinkedList<>();
+
+            @Override
+            public void add ( BusExecute execute ) {
+
+                  mExecutes.add( execute );
+            }
+
+            @Override
+            public void delete ( Runnable runnable ) {
+
+                  try {
+                        for( BusExecute execute : mExecutes ) {
+
+                              if( execute.mRunnable == runnable ) {
+                                    mExecutes.remove( execute );
+                                    return;
+                              }
+                        }
+                  } catch(Exception e) {
+
+                        e.printStackTrace();
+                  }
+            }
+
+            @Override
+            public void deleteAll ( ) {
+
+                  mExecutes.clear();
+            }
+
+            @Override
+            public BusExecute next ( ) {
+
+                  return mExecutes.pollLast();
+            }
+
+            @Override
+            public int remainSize ( ) {
+
+                  return mExecutes.size();
+            }
+      }
+
+      /**
+       * 使用队列形式保存任务,后添加的先执行,有固定任务上线
+       */
+      private static class FixSizeQueueRunnableContainer implements RunnableContainer {
+
+            private final LinkedList<BusExecute> mExecutes = new LinkedList<>();
+            private final int mFixSize;
+
+            public FixSizeQueueRunnableContainer ( int fixSize ) {
+
+                  mFixSize = fixSize;
+            }
+
+            @Override
+            public void add ( BusExecute execute ) {
+
+                  mExecutes.add( execute );
+
+                  if( mExecutes.size() > mFixSize ) {
+                        mExecutes.pollFirst();
+                  }
+            }
+
+            @Override
+            public void delete ( Runnable runnable ) {
+
+                  try {
+                        for( BusExecute execute : mExecutes ) {
+
+                              if( execute.mRunnable == runnable ) {
+                                    mExecutes.remove( execute );
+                                    return;
+                              }
+                        }
+                  } catch(Exception e) {
+
+                        e.printStackTrace();
+                  }
+            }
+
+            @Override
+            public void deleteAll ( ) {
+
+                  mExecutes.clear();
+            }
+
+            @Override
+            public BusExecute next ( ) {
+
+                  return mExecutes.pollLast();
+            }
+
+            @Override
+            public int remainSize ( ) {
+
+                  return mExecutes.size();
+            }
+      }
+
+      /**
+       * 代理任务,使其完成后调用下一个任务
+       */
+      @SuppressWarnings("WeakerAccess")
+      public static class BusExecute extends Executable {
+
+            public static final int RUN_IN_MAIN_THREAD = 1;
+            public static final int RUN_IN_POOL_THREAD = -1;
+
+            /**
+             * 用于通知任务完成,以便执行下一个任务
+             */
+            protected ObjectBus mObjectBus;
+            /**
+             * 指定执行位置
+             */
+            protected int mThread = RUN_IN_MAIN_THREAD;
+            /**
+             * 用户设置的任务
+             */
+            protected Runnable mRunnable;
+
+            @Override
+            public void onStart ( ) { }
+
+            /**
+             * 真正的执行任务
+             */
+            @Override
+            public void onExecute ( ) {
+
+                  mRunnable.run();
+            }
+
+            /**
+             * 该方法会在任务执行完毕回调,如果任务没有执行完毕,不需要在此处调用{@link #finish()},
+             * 当完成任务后在自己调用{@link #finish()},通知{@link #mObjectBus}执行下一个任务
+             */
+            @Override
+            public void onFinish ( ) {
+
+                  finish();
+            }
+
+            /**
+             * 执行完任务之后,必须执行的操作,这样才能进行下一个任务
+             */
+            protected void finish ( ) {
+
+                  mObjectBus.loop();
+            }
+      }
+
+      /**
+       * 处理延时任务
+       */
+      private static class DelayExecute extends BusExecute implements OnMessageReceiveListener {
+
+            private int mDelayed;
+
+            @Override
+            public void onStart ( ) {
+
+            }
+
+            @Override
+            public void onExecute ( ) {
+
+                  /* 使用 12 会在messenger线程收到消息 */
+
+                  final int what = 12;
+                  Messengers.send( what, mDelayed, this );
+            }
+
+            @Override
+            public void onFinish ( ) {
+
+            }
+
+            @Override
+            public void onReceive ( int what, Object extra ) {
+
+            }
+
+            @Override
+            public void onReceive ( int what ) {
+
+                  /* 还在messenger线程,需要转发一下 */
+
+                  if( mThread == RUN_IN_MAIN_THREAD ) {
+
+                        /* 需要完成后进行下一个任务,所以包装一下 */
+
+                        BusExecute execute = new BusExecute();
+                        execute.mObjectBus = mObjectBus;
+                        execute.mRunnable = mRunnable;
+                        MainThreadExecutor.execute( execute );
+                  } else {
+
+                        /* 需要完成后进行下一个任务,所以包装一下 */
+
+                        BusExecute execute = new BusExecute();
+                        execute.mObjectBus = mObjectBus;
+                        execute.mRunnable = mRunnable;
+                        PoolThreadExecutor.execute( execute );
+                  }
+            }
+      }
+
+      /**
+       * 测试结果,如果结果不一致清除所有任务,如果一致继续执行任务
+       */
+      public static class PredicateExecute extends BusExecute {
+
+            private Predicate mPredicate;
+            private boolean   mResult;
+
+            @Override
+            public void onExecute ( ) {
+
+                  boolean test = mPredicate.test( mObjectBus );
+
+                  if( test != mResult ) {
+                        mObjectBus.cancelAll();
+                  }
+            }
+      }
+
+      /**
+       * 执行一组任务
+       */
+      public static class ListRunnable extends BusExecute {
+
+            private Runnable[] mRunnableList;
+
+            public ListRunnable ( Runnable... runnableList ) {
+
+                  mRunnableList = runnableList;
+                  mThread = RUN_IN_POOL_THREAD;
+            }
+
+            @Override
+            public void onExecute ( ) {
+
+                  for( Runnable t : mRunnableList ) {
+                        t.run();
+                  }
+            }
+      }
+
+      /**
+       * 执行一个任务,并保存结果
+       */
+      public static class CallableRunnable extends BusExecute {
+
+            private Callable mCallable;
+            private String   key;
+
+            public CallableRunnable ( Callable callable, String key ) {
+
+                  this.key = key;
+                  mCallable = callable;
+            }
+
+            @Override
+            public void onExecute ( ) {
+
+                  try {
+                        Object call = mCallable.call();
+                        mObjectBus.setResult( key, call );
                   } catch(Exception e) {
                         e.printStackTrace();
                   }
             }
       }
 
-      private class CallableListSelfCallRunnable<T, C extends Callable<T>> implements Runnable {
+      /**
+       * 辅助执行一组任务并保存结果
+       */
+      public static class CallableListExecute extends BusExecute {
 
-            private List<C> mCallableList;
-            private String  key;
+            private Callable[] mCallableList;
+            private String     key;
 
-            public CallableListSelfCallRunnable (List<C> callableList, String key) {
+            public CallableListExecute ( String key, Callable... callableList ) {
 
-                  mCallableList = callableList;
                   this.key = key;
+                  mCallableList = callableList;
+                  mThread = RUN_IN_POOL_THREAD;
             }
 
             @Override
-            public void run () {
+            public void onExecute ( ) {
 
-                  int size = mCallableList.size();
-                  List<T> result = new ArrayList<>(size);
+                  int size = mCallableList.length;
+                  Object[] result = new Object[ size ];
 
-                  for(int i = 0; i < size; i++) {
-                        C c = mCallableList.get(i);
+                  for( int i = 0; i < size; i++ ) {
+
+                        Callable c = mCallableList[ i ];
+
                         try {
-                              T call = c.call();
-                              result.add(call);
+
+                              Object call = c.call();
+                              result[ i ] = call;
                         } catch(Exception e) {
+
                               e.printStackTrace();
                         }
                   }
 
-                  if(key != null) {
-                        take(result, key);
+                  if( key != null ) {
+
+                        mObjectBus.setResult( key, result );
                   }
-            }
-      }
 
-      //============================ do extra action with runnable ============================
-
-      /**
-       * use with {@link #go(OnBeforeRunAction, Runnable, OnRunFinishAction,
-       * OnRunExceptionHandler)}
-       */
-      private class ExtraActionRunnable<T extends Runnable> implements Runnable {
-
-            private OnBeforeRunAction<T>     mOnBeforeRunAction;
-            private T                        mRunnable;
-            private OnRunFinishAction<T>     mOnRunnableFinishAction;
-            private OnRunExceptionHandler<T> mOnRunExceptionHandler;
-
-            public ExtraActionRunnable (
-                OnBeforeRunAction<T> onBeforeRunAction,
-                T runnable,
-                OnRunFinishAction<T> onRunFinishAction,
-                OnRunExceptionHandler<T> onRunExceptionHandler) {
-
-                  mOnBeforeRunAction = onBeforeRunAction;
-                  mRunnable = runnable;
-                  mOnRunnableFinishAction = onRunFinishAction;
-                  mOnRunExceptionHandler = onRunExceptionHandler;
-            }
-
-            @SuppressWarnings("unchecked")
-            @Override
-            public void run () {
-
-                  T runnable = mRunnable;
-
-                  try {
-                        if(mOnBeforeRunAction != null) {
-                              mOnBeforeRunAction.onBeforeRun(runnable);
-                        }
-
-                        runnable.run();
-
-                        if(mOnRunnableFinishAction != null) {
-                              mOnRunnableFinishAction.onRunFinished(ObjectBus.this, runnable);
-                        }
-                  } catch(Exception e) {
-
-                        e.printStackTrace();
-                        if(mOnRunExceptionHandler != null) {
-                              mOnRunExceptionHandler.onException(runnable, e);
-                        }
-                  }
+                  finish();
             }
       }
 }

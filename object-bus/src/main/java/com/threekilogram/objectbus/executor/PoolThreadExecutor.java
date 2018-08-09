@@ -9,6 +9,7 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -19,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PoolThreadExecutor {
 
-      private static java.util.concurrent.ThreadPoolExecutor sPoolExecutor;
+      private static ThreadPoolExecutor sPoolExecutor;
 
       public static void init ( ) {
 
@@ -29,7 +30,7 @@ public class PoolThreadExecutor {
                   return;
             }
 
-            sPoolExecutor = new java.util.concurrent.ThreadPoolExecutor(
+            sPoolExecutor = new ThreadPoolExecutor(
                 3,
                 6,
                 60,
@@ -39,7 +40,7 @@ public class PoolThreadExecutor {
             );
       }
 
-      public static void init ( java.util.concurrent.ThreadPoolExecutor poolExecutor ) {
+      public static void init ( ThreadPoolExecutor poolExecutor ) {
 
             sPoolExecutor = poolExecutor;
       }
@@ -47,7 +48,7 @@ public class PoolThreadExecutor {
       @Deprecated
       public static void init ( ThreadFactory threadFactory ) {
 
-            sPoolExecutor = new java.util.concurrent.ThreadPoolExecutor(
+            sPoolExecutor = new ThreadPoolExecutor(
                 3,
                 6,
                 60,

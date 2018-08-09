@@ -86,7 +86,7 @@ public class Messengers {
             Message obtain = Message.obtain();
             int key = ATOMIC_INTEGER.addAndGet(1);
             obtain.arg1 = key;
-            sendHandler.MESSAGE_HOLDER_ARRAY.put(key, new Holder(what, extra, who));
+            sendHandler.MESSAGE_HOLDER_ARRAY.put( key, new Holder( what, extra, who ) );
             obtain.what = what;
 
             sendHandler.sendMessageDelayed(obtain, delayed);
