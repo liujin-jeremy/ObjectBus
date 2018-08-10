@@ -24,7 +24,7 @@ public class Main2Activity extends AppCompatActivity {
             super.onCreate( savedInstanceState );
             setContentView( R.layout.activity_main2 );
             initView();
-            mObjectBus = ObjectBus.newListActions();
+            mObjectBus = ObjectBus.newList();
       }
 
       private void initView ( ) {
@@ -107,7 +107,7 @@ public class Main2Activity extends AppCompatActivity {
             if( mObjectBus != null ) {
                   mObjectBus.cancelAll();
             }
-            mObjectBus = ObjectBus.newListActions();
+            mObjectBus = ObjectBus.newList();
       }
 
       public void queue ( View view ) {
@@ -115,7 +115,7 @@ public class Main2Activity extends AppCompatActivity {
             if( mObjectBus != null ) {
                   mObjectBus.cancelAll();
             }
-            mObjectBus = ObjectBus.newQueueActions();
+            mObjectBus = ObjectBus.newQueue();
       }
 
       public void fixSize ( View view ) {
@@ -123,7 +123,7 @@ public class Main2Activity extends AppCompatActivity {
             if( mObjectBus != null ) {
                   mObjectBus.cancelAll();
             }
-            mObjectBus = ObjectBus.newFixSizeQueueActions( 3 );
+            mObjectBus = ObjectBus.newFixSize( 3 );
       }
 
       public void ifFalseFalse ( View view ) {

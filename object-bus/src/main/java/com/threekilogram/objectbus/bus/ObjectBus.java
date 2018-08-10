@@ -5,7 +5,6 @@ import com.threekilogram.objectbus.executor.MainThreadExecutor;
 import com.threekilogram.objectbus.executor.PoolThreadExecutor;
 import com.threekilogram.objectbus.runnable.Executable;
 import java.util.LinkedList;
-import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import tech.threekilogram.messengers.Messengers;
 import tech.threekilogram.messengers.OnMessageReceiveListener;
@@ -18,10 +17,14 @@ import tech.threekilogram.messengers.OnMessageReceiveListener;
  */
 public class ObjectBus {
 
+      /**
+       * 线程任务标记,一个对应主线程,一个对应pool线程
+       */
       private static final int MAIN_THREAD = BusExecute.RUN_IN_MAIN_THREAD;
       private static final int POOL_THREAD = BusExecute.RUN_IN_POOL_THREAD;
+
       /**
-       * 所有任务
+       * 所有任务保存的地方
        */
       private final RunnableContainer mRunnableContainer;
       /**
@@ -37,6 +40,9 @@ public class ObjectBus {
        */
       private ArrayMap<String, Object> mResults;
 
+      /**
+       * @param container 指定保存读取任务策略
+       */
       private ObjectBus ( RunnableContainer container ) {
 
             mRunnableContainer = container;
@@ -45,29 +51,29 @@ public class ObjectBus {
       /**
        * @return 使用list管理的任务集, 按照添加顺序执行任务
        */
-      public static ObjectBus newListActions ( ) {
+      public static ObjectBus newList ( ) {
 
             return new ObjectBus( new ListRunnableContainer() );
       }
 
       /**
-       * @return 使用list管理的任务集, 按照添加顺序执行任务
+       * @return 使用队列管理的任务集, 后添加的先执行
        */
-      public static ObjectBus newQueueActions ( ) {
+      public static ObjectBus newQueue ( ) {
 
             return new ObjectBus( new QueueRunnableContainer() );
       }
 
       /**
-       * @return 使用list管理的任务集, 按照添加顺序执行任务,有固定任务上限
+       * @return 使用队列管理的任务集, 后添加的先执行, 有固定任务上限
        */
-      public static ObjectBus newFixSizeQueueActions ( int maxSize ) {
+      public static ObjectBus newFixSize ( int maxSize ) {
 
             return new ObjectBus( new FixSizeQueueRunnableContainer( maxSize ) );
       }
 
       /**
-       * 保存一个变量
+       * 保存一个变量,当执行一组任务时使用该方法保存临时结果,后面的操作可以读取该结果
        *
        * @param key key
        * @param result 变量
@@ -203,7 +209,51 @@ public class ObjectBus {
       }
 
       /**
-       * 如果{@code test}返回true,继续执行后面的任务,否则清除所有任务,注意在后台线程测试
+       * 主线程执行任务,任务处理完毕之后调用{@link BusExecute#finish()}以进行下一个任务
+       * <p>
+       * 主要用于自己定置执行任务规则,记得调用{@link BusExecute#finish()}就行
+       *
+       * @param execute 任务
+       *
+       * @return 链式调用
+       */
+      public ObjectBus toMain ( BusExecute execute ) {
+
+            if( execute == null ) {
+                  return this;
+            }
+
+            execute.mThread = MAIN_THREAD;
+            execute.mObjectBus = this;
+            mRunnableContainer.add( execute );
+
+            return this;
+      }
+
+      /**
+       * pool线程执行任务,任务处理完毕之后调用{@link BusExecute#finish()}以进行下一个任务
+       * <p>
+       * 主要用于自己定置执行任务规则,记得调用{@link BusExecute#finish()}就行
+       *
+       * @param execute 任务
+       *
+       * @return 链式调用
+       */
+      public ObjectBus toPool ( BusExecute execute ) {
+
+            if( execute == null ) {
+                  return this;
+            }
+
+            execute.mThread = POOL_THREAD;
+            execute.mObjectBus = this;
+            mRunnableContainer.add( execute );
+
+            return this;
+      }
+
+      /**
+       * 如果{@code test}返回true,继续执行后面的任务,否则清除所有任务,注意在后台线程测试{@link Predicate}结果
        *
        * @param test 测试是否继续执行后面的任务
        *
@@ -225,7 +275,7 @@ public class ObjectBus {
       }
 
       /**
-       * 如果{@code test}返回false,继续执行后面的任务,否则清除所有任务,注意在后台线程测试
+       * 如果{@code test}返回false,继续执行后面的任务,否则清除所有任务,注意在后台线程测试{@link Predicate}结果
        *
        * @param test 测试是否继续执行后面的任务
        *
@@ -285,18 +335,11 @@ public class ObjectBus {
       }
 
       /**
-       * 根据返回值决定是否执行后面的任务
+       * 剩余没有执行任务数量
        */
-      public interface Predicate {
+      public int remainSize ( ) {
 
-            /**
-             * 测试是否还继续执行任务
-             *
-             * @param bus bus
-             *
-             * @return true :
-             */
-            boolean test ( ObjectBus bus );
+            return mRunnableContainer.remainSize();
       }
 
       /**
@@ -357,11 +400,18 @@ public class ObjectBus {
       }
 
       /**
-       * 剩余任务数量
+       * 根据返回值决定是否执行后面的任务{@link #ifTrue(Predicate)}{@link #ifFalse(Predicate)}
        */
-      public int remainSize ( ) {
+      public interface Predicate {
 
-            return mRunnableContainer.remainSize();
+            /**
+             * 测试是否还继续执行任务
+             *
+             * @param bus bus
+             *
+             * @return true :
+             */
+            boolean test ( ObjectBus bus );
       }
 
       // ========================= 内部类 =========================
@@ -563,7 +613,7 @@ public class ObjectBus {
       }
 
       /**
-       * 代理任务,使其完成后调用下一个任务
+       * 代理{@link #mRunnable},使其完成后可以调用下一个任务执行
        */
       @SuppressWarnings("WeakerAccess")
       public static class BusExecute extends Executable {
@@ -576,11 +626,12 @@ public class ObjectBus {
              */
             protected ObjectBus mObjectBus;
             /**
-             * 指定执行位置
+             * 指定执行线程
              */
             protected int mThread = RUN_IN_MAIN_THREAD;
             /**
-             * 用户设置的任务
+             * 用户设置的任务,如果自定义任务,可以忽略该变量,重写{@link #onExecute()}添加自己的逻辑,
+             * 记得完成所有操作后,调用{@link #finish()}通知{@link #mObjectBus}进行下一个任务
              */
             protected Runnable mRunnable;
 
@@ -639,6 +690,7 @@ public class ObjectBus {
             @Override
             public void onFinish ( ) {
 
+                  /* 此处不调用finish();因为任务还没有完成,需要接收到延时消息后才完成任务 */
             }
 
             @Override
@@ -682,98 +734,6 @@ public class ObjectBus {
                   if( test != mResult ) {
                         mObjectBus.cancelAll();
                   }
-            }
-      }
-
-      /**
-       * 执行一组任务
-       */
-      public static class ListRunnable extends BusExecute {
-
-            private Runnable[] mRunnableList;
-
-            public ListRunnable ( Runnable... runnableList ) {
-
-                  mRunnableList = runnableList;
-                  mThread = RUN_IN_POOL_THREAD;
-            }
-
-            @Override
-            public void onExecute ( ) {
-
-                  for( Runnable t : mRunnableList ) {
-                        t.run();
-                  }
-            }
-      }
-
-      /**
-       * 执行一个任务,并保存结果
-       */
-      public static class CallableRunnable extends BusExecute {
-
-            private Callable mCallable;
-            private String   key;
-
-            public CallableRunnable ( Callable callable, String key ) {
-
-                  this.key = key;
-                  mCallable = callable;
-            }
-
-            @Override
-            public void onExecute ( ) {
-
-                  try {
-                        Object call = mCallable.call();
-                        mObjectBus.setResult( key, call );
-                  } catch(Exception e) {
-                        e.printStackTrace();
-                  }
-            }
-      }
-
-      /**
-       * 辅助执行一组任务并保存结果
-       */
-      public static class CallableListExecute extends BusExecute {
-
-            private Callable[] mCallableList;
-            private String     key;
-
-            public CallableListExecute ( String key, Callable... callableList ) {
-
-                  this.key = key;
-                  mCallableList = callableList;
-                  mThread = RUN_IN_POOL_THREAD;
-            }
-
-            @Override
-            public void onExecute ( ) {
-
-                  int size = mCallableList.length;
-                  Object[] result = new Object[ size ];
-
-                  for( int i = 0; i < size; i++ ) {
-
-                        Callable c = mCallableList[ i ];
-
-                        try {
-
-                              Object call = c.call();
-                              result[ i ] = call;
-                        } catch(Exception e) {
-
-                              e.printStackTrace();
-                        }
-                  }
-
-                  if( key != null ) {
-
-                        mObjectBus.setResult( key, result );
-                  }
-
-                  finish();
             }
       }
 }
