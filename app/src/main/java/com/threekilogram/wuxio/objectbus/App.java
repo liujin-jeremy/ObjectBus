@@ -1,7 +1,6 @@
 package com.threekilogram.wuxio.objectbus;
 
 import android.app.Application;
-import com.threekilogram.objectbus.ObjectBusConfig;
 
 /**
  * @author wuxio 2018-05-03:8:07

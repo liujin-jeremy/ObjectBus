@@ -3,12 +3,12 @@ package com.threekilogram.objectbus.bus;
 import android.support.v4.util.ArrayMap;
 import com.threekilogram.objectbus.executor.MainThreadExecutor;
 import com.threekilogram.objectbus.executor.PoolThreadExecutor;
-import com.threekilogram.objectbus.message.Messengers;
-import com.threekilogram.objectbus.message.OnMessageReceiveListener;
 import com.threekilogram.objectbus.runnable.Executable;
 import java.util.LinkedList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
+import tech.threekilogram.messengers.Messengers;
+import tech.threekilogram.messengers.OnMessageReceiveListener;
 
 /**
  * @author: Liujin
@@ -643,11 +643,6 @@ public class ObjectBus {
 
             @Override
             public void onReceive ( int what, Object extra ) {
-
-            }
-
-            @Override
-            public void onReceive ( int what ) {
 
                   /* 还在messenger线程,需要转发一下 */
 

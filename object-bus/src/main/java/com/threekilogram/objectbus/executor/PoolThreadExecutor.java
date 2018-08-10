@@ -20,9 +20,18 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PoolThreadExecutor {
 
+      /**
+       * thread pool, 核心3线程,最多12线程,默认比正常优先级低一个级别
+       */
       private static ThreadPoolExecutor sPoolExecutor;
 
-      public static void init ( ) {
+      static {
+
+            /* init self */
+            init();
+      }
+
+      private static void init ( ) {
 
             /* 防止重复初始化 */
 
@@ -32,29 +41,11 @@ public class PoolThreadExecutor {
 
             sPoolExecutor = new ThreadPoolExecutor(
                 3,
-                6,
+                12,
                 60,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>(),
                 new AppThreadFactory()
-            );
-      }
-
-      public static void init ( ThreadPoolExecutor poolExecutor ) {
-
-            sPoolExecutor = poolExecutor;
-      }
-
-      @Deprecated
-      public static void init ( ThreadFactory threadFactory ) {
-
-            sPoolExecutor = new ThreadPoolExecutor(
-                3,
-                6,
-                60,
-                TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>(),
-                threadFactory
             );
       }
 
@@ -253,10 +244,10 @@ public class PoolThreadExecutor {
 
             private static AtomicInteger sInt = new AtomicInteger();
 
-            public AppThread ( Runnable target ) {
+            AppThread ( Runnable target ) {
 
                   super( target );
-                  setName( "AppThread-" + sInt.getAndAdd( 1 ) );
+                  setName( "PoolThread-" + sInt.getAndAdd( 1 ) );
                   setPriority( Thread.NORM_PRIORITY - 1 );
             }
       }
