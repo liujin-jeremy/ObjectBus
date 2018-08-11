@@ -31,13 +31,6 @@ dependencies {
 }
 ```
 
-## 库初始化
-
-```
-BusConfig.init(); 
-或者自己调用 Scheduler.init() 及其重载方法; 调用 Messengers.init() 及其重载方法; 调用 AppExecutor.init()  及其重载方法
-```
-
 ## 异步任务
 
 该类可以在不同的线程上串行执行任务

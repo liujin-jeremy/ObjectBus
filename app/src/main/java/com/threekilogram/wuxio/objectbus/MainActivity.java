@@ -11,9 +11,9 @@ import com.threekilogram.objectbus.bus.ObjectBus.Predicate;
 /**
  * @author liujin
  */
-public class Main2Activity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity {
 
-      private static final String TAG = Main2Activity.class.getSimpleName();
+      private static final String TAG = MainActivity.class.getSimpleName();
       private ConstraintLayout mRoot;
 
       private ObjectBus mObjectBus;
@@ -22,7 +22,7 @@ public class Main2Activity extends AppCompatActivity {
       protected void onCreate ( Bundle savedInstanceState ) {
 
             super.onCreate( savedInstanceState );
-            setContentView( R.layout.activity_main2 );
+            setContentView( R.layout.activity_main );
             initView();
             mObjectBus = ObjectBus.newList();
       }
@@ -123,7 +123,7 @@ public class Main2Activity extends AppCompatActivity {
             if( mObjectBus != null ) {
                   mObjectBus.cancelAll();
             }
-            mObjectBus = ObjectBus.newFixSize( 3 );
+            mObjectBus = ObjectBus.newFixSizeQueue( 3 );
       }
 
       public void ifFalseFalse ( View view ) {

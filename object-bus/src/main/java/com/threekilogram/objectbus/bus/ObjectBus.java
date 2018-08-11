@@ -57,6 +57,14 @@ public class ObjectBus {
       }
 
       /**
+       * @return 使用list管理的任务集, 按照添加顺序执行任务,有最大任务上限,如果到达上限移除最先添加的任务
+       */
+      public static ObjectBus newFixSizeList ( int maxSize ) {
+
+            return new ObjectBus( new FixSizeListRunnableContainer( maxSize ) );
+      }
+
+      /**
        * @return 使用队列管理的任务集, 后添加的先执行
        */
       public static ObjectBus newQueue ( ) {
@@ -65,9 +73,9 @@ public class ObjectBus {
       }
 
       /**
-       * @return 使用队列管理的任务集, 后添加的先执行, 有固定任务上限
+       * @return 使用队列管理的任务集, 后添加的先执行, 有固定任务上限,如果到达上限移除最先添加的任务
        */
-      public static ObjectBus newFixSize ( int maxSize ) {
+      public static ObjectBus newFixSizeQueue ( int maxSize ) {
 
             return new ObjectBus( new FixSizeQueueRunnableContainer( maxSize ) );
       }
@@ -466,6 +474,65 @@ public class ObjectBus {
             public void add ( BusExecute execute ) {
 
                   mExecutes.add( execute );
+            }
+
+            @Override
+            public void delete ( Runnable runnable ) {
+
+                  try {
+                        for( BusExecute execute : mExecutes ) {
+
+                              if( execute.mRunnable == runnable ) {
+                                    mExecutes.remove( execute );
+                                    return;
+                              }
+                        }
+                  } catch(Exception e) {
+
+                        e.printStackTrace();
+                  }
+            }
+
+            @Override
+            public void deleteAll ( ) {
+
+                  mExecutes.clear();
+            }
+
+            @Override
+            public BusExecute next ( ) {
+
+                  return mExecutes.pollFirst();
+            }
+
+            @Override
+            public int remainSize ( ) {
+
+                  return mExecutes.size();
+            }
+      }
+
+      /**
+       * 使用列表形式保存任务,后添加的先执行,有固定任务上线
+       */
+      private static class FixSizeListRunnableContainer implements RunnableContainer {
+
+            private final LinkedList<BusExecute> mExecutes = new LinkedList<>();
+            private final int mFixSize;
+
+            public FixSizeListRunnableContainer ( int fixSize ) {
+
+                  mFixSize = fixSize;
+            }
+
+            @Override
+            public void add ( BusExecute execute ) {
+
+                  mExecutes.add( execute );
+
+                  if( mExecutes.size() > mFixSize ) {
+                        mExecutes.pollFirst();
+                  }
             }
 
             @Override
