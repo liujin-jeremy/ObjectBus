@@ -18,7 +18,7 @@ app.gradle
 
 ```
 dependencies {
-	implementation 'com.github.threekilogram:ObjectBus:2.1'
+	implementation 'com.github.threekilogram:ObjectBus:2.1.1'
 }
 ```
 
@@ -183,6 +183,21 @@ mObjectBus.toMain( new Executable() {	--> 一个特殊的Runnable
       }
       @Override
       public void onFinish ( ) {
+      }
+} ).run();
+```
+
+#### 主线程回调的Runnable
+
+```
+mObjectBus.toPool( new EchoRunnable() {
+      @Override
+      protected void onResult ( Object result ) {
+            Log.e(TAG, "onResult : "+result+" "+Thread.currentThread().getName());
+      }
+      @Override
+      public void run ( ) {
+            setResult( "Hello Echo" );
       }
 } ).run();
 ```
