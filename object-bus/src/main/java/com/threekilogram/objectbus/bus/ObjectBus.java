@@ -361,6 +361,16 @@ public class ObjectBus {
       }
 
       /**
+       * 是否正在运行
+       *
+       * @return true:正在运行
+       */
+      public boolean isPaused ( ) {
+
+            return isPaused.get();
+      }
+
+      /**
        * 清除所有任务
        */
       public void cancelAll ( ) {
@@ -384,7 +394,7 @@ public class ObjectBus {
       }
 
       /**
-       * 暂停任务
+       * 暂停任务{@link #loop()}
        */
       public void pause ( ) {
 

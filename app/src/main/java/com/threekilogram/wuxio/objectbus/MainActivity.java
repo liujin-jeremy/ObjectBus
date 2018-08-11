@@ -124,6 +124,7 @@ public class MainActivity extends AppCompatActivity {
                   mObjectBus.cancelAll();
             }
             mObjectBus = ObjectBus.newFixSizeQueue( 3 );
+            mObjectBus = ObjectBus.newFixSizeList( 3 );
       }
 
       public void ifFalseFalse ( View view ) {
@@ -156,6 +157,33 @@ public class MainActivity extends AppCompatActivity {
             public void run ( ) {
 
                   log( this.toString() );
+            }
+      }
+
+      public void test ( ) {
+
+            mObjectBus.toPool( new Runnable() {
+
+                  @Override
+                  public void run ( ) {
+
+                        mObjectBus.setResult( "result", "Hello" );
+                  }
+            } ).toMain( new Runnable() {
+
+                  @Override
+                  public void run ( ) {
+
+                        String result = mObjectBus.getResultOff( "result" );
+                  }
+            } ).run();
+
+            if( mObjectBus.isRunning() ) {
+                  mObjectBus.pause();
+            }
+
+            if( mObjectBus.isPaused() ) {
+                  mObjectBus.resume();
             }
       }
 }
