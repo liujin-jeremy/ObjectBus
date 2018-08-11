@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.View;
 import com.threekilogram.objectbus.bus.ObjectBus;
 import com.threekilogram.objectbus.bus.ObjectBus.Predicate;
+import com.threekilogram.objectbus.runnable.EchoRunnable;
 
 /**
  * @author liujin
@@ -25,6 +26,8 @@ public class MainActivity extends AppCompatActivity {
             setContentView( R.layout.activity_main );
             initView();
             mObjectBus = ObjectBus.newList();
+
+            test();
       }
 
       private void initView ( ) {
@@ -162,28 +165,97 @@ public class MainActivity extends AppCompatActivity {
 
       public void test ( ) {
 
-            mObjectBus.toPool( new Runnable() {
+//            mObjectBus.toPool( new Runnable() {
+//
+//                  @Override
+//                  public void run ( ) {
+//
+//                        mObjectBus.setResult( "result", "Hello" );
+//                  }
+//            } ).ifTrue( new Predicate() {
+//
+//                  @Override
+//                  public boolean test ( ObjectBus bus ) {
+//
+//                        return false;
+//                  }
+//            } ).toMain( new Runnable() {
+//
+//                  @Override
+//                  public void run ( ) {
+//
+//                        String result = mObjectBus.getResultOff( "result" );
+//                  }
+//            } ).run();
+//
+//            if( mObjectBus.isRunning() ) {
+//                  mObjectBus.pause();
+//            }
+//
+//            if( mObjectBus.isPaused() ) {
+//                  mObjectBus.resume();
+//            }
+//
+//            mObjectBus.toPool( 1500, new Runnable() {
+//
+//                  @Override
+//                  public void run ( ) {
+//
+//                  }
+//            } ).toMain( 1500, new Runnable() {
+//
+//                  @Override
+//                  public void run ( ) {
+//
+//                  }
+//            } ).run();
+//
+//            mObjectBus.toMain( new Executable() {
+//
+//                  @Override
+//                  public void onStart ( ) {
+//
+//                  }
+//
+//                  @Override
+//                  public void onExecute ( ) {
+//
+//                  }
+//
+//                  @Override
+//                  public void onFinish ( ) {
+//
+//                  }
+//            } ).run();
+
+            mObjectBus.toPool( new EchoRunnable() {
 
                   @Override
-                  public void run ( ) {
+                  protected void onResult ( Object result ) {
 
-                        mObjectBus.setResult( "result", "Hello" );
+                        Log.e(
+                            TAG, "onResult : " + result + " " + Thread.currentThread().getName() );
                   }
-            } ).toMain( new Runnable() {
 
                   @Override
                   public void run ( ) {
 
-                        String result = mObjectBus.getResultOff( "result" );
+                        setResult( "Hello Echo 01" );
+                  }
+            } ).toPool( new EchoRunnable() {
+
+                  @Override
+                  protected void onResult ( Object result ) {
+
+                        Log.e(
+                            TAG, "onResult : " + result + " " + Thread.currentThread().getName() );
+                  }
+
+                  @Override
+                  public void run ( ) {
+
+                        setResult( "Hello Echo 02" );
                   }
             } ).run();
-
-            if( mObjectBus.isRunning() ) {
-                  mObjectBus.pause();
-            }
-
-            if( mObjectBus.isPaused() ) {
-                  mObjectBus.resume();
-            }
       }
 }

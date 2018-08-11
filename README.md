@@ -42,7 +42,7 @@ mObjectBus = ObjectBus.newQueue();
 mObjectBus = ObjectBus.newFixSizeQueue( 3 );
 ```
 
-#### 执行后台任务
+#### 后台任务
 
 ```
 mObjectBus.toPool( new Runnable() {
@@ -55,7 +55,7 @@ mObjectBus.toPool( new Runnable() {
 } ).run();
 ```
 
-#### 执行主线程任务
+#### 主线程任务
 
 ```
 mObjectBus.toMain( new Runnable() {
@@ -68,7 +68,7 @@ mObjectBus.toMain( new Runnable() {
 } ).run();
 ```
 
-#### 执行后台任务,之后切换主线程
+#### 切换线程
 
 ```
 mObjectBus.toPool( new Runnable() {
@@ -109,7 +109,23 @@ mObjectBus.toPool( new Runnable() {
 } ).run();
 ```
 
-#### 控制一串任务的暂停/恢复
+#### 延时任务
+
+```
+mObjectBus.toPool( 1500, new Runnable() { --> 延时 1.5s
+      @Override
+      public void run ( ) {
+      
+      }
+} ).toMain( 1500, new Runnable() {		--> 延时 1.5s
+      @Override
+      public void run ( ) {
+      
+      }
+} ).run();
+```
+
+#### 任务的暂停/恢复
 
 >主要用于在一串任务执行过程中,中间任务需要暂停,等待时机合适再继续执行
 
@@ -124,3 +140,49 @@ if( mObjectBus.isPaused() ) {
 }主要用于类在不同线程之间通信
 ```
 
+#### 清除所有任务
+
+```
+if( mObjectBus != null ) {
+      mObjectBus.cancelAll();
+}
+```
+
+#### 条件判断
+
+```
+mObjectBus.toPool( new Runnable() {
+      @Override
+      public void run ( ) {
+            
+      }
+} ).ifTrue( new Predicate() {		--> 条件判断,如果不满足条件,run()之前的所有任务都将清除
+      @Override
+      public boolean test ( ObjectBus bus ) {
+      		
+      		//判断是否执行后面的任务
+            return false;
+      }
+} ).toMain( new Runnable() {
+      @Override
+      public void run ( ) {
+            
+      }
+} ).run();
+```
+
+#### 监听任务执行过程
+
+```
+mObjectBus.toMain( new Executable() {	--> 一个特殊的Runnable
+      @Override
+      public void onStart ( ) {
+      }
+      @Override
+      public void onExecute ( ) {
+      }
+      @Override
+      public void onFinish ( ) {
+      }
+} ).run();
+```
