@@ -18,10 +18,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author wuxio 2018-04-30:1:06
  */
-public class PoolThreadExecutor {
+public class PoolExecutor {
 
       /**
-       * thread pool, 核心3线程,最多12线程,默认比正常优先级低一个级别
+       * thread pool, 核心3线程,最多6线程,默认比正常优先级低一个级别
        */
       private static ThreadPoolExecutor sPoolExecutor;
 
@@ -41,12 +41,22 @@ public class PoolThreadExecutor {
 
             sPoolExecutor = new ThreadPoolExecutor(
                 3,
-                12,
+                6,
                 60,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>(),
                 new AppThreadFactory()
             );
+      }
+
+      /**
+       * 获取线程池对象
+       *
+       * @return 线程池对象
+       */
+      public static ThreadPoolExecutor getPoolExecutor ( ) {
+
+            return sPoolExecutor;
       }
 
       /**

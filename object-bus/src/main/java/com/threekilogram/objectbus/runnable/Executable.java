@@ -1,6 +1,8 @@
 package com.threekilogram.objectbus.runnable;
 
 /**
+ * 可以监听任务执行过程
+ *
  * @author liujin
  */
 public abstract class Executable implements Runnable {

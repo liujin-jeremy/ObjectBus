@@ -1,8 +1,8 @@
 package com.threekilogram.objectbus.bus;
 
 import android.support.v4.util.ArrayMap;
-import com.threekilogram.objectbus.executor.MainThreadExecutor;
-import com.threekilogram.objectbus.executor.PoolThreadExecutor;
+import com.threekilogram.objectbus.executor.MainExecutor;
+import com.threekilogram.objectbus.executor.PoolExecutor;
 import com.threekilogram.objectbus.runnable.Executable;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -10,6 +10,8 @@ import tech.threekilogram.messengers.Messengers;
 import tech.threekilogram.messengers.OnMessageReceiveListener;
 
 /**
+ * 该类可以携带任务在线程间穿梭执行
+ *
  * @author: Liujin
  * @version: V1.0
  * @date: 2018-08-08
@@ -320,10 +322,10 @@ public class ObjectBus {
 
                   if( executable.mThread == BusExecute.RUN_IN_MAIN_THREAD ) {
 
-                        MainThreadExecutor.execute( executable );
+                        MainExecutor.execute( executable );
                   } else {
 
-                        PoolThreadExecutor.execute( executable );
+                        PoolExecutor.execute( executable );
                   }
             } catch(Exception e) {
 
@@ -782,7 +784,7 @@ public class ObjectBus {
                         BusExecute execute = new BusExecute();
                         execute.mObjectBus = mObjectBus;
                         execute.mRunnable = mRunnable;
-                        MainThreadExecutor.execute( execute );
+                        MainExecutor.execute( execute );
                   } else {
 
                         /* 需要完成后进行下一个任务,所以包装一下 */
@@ -790,7 +792,7 @@ public class ObjectBus {
                         BusExecute execute = new BusExecute();
                         execute.mObjectBus = mObjectBus;
                         execute.mRunnable = mRunnable;
-                        PoolThreadExecutor.execute( execute );
+                        PoolExecutor.execute( execute );
                   }
             }
       }

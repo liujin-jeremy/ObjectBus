@@ -7,14 +7,14 @@ import android.util.SparseArray;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * at main thread run runnable
+ * 用于在主线程执行任务
  *
  * @author: Liujin
  * @version: V1.0
  * @date: 2018-08-08
  * @time: 15:46
  */
-public class MainThreadExecutor {
+public class MainExecutor {
 
       private static MainHandler           sHandler     = new MainHandler();
       private static AtomicInteger         sIndexCreate = new AtomicInteger();
