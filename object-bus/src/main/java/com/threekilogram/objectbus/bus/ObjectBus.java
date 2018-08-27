@@ -4,6 +4,7 @@ import android.support.v4.util.ArrayMap;
 import com.threekilogram.objectbus.executor.MainExecutor;
 import com.threekilogram.objectbus.executor.PoolExecutor;
 import com.threekilogram.objectbus.runnable.Executable;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import tech.threekilogram.messengers.Messengers;
@@ -107,6 +108,10 @@ public class ObjectBus {
       @SuppressWarnings("unchecked")
       public <T> T getResult ( String key ) {
 
+            if( mResults == null ) {
+                  return null;
+            }
+
             Object result = mResults.get( key );
 
             return result == null ? null : (T) result;
@@ -122,6 +127,10 @@ public class ObjectBus {
        */
       @SuppressWarnings("unchecked")
       public <T> T getResultOff ( String key ) {
+
+            if( mResults == null ) {
+                  return null;
+            }
 
             Object result = mResults.remove( key );
 
@@ -373,6 +382,18 @@ public class ObjectBus {
       }
 
       /**
+       * 测试该任务是否处于等待执行状态
+       *
+       * @param runnable 需要测试的任务
+       *
+       * @return true:等待中
+       */
+      public boolean containsOf ( Runnable runnable ) {
+
+            return mRunnableContainer.containsOf( runnable );
+      }
+
+      /**
        * 清除所有任务
        */
       public void cancelAll ( ) {
@@ -473,35 +494,31 @@ public class ObjectBus {
              * @return 剩余任务
              */
             int remainSize ( );
+
+            /**
+             * 是否包含一个任务还没有执行
+             *
+             * @param runnable 需要测试的任务
+             *
+             * @return true: 包含该任务并且还没有执行
+             */
+            boolean containsOf ( Runnable runnable );
       }
 
-      /**
-       * 使用list保存任务,先添加的先执行
-       */
-      private static class ListRunnableContainer implements RunnableContainer {
+      @SuppressWarnings("WeakerAccess")
+      private static abstract class BaseRunnableContainer implements RunnableContainer {
 
-            private final LinkedList<BusExecute> mExecutes = new LinkedList<>();
-
-            @Override
-            public void add ( BusExecute execute ) {
-
-                  mExecutes.add( execute );
-            }
+            protected final LinkedList<BusExecute> mExecutes = new LinkedList<>();
 
             @Override
             public void delete ( Runnable runnable ) {
 
-                  try {
-                        for( BusExecute execute : mExecutes ) {
-
-                              if( execute.mRunnable == runnable ) {
-                                    mExecutes.remove( execute );
-                                    return;
-                              }
+                  Iterator<BusExecute> iterator = mExecutes.iterator();
+                  while( iterator.hasNext() ) {
+                        BusExecute next = iterator.next();
+                        if( next.mRunnable == runnable ) {
+                              iterator.remove();
                         }
-                  } catch(Exception e) {
-
-                        e.printStackTrace();
                   }
             }
 
@@ -512,24 +529,46 @@ public class ObjectBus {
             }
 
             @Override
-            public BusExecute next ( ) {
-
-                  return mExecutes.pollFirst();
-            }
-
-            @Override
             public int remainSize ( ) {
 
                   return mExecutes.size();
+            }
+
+            @Override
+            public boolean containsOf ( Runnable runnable ) {
+
+                  for( BusExecute next : mExecutes ) {
+                        if( next.mRunnable == runnable ) {
+                              return true;
+                        }
+                  }
+                  return false;
+            }
+      }
+
+      /**
+       * 使用list保存任务,先添加的先执行
+       */
+      private static class ListRunnableContainer extends BaseRunnableContainer {
+
+            @Override
+            public void add ( BusExecute execute ) {
+
+                  mExecutes.add( execute );
+            }
+
+            @Override
+            public BusExecute next ( ) {
+
+                  return mExecutes.pollFirst();
             }
       }
 
       /**
        * 使用列表形式保存任务,后添加的先执行,有固定任务上线
        */
-      private static class FixSizeListRunnableContainer implements RunnableContainer {
+      private static class FixSizeListRunnableContainer extends BaseRunnableContainer {
 
-            private final LinkedList<BusExecute> mExecutes = new LinkedList<>();
             private final int mFixSize;
 
             public FixSizeListRunnableContainer ( int fixSize ) {
@@ -548,47 +587,16 @@ public class ObjectBus {
             }
 
             @Override
-            public void delete ( Runnable runnable ) {
-
-                  try {
-                        for( BusExecute execute : mExecutes ) {
-
-                              if( execute.mRunnable == runnable ) {
-                                    mExecutes.remove( execute );
-                                    return;
-                              }
-                        }
-                  } catch(Exception e) {
-
-                        e.printStackTrace();
-                  }
-            }
-
-            @Override
-            public void deleteAll ( ) {
-
-                  mExecutes.clear();
-            }
-
-            @Override
             public BusExecute next ( ) {
 
                   return mExecutes.pollFirst();
-            }
-
-            @Override
-            public int remainSize ( ) {
-
-                  return mExecutes.size();
             }
       }
 
       /**
        * 使用队列形式保存任务,后添加的先执行
        */
-      private static class QueueRunnableContainer implements RunnableContainer {
-
-            private final LinkedList<BusExecute> mExecutes = new LinkedList<>();
+      private static class QueueRunnableContainer extends BaseRunnableContainer {
 
             @Override
             public void add ( BusExecute execute ) {
@@ -597,47 +605,17 @@ public class ObjectBus {
             }
 
             @Override
-            public void delete ( Runnable runnable ) {
-
-                  try {
-                        for( BusExecute execute : mExecutes ) {
-
-                              if( execute.mRunnable == runnable ) {
-                                    mExecutes.remove( execute );
-                                    return;
-                              }
-                        }
-                  } catch(Exception e) {
-
-                        e.printStackTrace();
-                  }
-            }
-
-            @Override
-            public void deleteAll ( ) {
-
-                  mExecutes.clear();
-            }
-
-            @Override
             public BusExecute next ( ) {
 
                   return mExecutes.pollLast();
-            }
-
-            @Override
-            public int remainSize ( ) {
-
-                  return mExecutes.size();
             }
       }
 
       /**
        * 使用队列形式保存任务,后添加的先执行,有固定任务上线
        */
-      private static class FixSizeQueueRunnableContainer implements RunnableContainer {
+      private static class FixSizeQueueRunnableContainer extends BaseRunnableContainer {
 
-            private final LinkedList<BusExecute> mExecutes = new LinkedList<>();
             private final int mFixSize;
 
             public FixSizeQueueRunnableContainer ( int fixSize ) {
@@ -656,38 +634,9 @@ public class ObjectBus {
             }
 
             @Override
-            public void delete ( Runnable runnable ) {
-
-                  try {
-                        for( BusExecute execute : mExecutes ) {
-
-                              if( execute.mRunnable == runnable ) {
-                                    mExecutes.remove( execute );
-                                    return;
-                              }
-                        }
-                  } catch(Exception e) {
-
-                        e.printStackTrace();
-                  }
-            }
-
-            @Override
-            public void deleteAll ( ) {
-
-                  mExecutes.clear();
-            }
-
-            @Override
             public BusExecute next ( ) {
 
                   return mExecutes.pollLast();
-            }
-
-            @Override
-            public int remainSize ( ) {
-
-                  return mExecutes.size();
             }
       }
 
