@@ -644,7 +644,7 @@ public class ObjectBus {
        * 代理{@link #mRunnable},使其完成后可以调用下一个任务执行
        */
       @SuppressWarnings("WeakerAccess")
-      public static class BusExecute extends Executable {
+      private static class BusExecute extends Executable {
 
             public static final int RUN_IN_MAIN_THREAD = 1;
             public static final int RUN_IN_POOL_THREAD = -1;
@@ -749,7 +749,7 @@ public class ObjectBus {
       /**
        * 测试结果,如果结果不一致清除所有任务,如果一致继续执行任务
        */
-      public static class PredicateExecute extends BusExecute {
+      private static class PredicateExecute extends BusExecute {
 
             private Predicate mPredicate;
             private boolean   mResult;
