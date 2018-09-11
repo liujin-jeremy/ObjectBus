@@ -7,7 +7,7 @@ import android.util.Log;
 import android.view.View;
 import com.threekilogram.objectbus.bus.ObjectBus;
 import com.threekilogram.objectbus.bus.ObjectBus.Predicate;
-import com.threekilogram.objectbus.runnable.EchoRunnable;
+import com.threekilogram.objectbus.runnable.BaseEchoRunnable;
 
 /**
  * @author liujin
@@ -228,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
 //                  }
 //            } ).run();
 
-            mObjectBus.toPool( new EchoRunnable() {
+            mObjectBus.toPool( new BaseEchoRunnable() {
 
                   @Override
                   protected void onResult ( Object result ) {
@@ -242,7 +242,7 @@ public class MainActivity extends AppCompatActivity {
 
                         setResult( "Hello Echo 01" );
                   }
-            } ).toPool( new EchoRunnable() {
+            } ).toPool( new BaseEchoRunnable() {
 
                   @Override
                   protected void onResult ( Object result ) {
