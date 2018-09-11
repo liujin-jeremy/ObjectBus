@@ -148,29 +148,6 @@ if( mObjectBus != null ) {
 }
 ```
 
-#### 条件判断
-
-```
-mObjectBus.toPool( new Runnable() {
-      @Override
-      public void run ( ) {
-            
-      }
-} ).ifTrue( new Predicate() {		--> 条件判断,如果不满足条件,run()之前的所有任务都将清除
-      @Override
-      public boolean test ( ObjectBus bus ) {
-      		
-      		//判断是否执行后面的任务
-            return false;
-      }
-} ).toMain( new Runnable() {
-      @Override
-      public void run ( ) {
-            
-      }
-} ).run();
-```
-
 #### 监听任务执行过程
 
 ```
