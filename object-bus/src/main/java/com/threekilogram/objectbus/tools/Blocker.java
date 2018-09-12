@@ -6,7 +6,7 @@ package com.threekilogram.objectbus.tools;
  *
  * @author Liujin 2018-09-12:21:13
  */
-public class Barrier {
+public class Blocker {
 
       /**
        * 暂停线程,注意不要再主线程调用

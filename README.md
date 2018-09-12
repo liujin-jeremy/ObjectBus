@@ -18,7 +18,7 @@ app.gradle
 
 ```
 dependencies {
-	implementation 'com.github.threekilogram:ObjectBus:2.1.5'
+	implementation 'com.github.threekilogram:ObjectBus:2.1.6'
 }
 ```
 
@@ -179,14 +179,14 @@ mObjectBus.toPool( new EchoRunnable() {
 } ).run();
 ```
 
-## Barrier
+## Blocker
 
 > 用于线程间暂停/恢复
 
 - 创建一个屏障
 
 ```
-final Barrier lock = new Barrier();
+final Blocker lock = new Blocker();
 ```
 
 - 执行任务过程中需要满足一定条件,但是现在不满足,暂停线程
