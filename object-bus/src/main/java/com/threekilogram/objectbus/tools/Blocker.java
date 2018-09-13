@@ -23,6 +23,20 @@ public class Blocker {
       }
 
       /**
+       * 暂停线程一段时间,时间到达后继续执行,注意不要再主线程调用
+       */
+      public void pause ( int time ) {
+
+            synchronized(this) {
+                  try {
+                        wait( time );
+                  } catch(InterruptedException e) {
+                        e.printStackTrace();
+                  }
+            }
+      }
+
+      /**
        * 恢复所有暂停的线程{@link #pause()},
        * <p>
        * 注意:不能和{@link #pause()}同一个线程调用
