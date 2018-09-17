@@ -18,7 +18,7 @@ app.gradle
 
 ```
 dependencies {
-	implementation 'com.github.threekilogram:ObjectBus:2.1.7'
+	implementation 'com.github.threekilogram:ObjectBus:2.1.8'
 }
 ```
 
@@ -178,35 +178,3 @@ mObjectBus.toPool( new EchoRunnable() {
       }
 } ).run();
 ```
-
-## Blocker
-
-> 用于线程间暂停/恢复
-
-- 创建一个屏障
-
-```
-final Blocker lock = new Blocker();
-```
-
-- 执行任务过程中需要满足一定条件,但是现在不满足,暂停线程
-
-```
-Thread thread = new Thread( new Runnable() {
-      @Override
-      public void run ( ) {
-            System.out.println( "条件不满足,暂停 00" );
-            lock.pause();
-            System.out.println( "条件满足后执行 00" );
-      }
-} );
-thread.start();
-```
-
-- 条件满足后,恢复暂停线程
-
-```
-System.out.println( "条件满足了 恢复所有等待线程" );
-lock.resumeAll();
-```
-
