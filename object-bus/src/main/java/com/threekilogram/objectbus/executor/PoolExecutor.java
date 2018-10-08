@@ -21,32 +21,35 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class PoolExecutor {
 
       /**
-       * thread pool, 核心3线程,最多6线程,默认比正常优先级低一个级别
+       * thread pool, 核心3线程,最多12线程,默认比正常优先级低一个级别
        */
       private static ThreadPoolExecutor sPoolExecutor;
 
       static {
 
-            /* init self */
-            init();
-      }
-
-      private static void init ( ) {
-
-            /* 防止重复初始化 */
-
-            if( sPoolExecutor != null ) {
-                  return;
-            }
-
             sPoolExecutor = new ThreadPoolExecutor(
                 3,
-                6,
+                12,
                 60,
                 TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>(),
                 new AppThreadFactory()
             );
+      }
+
+      public static void setMaximumPoolSize ( int size ) {
+
+            sPoolExecutor.setMaximumPoolSize( size );
+      }
+
+      public static void setCorePoolSize ( int size ) {
+
+            sPoolExecutor.setCorePoolSize( size );
+      }
+
+      public static void setKeepAliveTime ( int time ) {
+
+            sPoolExecutor.setKeepAliveTime( time, TimeUnit.SECONDS );
       }
 
       /**
