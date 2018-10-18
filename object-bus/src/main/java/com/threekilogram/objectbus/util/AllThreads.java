@@ -1,4 +1,4 @@
-package com.threekilogram.wuxio.objectbus;
+package com.threekilogram.objectbus.util;
 
 import android.util.Log;
 import java.util.Map.Entry;
