@@ -18,7 +18,7 @@ app.gradle
 
 ```
 dependencies {
-	implementation 'com.github.threekilogram:ObjectBus:2.2.0'
+	implementation 'com.github.threekilogram:ObjectBus:2.2.1'
 }
 ```
 
@@ -34,12 +34,12 @@ dependencies {
 // 按照任务添加顺序执行,适用于前后任务有相关性
 mObjectBus = ObjectBus.newList();
 // 同上面,但是有任务数量上限,如果到达上限,那么移除最先添加的任务
-mObjectBus = ObjectBus.newFixSizeList( 3 );
+mObjectBus = ObjectBus.newList( 3 );
 
 // 按照队列形式执行任务,后添加的最先执行
 mObjectBus = ObjectBus.newQueue();
 // 同上面,但是有任务数量上限,如果到达上限,那么移除最先添加的任务
-mObjectBus = ObjectBus.newFixSizeQueue( 3 );
+mObjectBus = ObjectBus.newQueue( 3 );
 ```
 
 #### 后台任务
@@ -137,7 +137,7 @@ if( mObjectBus.isRunning() ) {
 if( mObjectBus.isPaused() ) {
 	  //恢复
       mObjectBus.resume();
-}主要用于类在不同线程之间通信
+}
 ```
 
 #### 清除所有任务
