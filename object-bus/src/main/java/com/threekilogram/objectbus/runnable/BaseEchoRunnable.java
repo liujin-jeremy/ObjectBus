@@ -20,14 +20,7 @@ public abstract class BaseEchoRunnable<V> implements Runnable {
       @SuppressWarnings("WeakerAccess")
       protected void setResult ( final V result ) {
 
-            MainExecutor.execute( new Runnable() {
-
-                  @Override
-                  public void run ( ) {
-
-                        onResult( result );
-                  }
-            } );
+            MainExecutor.execute( ( ) -> onResult( result ) );
       }
 
       /**

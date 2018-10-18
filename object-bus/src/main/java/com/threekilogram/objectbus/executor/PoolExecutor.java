@@ -33,7 +33,7 @@ public class PoolExecutor {
                 Integer.MAX_VALUE,
                 60,
                 TimeUnit.SECONDS,
-                new SynchronousQueue<>( true ),
+                new SynchronousQueue<>(),
                 new AppThreadFactory()
             );
       }
