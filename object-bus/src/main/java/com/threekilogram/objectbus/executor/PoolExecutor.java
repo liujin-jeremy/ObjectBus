@@ -8,7 +8,7 @@ import java.util.concurrent.CompletionService;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +33,7 @@ public class PoolExecutor {
                 Integer.MAX_VALUE,
                 60,
                 TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(),
+                new SynchronousQueue<>( true ),
                 new AppThreadFactory()
             );
       }
