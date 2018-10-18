@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicBoolean;
 import tech.threekilogram.executor.MainExecutor;
 import tech.threekilogram.executor.PoolExecutor;
 
@@ -29,19 +28,19 @@ public class ObjectBus {
       /**
        * 所有任务保存的地方
        */
-      private final RunnableContainer mRunnableContainer;
+      private final RunnableContainer        mRunnableContainer;
       /**
        * 是否正在运行
        */
-      private final AtomicBoolean isLooping = new AtomicBoolean();
+      private       boolean                  isLooping;
       /**
        * 是否暂停了
        */
-      private final AtomicBoolean isPaused  = new AtomicBoolean();
+      private       boolean                  isPaused;
       /**
        * 保存结果
        */
-      private ArrayMap<String, Object> mResults;
+      private       ArrayMap<String, Object> mResults;
 
       /**
        * @param container 指定保存读取任务策略
@@ -62,7 +61,7 @@ public class ObjectBus {
       /**
        * @return 使用list管理的任务集, 按照添加顺序执行任务,有最大任务上限,如果到达上限移除最先添加的任务
        */
-      public static ObjectBus newFixSizeList ( int maxSize ) {
+      public static ObjectBus newList ( int maxSize ) {
 
             return new ObjectBus( new FixSizeListRunnableContainer( maxSize ) );
       }
@@ -78,7 +77,7 @@ public class ObjectBus {
       /**
        * @return 使用队列管理的任务集, 后添加的先执行, 有固定任务上限,如果到达上限移除最先添加的任务
        */
-      public static ObjectBus newFixSizeQueue ( int maxSize ) {
+      public static ObjectBus newQueue ( int maxSize ) {
 
             return new ObjectBus( new FixSizeQueueRunnableContainer( maxSize ) );
       }
@@ -321,8 +320,10 @@ public class ObjectBus {
        */
       private void loop ( ) {
 
-            if( isPaused.get() ) {
-                  return;
+            synchronized(this) {
+                  if( isPaused ) {
+                        return;
+                  }
             }
 
             try {
@@ -338,7 +339,9 @@ public class ObjectBus {
                   }
             } catch(Exception e) {
 
-                  isLooping.set( false );
+                  synchronized(this) {
+                        isLooping = false;
+                  }
             }
       }
 
@@ -349,9 +352,11 @@ public class ObjectBus {
        */
       public void run ( ) {
 
-            if( !isLooping.get() ) {
-                  isLooping.set( true );
-                  loop();
+            synchronized(this) {
+                  if( !isLooping ) {
+                        isLooping = true;
+                        loop();
+                  }
             }
       }
 
@@ -370,7 +375,10 @@ public class ObjectBus {
        */
       public boolean isRunning ( ) {
 
-            return isLooping.get();
+            synchronized(this) {
+
+                  return isLooping;
+            }
       }
 
       /**
@@ -380,7 +388,10 @@ public class ObjectBus {
        */
       public boolean isPaused ( ) {
 
-            return isPaused.get();
+            synchronized(this) {
+
+                  return isPaused;
+            }
       }
 
       /**
@@ -423,11 +434,12 @@ public class ObjectBus {
        */
       public void pause ( ) {
 
-            if( isPaused.get() ) {
-                  return;
-            }
+            synchronized(this) {
 
-            isPaused.set( true );
+                  if( !isPaused ) {
+                        isPaused = true;
+                  }
+            }
       }
 
       /**
@@ -435,10 +447,12 @@ public class ObjectBus {
        */
       public void resume ( ) {
 
-            if( isPaused.get() ) {
+            synchronized(this) {
+                  if( isPaused ) {
 
-                  isPaused.set( false );
-                  loop();
+                        isPaused = false;
+                        loop();
+                  }
             }
       }
 

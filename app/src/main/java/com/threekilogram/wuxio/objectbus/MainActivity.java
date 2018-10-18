@@ -126,8 +126,8 @@ public class MainActivity extends AppCompatActivity {
             if( mObjectBus != null ) {
                   mObjectBus.cancelAll();
             }
-            mObjectBus = ObjectBus.newFixSizeQueue( 3 );
-            mObjectBus = ObjectBus.newFixSizeList( 3 );
+            mObjectBus = ObjectBus.newQueue( 3 );
+            mObjectBus = ObjectBus.newList( 3 );
       }
 
       public void ifFalseFalse ( View view ) {
@@ -159,74 +159,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run ( ) {
 
-                  log( this.toString() );
+                  log( "MainRunnable" );
             }
       }
 
       public void test ( ) {
-
-//            mObjectBus.toPool( new Runnable() {
-//
-//                  @Override
-//                  public void run ( ) {
-//
-//                        mObjectBus.setResult( "result", "Hello" );
-//                  }
-//            } ).ifTrue( new Predicate() {
-//
-//                  @Override
-//                  public boolean test ( ObjectBus bus ) {
-//
-//                        return false;
-//                  }
-//            } ).toMain( new Runnable() {
-//
-//                  @Override
-//                  public void run ( ) {
-//
-//                        String result = mObjectBus.getResultOff( "result" );
-//                  }
-//            } ).run();
-//
-//            if( mObjectBus.isRunning() ) {
-//                  mObjectBus.pause();
-//            }
-//
-//            if( mObjectBus.isPaused() ) {
-//                  mObjectBus.resume();
-//            }
-//
-//            mObjectBus.toPool( 1500, new Runnable() {
-//
-//                  @Override
-//                  public void run ( ) {
-//
-//                  }
-//            } ).toMain( 1500, new Runnable() {
-//
-//                  @Override
-//                  public void run ( ) {
-//
-//                  }
-//            } ).run();
-//
-//            mObjectBus.toMain( new Executable() {
-//
-//                  @Override
-//                  public void onStart ( ) {
-//
-//                  }
-//
-//                  @Override
-//                  public void onExecute ( ) {
-//
-//                  }
-//
-//                  @Override
-//                  public void onFinish ( ) {
-//
-//                  }
-//            } ).run();
 
             mObjectBus.toPool( new BaseEchoRunnable() {
 
