@@ -1,6 +1,6 @@
 package com.threekilogram.objectbus.runnable;
 
-import tech.threekilogram.executor.MainExecutor;
+import com.threekilogram.objectbus.executor.MainExecutor;
 
 /**
  * 用于后台处理任务,之后发送结果到主线程
