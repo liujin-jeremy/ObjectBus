@@ -3,8 +3,6 @@ package com.threekilogram.objectbus.executor;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.util.SparseArray;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 用于在主线程执行任务
@@ -16,9 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class MainExecutor {
 
-      private static MainHandler           sHandler     = new MainHandler();
-      private static AtomicInteger         sIndexCreate = new AtomicInteger();
-      private static SparseArray<Runnable> sRunnable    = new SparseArray<>();
+      private static MainHandler sHandler = new MainHandler();
 
       public static void execute ( Runnable runnable ) {
 
@@ -27,10 +23,7 @@ public class MainExecutor {
                   return;
             }
 
-            int index = sIndexCreate.getAndAdd( 1 );
-            sRunnable.put( index, runnable );
-
-            sHandler.handleRunnable( index );
+            sHandler.handleRunnable( runnable );
       }
 
       public static void execute ( Runnable runnable, int delayed ) {
@@ -40,10 +33,7 @@ public class MainExecutor {
                   return;
             }
 
-            int index = sIndexCreate.getAndAdd( 1 );
-            sRunnable.put( index, runnable );
-
-            sHandler.handleRunnable( index, delayed );
+            sHandler.handleRunnable( runnable, delayed );
       }
 
       /**
@@ -59,24 +49,22 @@ public class MainExecutor {
             @Override
             public void handleMessage ( Message msg ) {
 
-                  int index = msg.what;
-                  Runnable runnable = sRunnable.get( index );
-
-                  if( runnable != null ) {
-
-                        sRunnable.delete( index );
-                        runnable.run();
-                  }
+                  Runnable obj = (Runnable) msg.obj;
+                  obj.run();
             }
 
-            void handleRunnable ( int index ) {
+            void handleRunnable ( Runnable runnable ) {
 
-                  sendEmptyMessage( index );
+                  Message message = Message.obtain();
+                  message.obj = runnable;
+                  sendMessage( message );
             }
 
-            void handleRunnable ( int index, int delayed ) {
+            void handleRunnable ( Runnable runnable, int delayed ) {
 
-                  sendEmptyMessageDelayed( index, delayed );
+                  Message message = Message.obtain();
+                  message.obj = runnable;
+                  sendMessageDelayed( message, delayed );
             }
       }
 }
