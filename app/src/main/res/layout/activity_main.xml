@@ -87,50 +87,8 @@
           android:text="isRunning"
           app:layout_constraintStart_toEndOf="@+id/button6"
           app:layout_constraintTop_toBottomOf="@+id/button4"/>
-      <Button
-          android:id="@+id/button8"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="pause"
-          android:text="pause"
-          app:layout_constraintStart_toStartOf="parent"
-          app:layout_constraintTop_toBottomOf="@+id/button5"/>
-      <Button
-          android:id="@+id/button9"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="resume"
-          android:text="resume"
-          app:layout_constraintStart_toEndOf="@+id/button8"
-          app:layout_constraintTop_toBottomOf="@+id/button6"/>
-      <Button
-          android:id="@+id/button10"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="clearAll"
-          android:text="clearAll"
-          app:layout_constraintStart_toStartOf="parent"
-          app:layout_constraintTop_toBottomOf="@+id/button8"/>
-      <Button
-          android:id="@+id/button11"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="clearOne"
-          android:text="clearOne"
-          app:layout_constraintStart_toEndOf="@+id/button10"
-          app:layout_constraintTop_toBottomOf="@+id/button9"/>
+
+
       <Button
           android:id="@+id/button12"
           android:layout_width="wrap_content"
@@ -141,7 +99,7 @@
           android:onClick="list"
           android:text="list"
           app:layout_constraintStart_toStartOf="parent"
-          app:layout_constraintTop_toBottomOf="@+id/button10"/>
+          app:layout_constraintTop_toBottomOf="@+id/button7"/>
       <Button
           android:id="@+id/button13"
           android:layout_width="wrap_content"
@@ -152,18 +110,7 @@
           android:onClick="queue"
           android:text="queue"
           app:layout_constraintStart_toEndOf="@+id/button12"
-          app:layout_constraintTop_toBottomOf="@+id/button11"/>
-      <Button
-          android:id="@+id/button14"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="fixSize"
-          android:text="fixSize"
-          app:layout_constraintStart_toEndOf="@+id/button13"
-          app:layout_constraintTop_toBottomOf="@+id/button11"/>
+          app:layout_constraintTop_toBottomOf="@+id/button7"/>
       <Button
           android:id="@+id/button"
           android:layout_width="wrap_content"

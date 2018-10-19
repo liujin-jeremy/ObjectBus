@@ -6,8 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import com.threekilogram.objectbus.bus.ObjectBus;
-import com.threekilogram.objectbus.bus.ObjectBus.Predicate;
-import com.threekilogram.objectbus.runnable.BaseEchoRunnable;
+import com.threekilogram.objectbus.bus.ObjectBus.RunnableContainer;
 
 /**
  * @author liujin
@@ -15,9 +14,11 @@ import com.threekilogram.objectbus.runnable.BaseEchoRunnable;
 public class MainActivity extends AppCompatActivity {
 
       private static final String TAG = MainActivity.class.getSimpleName();
+
       private ConstraintLayout mRoot;
 
-      private ObjectBus mObjectBus;
+      private ObjectBus         mObjectBus;
+      private RunnableContainer mContainer;
 
       @Override
       protected void onCreate ( Bundle savedInstanceState ) {
@@ -26,8 +27,6 @@ public class MainActivity extends AppCompatActivity {
             setContentView( R.layout.activity_main );
             initView();
             mObjectBus = ObjectBus.newList();
-
-            test();
       }
 
       private void initView ( ) {
@@ -57,12 +56,12 @@ public class MainActivity extends AppCompatActivity {
 
       public void run ( View view ) {
 
-            mObjectBus.run();
+            mContainer = mObjectBus.run();
       }
 
       public void size ( View view ) {
 
-            int i = mObjectBus.remainSize();
+            int i = mContainer.remainSize();
             log( String.valueOf( i ) );
       }
 
@@ -79,79 +78,46 @@ public class MainActivity extends AppCompatActivity {
 
       public void isRunning ( View view ) {
 
-            log( Boolean.toString( mObjectBus.isRunning() ) );
-      }
-
-      public void pause ( View view ) {
-
-            mObjectBus.pause();
-      }
-
-      public void resume ( View view ) {
-
-            mObjectBus.resume();
+            log( Boolean.toString( mContainer.remainSize() != 0 ) );
       }
 
       public void clearAll ( View view ) {
 
-            mObjectBus.cancelAll();
+            mContainer.deleteAll();
       }
 
       public void clearOne ( View view ) {
 
             MainRunnable runnable = new MainRunnable();
             mObjectBus.toPool( runnable );
-            mObjectBus.cancel( runnable );
+            mContainer.delete( runnable );
             log( "cancel " + runnable );
       }
 
       public void list ( View view ) {
 
-            if( mObjectBus != null ) {
-                  mObjectBus.cancelAll();
-            }
             mObjectBus = ObjectBus.newList();
       }
 
       public void queue ( View view ) {
 
-            if( mObjectBus != null ) {
-                  mObjectBus.cancelAll();
-            }
             mObjectBus = ObjectBus.newQueue();
       }
 
       public void fixSize ( View view ) {
 
-            if( mObjectBus != null ) {
-                  mObjectBus.cancelAll();
-            }
-            mObjectBus = ObjectBus.newQueue( 3 );
-            mObjectBus = ObjectBus.newList( 3 );
+            //mObjectBus = ObjectBus.newQueue( 3 );
+            //mObjectBus = ObjectBus.newList( 3 );
       }
 
       public void ifFalseFalse ( View view ) {
 
-            mObjectBus.ifFalse( new Predicate() {
-
-                  @Override
-                  public boolean test ( ObjectBus bus ) {
-
-                        return false;
-                  }
-            } );
+            mObjectBus.ifFalse( bus -> false );
       }
 
       public void ifTrueFalse ( View view ) {
 
-            mObjectBus.ifTrue( new Predicate() {
-
-                  @Override
-                  public boolean test ( ObjectBus bus ) {
-
-                        return false;
-                  }
-            } );
+            mObjectBus.ifTrue( bus -> false );
       }
 
       private class MainRunnable implements Runnable {
@@ -161,38 +127,5 @@ public class MainActivity extends AppCompatActivity {
 
                   log( "MainRunnable" );
             }
-      }
-
-      public void test ( ) {
-
-            mObjectBus.toPool( new BaseEchoRunnable() {
-
-                  @Override
-                  protected void onResult ( Object result ) {
-
-                        Log.e(
-                            TAG, "onResult : " + result + " " + Thread.currentThread().getName() );
-                  }
-
-                  @Override
-                  public void run ( ) {
-
-                        setResult( "Hello Echo 01" );
-                  }
-            } ).toPool( new BaseEchoRunnable() {
-
-                  @Override
-                  protected void onResult ( Object result ) {
-
-                        Log.e(
-                            TAG, "onResult : " + result + " " + Thread.currentThread().getName() );
-                  }
-
-                  @Override
-                  public void run ( ) {
-
-                        setResult( "Hello Echo 02" );
-                  }
-            } ).run();
       }
 }

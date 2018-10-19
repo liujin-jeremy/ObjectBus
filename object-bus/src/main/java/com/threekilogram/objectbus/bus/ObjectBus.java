@@ -28,19 +28,11 @@ public class ObjectBus {
       /**
        * 所有任务保存的地方
        */
-      private final RunnableContainer        mRunnableContainer;
-      /**
-       * 是否正在运行
-       */
-      private       boolean                  isLooping;
-      /**
-       * 是否暂停了
-       */
-      private       boolean                  isPaused;
+      private RunnableContainer mRunnableContainer;
       /**
        * 保存结果
        */
-      private       ArrayMap<String, Object> mResults;
+      private ArrayMap<String, Object> mResults;
 
       /**
        * @param container 指定保存读取任务策略
@@ -59,27 +51,11 @@ public class ObjectBus {
       }
 
       /**
-       * @return 使用list管理的任务集, 按照添加顺序执行任务,有最大任务上限,如果到达上限移除最先添加的任务
-       */
-      public static ObjectBus newList ( int maxSize ) {
-
-            return new ObjectBus( new FixSizeListRunnableContainer( maxSize ) );
-      }
-
-      /**
        * @return 使用队列管理的任务集, 后添加的先执行
        */
       public static ObjectBus newQueue ( ) {
 
             return new ObjectBus( new QueueRunnableContainer() );
-      }
-
-      /**
-       * @return 使用队列管理的任务集, 后添加的先执行, 有固定任务上限,如果到达上限移除最先添加的任务
-       */
-      public static ObjectBus newQueue ( int maxSize ) {
-
-            return new ObjectBus( new FixSizeQueueRunnableContainer( maxSize ) );
       }
 
       /**
@@ -149,7 +125,7 @@ public class ObjectBus {
                   return this;
             }
 
-            BusExecute execute = new BusExecute( this, MAIN_THREAD, runnable );
+            BusExecute execute = new BusExecute( this, mRunnableContainer, MAIN_THREAD, runnable );
             mRunnableContainer.add( execute );
 
             return this;
@@ -168,7 +144,8 @@ public class ObjectBus {
                   return this;
             }
 
-            DelayExecute execute = new DelayExecute( this, MAIN_THREAD, runnable, delayed );
+            DelayExecute execute = new DelayExecute(
+                this, mRunnableContainer, MAIN_THREAD, runnable, delayed );
             mRunnableContainer.add( execute );
 
             return this;
@@ -187,7 +164,7 @@ public class ObjectBus {
                   return this;
             }
 
-            BusExecute execute = new BusExecute( this, POOL_THREAD, runnable );
+            BusExecute execute = new BusExecute( this, mRunnableContainer, POOL_THREAD, runnable );
             mRunnableContainer.add( execute );
 
             return this;
@@ -206,7 +183,8 @@ public class ObjectBus {
                   return this;
             }
 
-            DelayExecute execute = new DelayExecute( this, POOL_THREAD, runnable, delayed );
+            DelayExecute execute = new DelayExecute(
+                this, mRunnableContainer, POOL_THREAD, runnable, delayed );
             mRunnableContainer.add( execute );
 
             return this;
@@ -268,7 +246,8 @@ public class ObjectBus {
             if( test == null ) {
                   return null;
             }
-            PredicateExecute execute = new PredicateExecute( this, POOL_THREAD, test, true );
+            PredicateExecute execute = new PredicateExecute(
+                this, mRunnableContainer, POOL_THREAD, test, true );
             mRunnableContainer.add( execute );
 
             return this;
@@ -287,7 +266,8 @@ public class ObjectBus {
             if( test == null ) {
                   return null;
             }
-            PredicateExecute execute = new PredicateExecute( this, POOL_THREAD, test, false );
+            PredicateExecute execute = new PredicateExecute(
+                this, mRunnableContainer, POOL_THREAD, test, false );
             mRunnableContainer.add( execute );
 
             return this;
@@ -318,17 +298,15 @@ public class ObjectBus {
       /**
        * 循环取出下一个任务执行,直到所有任务执行完毕
        */
-      private void loop ( ) {
+      private void loop ( RunnableContainer container ) {
 
-            synchronized(this) {
-                  if( isPaused ) {
-                        return;
-                  }
+            if( container == null ) {
+                  return;
             }
 
             try {
 
-                  BusExecute executable = mRunnableContainer.next();
+                  BusExecute executable = container.next();
 
                   if( executable.mThread == BusExecute.RUN_IN_MAIN_THREAD ) {
 
@@ -338,10 +316,7 @@ public class ObjectBus {
                         PoolExecutor.execute( executable );
                   }
             } catch(Exception e) {
-
-                  synchronized(this) {
-                        isLooping = false;
-                  }
+                  /*  */
             }
       }
 
@@ -350,110 +325,12 @@ public class ObjectBus {
        * <p>
        * 注意:该框架同一时间只有一个任务执行,如果需要任务调用之后立即执行,那么请另外新建一个{@link ObjectBus}
        */
-      public void run ( ) {
+      public RunnableContainer run ( ) {
 
-            synchronized(this) {
-                  if( !isLooping ) {
-                        isLooping = true;
-                        loop();
-                  }
-            }
-      }
-
-      /**
-       * 剩余没有执行任务数量
-       */
-      public int remainSize ( ) {
-
-            return mRunnableContainer.remainSize();
-      }
-
-      /**
-       * 是否正在运行
-       *
-       * @return true:正在运行
-       */
-      public boolean isRunning ( ) {
-
-            synchronized(this) {
-
-                  return isLooping;
-            }
-      }
-
-      /**
-       * 是否正在暂停
-       *
-       * @return true:正在暂停
-       */
-      public boolean isPaused ( ) {
-
-            synchronized(this) {
-
-                  return isPaused;
-            }
-      }
-
-      /**
-       * 测试该任务是否等待执行
-       *
-       * @param runnable 需要测试的任务
-       *
-       * @return true:等待执行中,false:可能没有该任务,可能已经执行完毕
-       */
-      public boolean containsOf ( Runnable runnable ) {
-
-            return mRunnableContainer.containsOf( runnable );
-      }
-
-      /**
-       * 清除所有剩余任务
-       */
-      public void cancelAll ( ) {
-
-            mRunnableContainer.deleteAll();
-      }
-
-      /**
-       * 取消指定任务
-       *
-       * @param runnable 任务需要取消
-       */
-      @SuppressWarnings("SuspiciousMethodCalls")
-      public void cancel ( Runnable runnable ) {
-
-            if( runnable == null ) {
-                  return;
-            }
-
-            mRunnableContainer.delete( runnable );
-      }
-
-      /**
-       * 暂停所有任务{@link #loop()}执行
-       */
-      public void pause ( ) {
-
-            synchronized(this) {
-
-                  if( !isPaused ) {
-                        isPaused = true;
-                  }
-            }
-      }
-
-      /**
-       * 恢复任务
-       */
-      public void resume ( ) {
-
-            synchronized(this) {
-                  if( isPaused ) {
-
-                        isPaused = false;
-                        loop();
-                  }
-            }
+            loop( mRunnableContainer );
+            RunnableContainer result = mRunnableContainer;
+            mRunnableContainer = mRunnableContainer.create();
+            return result;
       }
 
       /**
@@ -519,6 +396,13 @@ public class ObjectBus {
              * @return true: 包含该任务并且还没有执行
              */
             boolean containsOf ( Runnable runnable );
+
+            /**
+             * 创建自身
+             *
+             * @return 自身
+             */
+            RunnableContainer create ( );
       }
 
       @SuppressWarnings("WeakerAccess")
@@ -578,6 +462,12 @@ public class ObjectBus {
 
                   return mExecutes.pollFirst();
             }
+
+            @Override
+            public RunnableContainer create ( ) {
+
+                  return new ListRunnableContainer();
+            }
       }
 
       /**
@@ -607,6 +497,12 @@ public class ObjectBus {
 
                   return mExecutes.pollFirst();
             }
+
+            @Override
+            public RunnableContainer create ( ) {
+
+                  return new FixSizeListRunnableContainer( mFixSize );
+            }
       }
 
       /**
@@ -624,6 +520,12 @@ public class ObjectBus {
             public BusExecute next ( ) {
 
                   return mExecutes.pollLast();
+            }
+
+            @Override
+            public RunnableContainer create ( ) {
+
+                  return new QueueRunnableContainer();
             }
       }
 
@@ -654,6 +556,12 @@ public class ObjectBus {
 
                   return mExecutes.pollLast();
             }
+
+            @Override
+            public RunnableContainer create ( ) {
+
+                  return new FixSizeQueueRunnableContainer( mFixSize );
+            }
       }
 
       /**
@@ -665,29 +573,33 @@ public class ObjectBus {
             public static final int RUN_IN_MAIN_THREAD = 1;
             public static final int RUN_IN_POOL_THREAD = -1;
 
+            protected RunnableContainer mRunnableContainer;
             /**
              * 用于通知任务完成,以便执行下一个任务
              */
-            protected ObjectBus mObjectBus;
+            protected ObjectBus         mObjectBus;
             /**
              * 指定执行线程
              */
-            protected int       mThread;
+            protected int               mThread;
             /**
              * 用户设置的任务,如果自定义任务,可以忽略该变量,重写{@link #onExecute()}添加自己的逻辑,
              * 记得完成所有操作后,调用{@link #finish()}通知{@link #mObjectBus}进行下一个任务
              */
-            protected Runnable  mRunnable;
+            protected Runnable          mRunnable;
 
-            protected BusExecute ( ObjectBus objectBus, int thread ) {
+            protected BusExecute ( ObjectBus objectBus, RunnableContainer container, int thread ) {
 
                   mObjectBus = objectBus;
                   mThread = thread;
+                  mRunnableContainer = container;
             }
 
-            protected BusExecute ( ObjectBus objectBus, int thread, Runnable runnable ) {
+            protected BusExecute (
+                ObjectBus objectBus, RunnableContainer container, int thread, Runnable runnable ) {
 
                   mObjectBus = objectBus;
+                  mRunnableContainer = container;
                   mThread = thread;
                   mRunnable = runnable;
             }
@@ -719,7 +631,7 @@ public class ObjectBus {
              */
             protected void finish ( ) {
 
-                  mObjectBus.loop();
+                  mObjectBus.loop( mRunnableContainer );
             }
       }
 
@@ -731,9 +643,10 @@ public class ObjectBus {
             private int mDelayed;
 
             DelayExecute (
-                ObjectBus objectBus, int thread, Runnable runnable, int delayed ) {
+                ObjectBus objectBus, RunnableContainer container, int thread, Runnable runnable,
+                int delayed ) {
 
-                  super( objectBus, thread, runnable );
+                  super( objectBus, container, thread, runnable );
                   mDelayed = delayed;
             }
 
@@ -749,7 +662,7 @@ public class ObjectBus {
 
                                     /* 需要完成后进行下一个任务,所以包装一下 */
                                     BusExecute execute = new BusExecute(
-                                        mObjectBus, MAIN_THREAD,
+                                        mObjectBus, mRunnableContainer, MAIN_THREAD,
                                         mRunnable
                                     );
                                     MainExecutor.execute( execute );
@@ -757,7 +670,7 @@ public class ObjectBus {
 
                                     /* 需要完成后进行下一个任务,所以包装一下 */
                                     BusExecute execute = new BusExecute(
-                                        mObjectBus, MAIN_THREAD,
+                                        mObjectBus, mRunnableContainer, MAIN_THREAD,
                                         mRunnable
                                     );
                                     PoolExecutor.execute( execute );
@@ -782,11 +695,12 @@ public class ObjectBus {
 
             PredicateExecute (
                 ObjectBus objectBus,
+                RunnableContainer container,
                 int thread,
                 Predicate predicate,
                 boolean result ) {
 
-                  super( objectBus, thread );
+                  super( objectBus, container, thread );
                   mPredicate = predicate;
                   mResult = result;
             }
@@ -797,7 +711,7 @@ public class ObjectBus {
                   boolean test = mPredicate.test( mObjectBus );
 
                   if( test != mResult ) {
-                        mObjectBus.cancelAll();
+                        mRunnableContainer.deleteAll();
                   }
             }
       }

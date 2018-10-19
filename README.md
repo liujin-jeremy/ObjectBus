@@ -18,7 +18,7 @@ app.gradle
 
 ```
 dependencies {
-	implementation 'com.github.threekilogram:ObjectBus:2.2.6'
+	implementation 'com.github.threekilogram:ObjectBus:2.2.7'
 }
 ```
 
@@ -33,13 +33,9 @@ dependencies {
 ```
 // 按照任务添加顺序执行,适用于前后任务有相关性
 mObjectBus = ObjectBus.newList();
-// 同上面,但是有任务数量上限,如果到达上限,那么移除最先添加的任务
-mObjectBus = ObjectBus.newList( 3 );
 
 // 按照队列形式执行任务,后添加的最先执行
 mObjectBus = ObjectBus.newQueue();
-// 同上面,但是有任务数量上限,如果到达上限,那么移除最先添加的任务
-mObjectBus = ObjectBus.newQueue( 3 );
 ```
 
 #### 后台任务
@@ -54,6 +50,8 @@ mObjectBus.toPool( new Runnable() {
       }
 } ).run();
 ```
+
+> 每次调用run()方法会执行之前添加的所有任务
 
 #### 主线程任务
 
@@ -123,29 +121,6 @@ mObjectBus.toPool( 1500, new Runnable() { --> 延时 1.5s
       
       }
 } ).run();
-```
-
-#### 任务的暂停/恢复
-
->主要用于在一串任务执行过程中,中间任务需要暂停,等待时机合适再继续执行
-
-```
-if( mObjectBus.isRunning() ) {
-	  //暂停
-      mObjectBus.pause();
-}
-if( mObjectBus.isPaused() ) {
-	  //恢复
-      mObjectBus.resume();
-}
-```
-
-#### 清除所有任务
-
-```
-if( mObjectBus != null ) {
-      mObjectBus.cancelAll();
-}
 ```
 
 #### 监听任务执行过程
