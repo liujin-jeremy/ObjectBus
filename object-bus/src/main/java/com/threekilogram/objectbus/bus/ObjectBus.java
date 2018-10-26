@@ -28,7 +28,7 @@ public class ObjectBus {
       /**
        * 所有任务保存的地方
        */
-      private RunnableContainer mRunnableContainer;
+      private RunnableContainer        mRunnableContainer;
       /**
        * 保存结果
        */
@@ -48,14 +48,6 @@ public class ObjectBus {
       public static ObjectBus newList ( ) {
 
             return new ObjectBus( new ListRunnableContainer() );
-      }
-
-      /**
-       * @return 使用队列管理的任务集, 后添加的先执行
-       */
-      public static ObjectBus newQueue ( ) {
-
-            return new ObjectBus( new QueueRunnableContainer() );
       }
 
       /**
@@ -125,7 +117,7 @@ public class ObjectBus {
                   return this;
             }
 
-            BusExecute execute = new BusExecute( this, mRunnableContainer, MAIN_THREAD, runnable );
+            BusExecute execute = new BusExecute( mRunnableContainer, MAIN_THREAD, runnable );
             mRunnableContainer.add( execute );
 
             return this;
@@ -145,7 +137,7 @@ public class ObjectBus {
             }
 
             DelayExecute execute = new DelayExecute(
-                this, mRunnableContainer, MAIN_THREAD, runnable, delayed );
+                mRunnableContainer, MAIN_THREAD, runnable, delayed );
             mRunnableContainer.add( execute );
 
             return this;
@@ -164,7 +156,7 @@ public class ObjectBus {
                   return this;
             }
 
-            BusExecute execute = new BusExecute( this, mRunnableContainer, POOL_THREAD, runnable );
+            BusExecute execute = new BusExecute( mRunnableContainer, POOL_THREAD, runnable );
             mRunnableContainer.add( execute );
 
             return this;
@@ -184,7 +176,7 @@ public class ObjectBus {
             }
 
             DelayExecute execute = new DelayExecute(
-                this, mRunnableContainer, POOL_THREAD, runnable, delayed );
+                mRunnableContainer, POOL_THREAD, runnable, delayed );
             mRunnableContainer.add( execute );
 
             return this;
@@ -206,7 +198,6 @@ public class ObjectBus {
             }
 
             execute.mThread = MAIN_THREAD;
-            execute.mObjectBus = this;
             mRunnableContainer.add( execute );
 
             return this;
@@ -228,7 +219,6 @@ public class ObjectBus {
             }
 
             execute.mThread = POOL_THREAD;
-            execute.mObjectBus = this;
             mRunnableContainer.add( execute );
 
             return this;
@@ -298,7 +288,7 @@ public class ObjectBus {
       /**
        * 循环取出下一个任务执行,直到所有任务执行完毕
        */
-      private void loop ( RunnableContainer container ) {
+      static void loop ( RunnableContainer container ) {
 
             if( container == null ) {
                   return;
@@ -313,7 +303,12 @@ public class ObjectBus {
                         MainExecutor.execute( executable );
                   } else {
 
-                        PoolExecutor.execute( executable );
+                        if( executable.mThread == BusExecute.RUN_IN_POOL_THREAD ) {
+
+                              PoolExecutor.execute( executable );
+                        } else {
+                              executable.run();
+                        }
                   }
             } catch(Exception e) {
                   /*  */
@@ -324,10 +319,23 @@ public class ObjectBus {
        * 开始按照规则执行所有已经添加的任务,如果已经开始执行了,那么不会再次开始执行
        * <p>
        * 注意:该框架同一时间只有一个任务执行,如果需要任务调用之后立即执行,那么请另外新建一个{@link ObjectBus}
+       *
+       * @return container 用于查看任务执行情况
        */
       public RunnableContainer run ( ) {
 
             loop( mRunnableContainer );
+            RunnableContainer result = mRunnableContainer;
+            mRunnableContainer = mRunnableContainer.create();
+            return result;
+      }
+
+      /**
+       * 提交到任务组执行
+       */
+      public RunnableContainer submit ( TaskGroup group ) {
+
+            group.addTask( mRunnableContainer );
             RunnableContainer result = mRunnableContainer;
             mRunnableContainer = mRunnableContainer.create();
             return result;
@@ -572,33 +580,29 @@ public class ObjectBus {
 
             public static final int RUN_IN_MAIN_THREAD = 1;
             public static final int RUN_IN_POOL_THREAD = -1;
+            public static final int RUN_IN_CURRENT     = 2;
 
             protected RunnableContainer mRunnableContainer;
-            /**
-             * 用于通知任务完成,以便执行下一个任务
-             */
-            protected ObjectBus         mObjectBus;
+
             /**
              * 指定执行线程
              */
-            protected int               mThread;
+            protected int      mThread;
             /**
              * 用户设置的任务,如果自定义任务,可以忽略该变量,重写{@link #onExecute()}添加自己的逻辑,
-             * 记得完成所有操作后,调用{@link #finish()}通知{@link #mObjectBus}进行下一个任务
+             * 记得完成所有操作后,调用{@link #finish()}通知{@link ObjectBus}进行下一个任务
              */
-            protected Runnable          mRunnable;
+            protected Runnable mRunnable;
 
-            protected BusExecute ( ObjectBus objectBus, RunnableContainer container, int thread ) {
+            protected BusExecute ( RunnableContainer container, int thread ) {
 
-                  mObjectBus = objectBus;
                   mThread = thread;
                   mRunnableContainer = container;
             }
 
             protected BusExecute (
-                ObjectBus objectBus, RunnableContainer container, int thread, Runnable runnable ) {
+                RunnableContainer container, int thread, Runnable runnable ) {
 
-                  mObjectBus = objectBus;
                   mRunnableContainer = container;
                   mThread = thread;
                   mRunnable = runnable;
@@ -618,7 +622,7 @@ public class ObjectBus {
 
             /**
              * 该方法会在任务执行完毕回调,如果任务没有执行完毕,不需要在此处调用{@link #finish()},
-             * 当完成任务后在自己调用{@link #finish()},通知{@link #mObjectBus}执行下一个任务
+             * 当完成任务后在自己调用{@link #finish()},通知{@link ObjectBus}执行下一个任务
              */
             @Override
             public void onFinish ( ) {
@@ -631,7 +635,7 @@ public class ObjectBus {
              */
             protected void finish ( ) {
 
-                  mObjectBus.loop( mRunnableContainer );
+                  loop( mRunnableContainer );
             }
       }
 
@@ -643,10 +647,10 @@ public class ObjectBus {
             private int mDelayed;
 
             DelayExecute (
-                ObjectBus objectBus, RunnableContainer container, int thread, Runnable runnable,
+                RunnableContainer container, int thread, Runnable runnable,
                 int delayed ) {
 
-                  super( objectBus, container, thread, runnable );
+                  super( container, thread, runnable );
                   mDelayed = delayed;
             }
 
@@ -662,7 +666,7 @@ public class ObjectBus {
 
                                     /* 需要完成后进行下一个任务,所以包装一下 */
                                     BusExecute execute = new BusExecute(
-                                        mObjectBus, mRunnableContainer, MAIN_THREAD,
+                                        mRunnableContainer, MAIN_THREAD,
                                         mRunnable
                                     );
                                     MainExecutor.execute( execute );
@@ -670,7 +674,7 @@ public class ObjectBus {
 
                                     /* 需要完成后进行下一个任务,所以包装一下 */
                                     BusExecute execute = new BusExecute(
-                                        mObjectBus, mRunnableContainer, MAIN_THREAD,
+                                        mRunnableContainer, MAIN_THREAD,
                                         mRunnable
                                     );
                                     PoolExecutor.execute( execute );
@@ -692,6 +696,7 @@ public class ObjectBus {
 
             private Predicate mPredicate;
             private boolean   mResult;
+            private ObjectBus mObjectBus;
 
             PredicateExecute (
                 ObjectBus objectBus,
@@ -700,7 +705,8 @@ public class ObjectBus {
                 Predicate predicate,
                 boolean result ) {
 
-                  super( objectBus, container, thread );
+                  super( container, thread );
+                  mObjectBus = objectBus;
                   mPredicate = predicate;
                   mResult = result;
             }

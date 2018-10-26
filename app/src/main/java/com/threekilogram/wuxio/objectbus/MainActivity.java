@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.View;
 import com.threekilogram.objectbus.bus.ObjectBus;
 import com.threekilogram.objectbus.bus.ObjectBus.RunnableContainer;
+import com.threekilogram.objectbus.bus.TaskGroup;
 
 /**
  * @author liujin
@@ -99,17 +100,6 @@ public class MainActivity extends AppCompatActivity {
             mObjectBus = ObjectBus.newList();
       }
 
-      public void queue ( View view ) {
-
-            mObjectBus = ObjectBus.newQueue();
-      }
-
-      public void fixSize ( View view ) {
-
-            //mObjectBus = ObjectBus.newQueue( 3 );
-            //mObjectBus = ObjectBus.newList( 3 );
-      }
-
       public void ifFalseFalse ( View view ) {
 
             mObjectBus.ifFalse( bus -> false );
@@ -118,6 +108,28 @@ public class MainActivity extends AppCompatActivity {
       public void ifTrueFalse ( View view ) {
 
             mObjectBus.ifTrue( bus -> false );
+      }
+
+      public void group ( View view ) {
+
+            ObjectBus bus = ObjectBus.newList();
+            TaskGroup taskGroup = new TaskGroup();
+
+            for( int i = 0; i < 10; i++ ) {
+                  final int j = i;
+                  bus.toPool( ( ) -> {
+
+                        try {
+                              log( "group : 后台执行任务 " + String.valueOf( j ) + " 完成" );
+                              Thread.sleep( 1000 );
+                        } catch(InterruptedException e) {
+                              e.printStackTrace();
+                        }
+                  } ).toMain( ( ) -> {
+
+                        log( "group : 前台执行任务 " + String.valueOf( j ) + " 完成" );
+                  } ).submit( taskGroup );
+            }
       }
 
       private class MainRunnable implements Runnable {
