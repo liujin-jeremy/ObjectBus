@@ -15,21 +15,49 @@ public class TaskGroup {
        */
       private transient int          mCouldLoopCount = 3;
 
+      /**
+       * 创建一个任务组,先添加的先执行
+       *
+       * @param maxConcurrentCount 并发线程数量
+       *
+       * @return 任务组
+       */
       public static TaskGroup newList ( int maxConcurrentCount ) {
 
             return new TaskGroup( new ListTaskIterator(), maxConcurrentCount );
       }
 
+      /**
+       * 创建一个任务组,先添加的先执行,有固定任务上限,到达上限移除最早添加的任务
+       *
+       * @param maxConcurrentCount 并发线程数量
+       *
+       * @return 任务组
+       */
       public static TaskGroup newFixSizeList ( int maxCont, int maxConcurrentCount ) {
 
             return new TaskGroup( new FixSizeListTaskIterator( maxCont ), maxConcurrentCount );
       }
 
+      /**
+       * 创建一个任务组,后添加的先执行
+       *
+       * @param maxConcurrentCount 并发线程数量
+       *
+       * @return 任务组
+       */
       public static TaskGroup newQueue ( int maxConcurrentCount ) {
 
             return new TaskGroup( new QueueTaskIterator(), maxConcurrentCount );
       }
 
+      /**
+       * 创建一个任务组,后添加的先执行,有固定任务上限,到达上限移除最早添加的任务
+       *
+       * @param maxConcurrentCount 并发线程数量
+       *
+       * @return 任务组
+       */
       public static TaskGroup newFixSizeQueue ( int maxCont, int maxConcurrentCount ) {
 
             return new TaskGroup( new FixSizeQueueTaskIterator( maxCont ), maxConcurrentCount );

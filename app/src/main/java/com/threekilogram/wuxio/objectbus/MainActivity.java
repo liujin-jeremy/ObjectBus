@@ -113,7 +113,10 @@ public class MainActivity extends AppCompatActivity {
       public void group ( View view ) {
 
             ObjectBus bus = ObjectBus.create();
-            TaskGroup taskGroup = TaskGroup.newList( 3 );
+            //TaskGroup taskGroup = TaskGroup.newList(  3 );
+            //TaskGroup taskGroup = TaskGroup.newFixSizeList( 3, 3 );
+            //TaskGroup taskGroup = TaskGroup.newQueue(  3 );
+            TaskGroup taskGroup = TaskGroup.newFixSizeQueue( 3, 3 );
 
             for( int i = 0; i < 10; i++ ) {
                   final int j = i;
