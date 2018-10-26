@@ -18,7 +18,7 @@ app.gradle
 
 ```
 dependencies {
-	implementation 'com.github.threekilogram:ObjectBus:2.2.8'
+	implementation 'com.github.threekilogram:ObjectBus:2.3.0'
 }
 ```
 
@@ -28,14 +28,9 @@ dependencies {
 
 #### 创建
 
-> 可以创建不同形式
-
 ```
-// 按照任务添加顺序执行,适用于前后任务有相关性
-mObjectBus = ObjectBus.newList();
-
-// 按照队列形式执行任务,后添加的最先执行
-mObjectBus = ObjectBus.newQueue();
+// 按照任务添加顺序执行
+mObjectBus = ObjectBus.create();
 ```
 
 #### 后台任务
@@ -153,3 +148,35 @@ mObjectBus.toPool( new EchoRunnable() {
       }
 } ).run();
 ```
+
+## 控制并发
+
+以上使用 `mObjectBus .run()` 方法直接进行调度,如果需要控制任务的执行使用 `submit ( TaskGroup group ) `方法,条交给TaskGroup 之后,会使用固定数量的线程的不断执行添加的任务
+
+```
+// 按照添加顺序执行任务
+TaskGroup taskGroup = TaskGroup.newList( 3 );
+// 按照添加顺序执行任务,最多只能添加3组,超过会移除最先添加的
+TaskGroup taskGroup = TaskGroup.newFixSizeList( 3, 3 );
+// 按照后添加先执行的顺序执行任务
+TaskGroup taskGroup = TaskGroup.newQueue(  3 );
+// 按照后添加先执行的顺序执行任务,最多只能添加3组,超过会移除最先添加的
+TaskGroup taskGroup = TaskGroup.newFixSizeQueue( 3, 3 );
+
+for( int i = 0; i < 10; i++ ) {
+      final int j = i;
+      bus.toPool( ( ) -> {
+            try {
+                  log( "group : 后台执行任务 " + String.valueOf( j ) + " 完成" );
+                  Thread.sleep( 1000 );
+            } catch(InterruptedException e) {
+                  e.printStackTrace();
+            }
+      } ).toMain( ( ) -> {
+            log( "group : 前台执行任务 " + String.valueOf( j ) + " 完成" );
+      } ).submit( taskGroup );
+}
+
+// 将会保证3个任务同时执行,直至添加的所有任务执行完毕
+```
+
