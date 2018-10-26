@@ -45,7 +45,7 @@ public class ObjectBus {
       /**
        * @return 使用list管理的任务集, 按照添加顺序执行任务
        */
-      public static ObjectBus newList ( ) {
+      public static ObjectBus create ( ) {
 
             return new ObjectBus( new ListRunnableContainer() );
       }
@@ -356,8 +356,6 @@ public class ObjectBus {
             boolean test ( ObjectBus bus );
       }
 
-      // ========================= 内部类 =========================
-
       /**
        * 如何放置任务,如何取出任务
        */
@@ -475,100 +473,6 @@ public class ObjectBus {
             public RunnableContainer create ( ) {
 
                   return new ListRunnableContainer();
-            }
-      }
-
-      /**
-       * 使用list保存任务,先添加的先执行,有固定任务上限,到达上限之后再次添加会丢弃最先添加的任务
-       */
-      private static class FixSizeListRunnableContainer extends BaseRunnableContainer {
-
-            private final int mFixSize;
-
-            FixSizeListRunnableContainer ( int fixSize ) {
-
-                  mFixSize = fixSize;
-            }
-
-            @Override
-            public void add ( BusExecute execute ) {
-
-                  mExecutes.add( execute );
-
-                  if( mExecutes.size() > mFixSize ) {
-                        mExecutes.pollFirst();
-                  }
-            }
-
-            @Override
-            public BusExecute next ( ) {
-
-                  return mExecutes.pollFirst();
-            }
-
-            @Override
-            public RunnableContainer create ( ) {
-
-                  return new FixSizeListRunnableContainer( mFixSize );
-            }
-      }
-
-      /**
-       * 使用队列形式保存任务,后添加的先执行
-       */
-      private static class QueueRunnableContainer extends BaseRunnableContainer {
-
-            @Override
-            public void add ( BusExecute execute ) {
-
-                  mExecutes.add( execute );
-            }
-
-            @Override
-            public BusExecute next ( ) {
-
-                  return mExecutes.pollLast();
-            }
-
-            @Override
-            public RunnableContainer create ( ) {
-
-                  return new QueueRunnableContainer();
-            }
-      }
-
-      /**
-       * 使用队列形式保存任务,后添加的先执行,有固定任务上限,到达上限之后再次添加会丢弃最先添加的任务
-       */
-      private static class FixSizeQueueRunnableContainer extends BaseRunnableContainer {
-
-            private final int mFixSize;
-
-            FixSizeQueueRunnableContainer ( int fixSize ) {
-
-                  mFixSize = fixSize;
-            }
-
-            @Override
-            public void add ( BusExecute execute ) {
-
-                  mExecutes.add( execute );
-
-                  if( mExecutes.size() > mFixSize ) {
-                        mExecutes.pollFirst();
-                  }
-            }
-
-            @Override
-            public BusExecute next ( ) {
-
-                  return mExecutes.pollLast();
-            }
-
-            @Override
-            public RunnableContainer create ( ) {
-
-                  return new FixSizeQueueRunnableContainer( mFixSize );
             }
       }
 

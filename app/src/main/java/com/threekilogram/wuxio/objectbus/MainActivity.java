@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
             super.onCreate( savedInstanceState );
             setContentView( R.layout.activity_main );
             initView();
-            mObjectBus = ObjectBus.newList();
+            mObjectBus = ObjectBus.create();
       }
 
       private void initView ( ) {
@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
 
       public void list ( View view ) {
 
-            mObjectBus = ObjectBus.newList();
+            mObjectBus = ObjectBus.create();
       }
 
       public void ifFalseFalse ( View view ) {
@@ -112,8 +112,8 @@ public class MainActivity extends AppCompatActivity {
 
       public void group ( View view ) {
 
-            ObjectBus bus = ObjectBus.newList();
-            TaskGroup taskGroup = new TaskGroup();
+            ObjectBus bus = ObjectBus.create();
+            TaskGroup taskGroup = TaskGroup.newList( 3 );
 
             for( int i = 0; i < 10; i++ ) {
                   final int j = i;
