@@ -277,7 +277,7 @@ public class PoolExecutor {
             sPoolExecutor.shutdownNow();
       }
 
-      private static class AppThreadFactory implements ThreadFactory {
+      public static class AppThreadFactory implements ThreadFactory {
 
             @Override
             public Thread newThread ( @NonNull Runnable r ) {
@@ -286,7 +286,7 @@ public class PoolExecutor {
             }
       }
 
-      private static class AppThread extends Thread {
+      public static class AppThread extends Thread {
 
             private static AtomicInteger sInt = new AtomicInteger();
 

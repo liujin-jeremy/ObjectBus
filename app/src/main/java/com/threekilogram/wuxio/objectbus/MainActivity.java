@@ -5,9 +5,9 @@ import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import com.threekilogram.objectbus.bus.BusGroup;
 import com.threekilogram.objectbus.bus.ObjectBus;
 import com.threekilogram.objectbus.bus.ObjectBus.RunnableContainer;
-import com.threekilogram.objectbus.bus.TaskGroup;
 
 /**
  * @author liujin
@@ -27,32 +27,32 @@ public class MainActivity extends AppCompatActivity {
             super.onCreate( savedInstanceState );
             setContentView( R.layout.activity_main );
             initView();
-            mObjectBus = ObjectBus.create();
+            mObjectBus = new ObjectBus();
       }
 
       private void initView ( ) {
 
-            mRoot = (ConstraintLayout) findViewById( R.id.root );
+            mRoot = findViewById( R.id.root );
       }
 
       public void addMain ( View view ) {
 
-            mObjectBus.toMain( new MainRunnable() );
+            mObjectBus.toMain( new Task() );
       }
 
       public void toPool ( View view ) {
 
-            mObjectBus.toPool( new MainRunnable() );
+            mObjectBus.toPool( new Task() );
       }
 
       public void toMainDelayed ( View view ) {
 
-            mObjectBus.toMain( 2000, new MainRunnable() );
+            mObjectBus.toMain( 2000, new Task() );
       }
 
       public void toPoolDelayed ( View view ) {
 
-            mObjectBus.toPool( 2000, new MainRunnable() );
+            mObjectBus.toPool( 2000, new Task() );
       }
 
       public void run ( View view ) {
@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
 
       public void clearOne ( View view ) {
 
-            MainRunnable runnable = new MainRunnable();
+            Task runnable = new Task();
             mObjectBus.toPool( runnable );
             mContainer.delete( runnable );
             log( "cancel " + runnable );
@@ -97,26 +97,36 @@ public class MainActivity extends AppCompatActivity {
 
       public void list ( View view ) {
 
-            mObjectBus = ObjectBus.create();
+            mObjectBus = new ObjectBus();
       }
 
       public void ifFalseFalse ( View view ) {
 
-            mObjectBus.ifFalse( bus -> false );
+            mObjectBus.test(
+                ( ) -> true,
+                container -> {
+                      container.deleteAll();
+                }
+            );
       }
 
       public void ifTrueFalse ( View view ) {
 
-            mObjectBus.ifTrue( bus -> false );
+            mObjectBus.test(
+                ( ) -> false,
+                container -> {
+                      container.deleteAll();
+                }
+            );
       }
 
       public void group ( View view ) {
 
-            ObjectBus bus = ObjectBus.create();
-            //TaskGroup taskGroup = TaskGroup.newList(  3 );
-            //TaskGroup taskGroup = TaskGroup.newFixSizeList( 3, 3 );
-            //TaskGroup taskGroup = TaskGroup.newQueue(  3 );
-            TaskGroup taskGroup = TaskGroup.newFixSizeQueue( 3, 3 );
+            ObjectBus bus = new ObjectBus();
+            //BusGroup busGroup = BusGroup.newList(  3 );
+            //BusGroup busGroup = BusGroup.newFixSizeList( 3, 3 );
+            //BusGroup busGroup = BusGroup.newQueue(  3 );
+            BusGroup busGroup = BusGroup.newFixSizeQueue( 3, 3 );
 
             for( int i = 0; i < 10; i++ ) {
                   final int j = i;
@@ -131,16 +141,16 @@ public class MainActivity extends AppCompatActivity {
                   } ).toMain( ( ) -> {
 
                         log( "group : 前台执行任务 " + String.valueOf( j ) + " 完成" );
-                  } ).submit( taskGroup );
+                  } ).submit( busGroup );
             }
       }
 
-      private class MainRunnable implements Runnable {
+      private class Task implements Runnable {
 
             @Override
             public void run ( ) {
 
-                  log( "MainRunnable" );
+                  log( "Task" );
             }
       }
 }

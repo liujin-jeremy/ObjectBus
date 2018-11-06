@@ -138,13 +138,13 @@ mObjectBus.toPool( new EchoRunnable() {
 
 ```
 // 按照添加顺序执行任务
-TaskGroup taskGroup = TaskGroup.newList( 3 );
+TaskGroup busGroup = TaskGroup.newList( 3 );
 // 按照添加顺序执行任务,最多只能添加3组,超过会移除最先添加的
-TaskGroup taskGroup = TaskGroup.newFixSizeList( 3, 3 );
+TaskGroup busGroup = TaskGroup.newFixSizeList( 3, 3 );
 // 按照后添加先执行的顺序执行任务
-TaskGroup taskGroup = TaskGroup.newQueue(  3 );
+TaskGroup busGroup = TaskGroup.newQueue(  3 );
 // 按照后添加先执行的顺序执行任务,最多只能添加3组,超过会移除最先添加的
-TaskGroup taskGroup = TaskGroup.newFixSizeQueue( 3, 3 );
+TaskGroup busGroup = TaskGroup.newFixSizeQueue( 3, 3 );
 
 for( int i = 0; i < 10; i++ ) {
       final int j = i;
@@ -157,7 +157,7 @@ for( int i = 0; i < 10; i++ ) {
             }
       } ).toMain( ( ) -> {
             log( "group : 前台执行任务 " + String.valueOf( j ) + " 完成" );
-      } ).submit( taskGroup );
+      } ).submit( busGroup );
 }
 
 // 将会保证3个任务同时执行,直至添加的所有任务执行完毕

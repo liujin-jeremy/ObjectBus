@@ -3,11 +3,9 @@ package com.threekilogram.objectbus.bus;
 import android.support.v4.util.ArrayMap;
 import com.threekilogram.objectbus.executor.MainExecutor;
 import com.threekilogram.objectbus.executor.PoolExecutor;
-import com.threekilogram.objectbus.runnable.Executable;
+import com.threekilogram.objectbus.executor.ScheduleExecutor;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * 该类用于按照一定的顺序规则在不同线程之间执行已经添加的所有任务
@@ -22,8 +20,9 @@ public class ObjectBus {
       /**
        * 线程任务标记,一个对应主线程,一个对应pool线程
        */
-      private static final int MAIN_THREAD = BusExecute.RUN_IN_MAIN_THREAD;
-      private static final int POOL_THREAD = BusExecute.RUN_IN_POOL_THREAD;
+      public static final int RUN_IN_MAIN_THREAD = 1;
+      public static final int RUN_IN_POOL_THREAD = -1;
+      public static final int RUN_IN_CURRENT     = -2;
 
       /**
        * 所有任务保存的地方
@@ -35,19 +34,40 @@ public class ObjectBus {
       private ArrayMap<String, Object> mResults;
 
       /**
-       * @param container 指定保存读取任务策略
+       * 循环取出下一个任务执行,直到所有任务执行完毕
        */
-      private ObjectBus ( RunnableContainer container ) {
+      protected static void loop ( RunnableContainer container ) {
 
-            mRunnableContainer = container;
+            if( container == null ) {
+                  return;
+            }
+
+            try {
+
+                  BusRunnable executable = container.next();
+                  executeBusRunnable( executable );
+            } catch(Exception e) {
+                  /* container empty */
+            }
       }
 
-      /**
-       * @return 使用list管理的任务集, 按照添加顺序执行任务
-       */
-      public static ObjectBus create ( ) {
+      protected static void executeBusRunnable ( BusRunnable executable ) {
 
-            return new ObjectBus( new ListRunnableContainer() );
+            if( executable.mThread == RUN_IN_MAIN_THREAD ) {
+
+                  MainExecutor.execute( executable );
+            } else if( executable.mThread == RUN_IN_POOL_THREAD ) {
+
+                  PoolExecutor.execute( executable );
+            } else {
+
+                  executable.run();
+            }
+      }
+
+      public ObjectBus ( ) {
+
+            mRunnableContainer = new ListRunnableContainer();
       }
 
       /**
@@ -113,11 +133,8 @@ public class ObjectBus {
        */
       public ObjectBus toMain ( Runnable runnable ) {
 
-            if( runnable == null ) {
-                  return this;
-            }
-
-            BusExecute execute = new BusExecute( mRunnableContainer, MAIN_THREAD, runnable );
+            BusRunnable execute = new BusRunnable(
+                mRunnableContainer, RUN_IN_MAIN_THREAD, runnable );
             mRunnableContainer.add( execute );
 
             return this;
@@ -132,12 +149,8 @@ public class ObjectBus {
        */
       public ObjectBus toMain ( int delayed, Runnable runnable ) {
 
-            if( runnable == null ) {
-                  return this;
-            }
-
-            DelayExecute execute = new DelayExecute(
-                mRunnableContainer, MAIN_THREAD, runnable, delayed );
+            DelayRunnable execute = new DelayRunnable(
+                mRunnableContainer, RUN_IN_MAIN_THREAD, runnable, delayed );
             mRunnableContainer.add( execute );
 
             return this;
@@ -156,7 +169,8 @@ public class ObjectBus {
                   return this;
             }
 
-            BusExecute execute = new BusExecute( mRunnableContainer, POOL_THREAD, runnable );
+            BusRunnable execute = new BusRunnable(
+                mRunnableContainer, RUN_IN_POOL_THREAD, runnable );
             mRunnableContainer.add( execute );
 
             return this;
@@ -175,50 +189,8 @@ public class ObjectBus {
                   return this;
             }
 
-            DelayExecute execute = new DelayExecute(
-                mRunnableContainer, POOL_THREAD, runnable, delayed );
-            mRunnableContainer.add( execute );
-
-            return this;
-      }
-
-      /**
-       * 主线程执行任务,任务处理完毕之后调用{@link BusExecute#finish()}以进行下一个任务
-       * <p>
-       * 主要用于自己定置执行任务规则,记得调用{@link BusExecute#finish()}就行
-       *
-       * @param execute 任务
-       *
-       * @return 链式调用
-       */
-      public ObjectBus toMain ( BusExecute execute ) {
-
-            if( execute == null ) {
-                  return this;
-            }
-
-            execute.mThread = MAIN_THREAD;
-            mRunnableContainer.add( execute );
-
-            return this;
-      }
-
-      /**
-       * pool线程执行任务,任务处理完毕之后调用{@link BusExecute#finish()}以进行下一个任务
-       * <p>
-       * 主要用于自己定置执行任务规则,记得调用{@link BusExecute#finish()}就行
-       *
-       * @param execute 任务
-       *
-       * @return 链式调用
-       */
-      public ObjectBus toPool ( BusExecute execute ) {
-
-            if( execute == null ) {
-                  return this;
-            }
-
-            execute.mThread = POOL_THREAD;
+            DelayRunnable execute = new DelayRunnable(
+                mRunnableContainer, RUN_IN_POOL_THREAD, runnable, delayed );
             mRunnableContainer.add( execute );
 
             return this;
@@ -231,88 +203,29 @@ public class ObjectBus {
        *
        * @return bus
        */
-      public ObjectBus ifTrue ( Predicate test ) {
+      public ObjectBus test ( Predicate test, OnPredicateRunnable runnable ) {
 
             if( test == null ) {
                   return null;
             }
-            PredicateExecute execute = new PredicateExecute(
-                this, mRunnableContainer, POOL_THREAD, test, true );
+            PredicateRunnable execute = new PredicateRunnable(
+                mRunnableContainer, test, runnable );
             mRunnableContainer.add( execute );
 
             return this;
       }
 
       /**
-       * 如果{@code test}返回false,继续执行后面的任务,否则清除所有任务,注意在后台线程测试{@link Predicate}结果
-       *
-       * @param test 测试是否继续执行后面的任务
+       * 执行{@link BusRunnable},在{@link BusRunnable#run()}中记得调用{@link #loop(RunnableContainer)}进行下一个任务
        *
        * @return bus
        */
+      public ObjectBus to ( BusRunnable runnable ) {
 
-      public ObjectBus ifFalse ( Predicate test ) {
-
-            if( test == null ) {
-                  return null;
-            }
-            PredicateExecute execute = new PredicateExecute(
-                this, mRunnableContainer, POOL_THREAD, test, false );
-            mRunnableContainer.add( execute );
+            runnable.mRunnableContainer = mRunnableContainer;
+            mRunnableContainer.add( runnable );
 
             return this;
-      }
-
-      /**
-       * 跳过下个任务,该方法主要用于在一系列相关的任务中如果前面的任务需要满足一定条件才能执行后续任务,
-       * 但是现在并不满足条件,可以调用该方法跳过后面相关任务,该方法需要在封装的任务中调用才能有正确的效果
-       */
-      public void pollNext ( ) {
-
-            mRunnableContainer.next();
-      }
-
-      /**
-       * 跳过下几个任务{@link #pollNext()}
-       *
-       * @param count 跳过任务数量
-       */
-      public void pollNext ( int count ) {
-
-            for( int i = 0; i < count; i++ ) {
-
-                  mRunnableContainer.next();
-            }
-      }
-
-      /**
-       * 循环取出下一个任务执行,直到所有任务执行完毕
-       */
-      static void loop ( RunnableContainer container ) {
-
-            if( container == null ) {
-                  return;
-            }
-
-            try {
-
-                  BusExecute executable = container.next();
-
-                  if( executable.mThread == BusExecute.RUN_IN_MAIN_THREAD ) {
-
-                        MainExecutor.execute( executable );
-                  } else {
-
-                        if( executable.mThread == BusExecute.RUN_IN_POOL_THREAD ) {
-
-                              PoolExecutor.execute( executable );
-                        } else {
-                              executable.run();
-                        }
-                  }
-            } catch(Exception e) {
-                  /*  */
-            }
       }
 
       /**
@@ -333,7 +246,7 @@ public class ObjectBus {
       /**
        * 提交到任务组执行
        */
-      public RunnableContainer submit ( TaskGroup group ) {
+      public RunnableContainer submit ( BusGroup group ) {
 
             group.addTask( mRunnableContainer );
             RunnableContainer result = mRunnableContainer;
@@ -342,18 +255,16 @@ public class ObjectBus {
       }
 
       /**
-       * 根据返回值决定是否执行后面的所有任务{@link #ifTrue(Predicate)}{@link #ifFalse(Predicate)}
+       * 根据返回值决定是否执行{@link OnPredicateRunnable}
        */
       public interface Predicate {
 
             /**
              * 测试是否还继续执行任务
              *
-             * @param bus bus
-             *
              * @return true :
              */
-            boolean test ( ObjectBus bus );
+            boolean test ( );
       }
 
       /**
@@ -366,7 +277,7 @@ public class ObjectBus {
              *
              * @param runnable 任务
              */
-            void add ( BusExecute runnable );
+            void add ( BusRunnable runnable );
 
             /**
              * 删除任务
@@ -385,7 +296,7 @@ public class ObjectBus {
              *
              * @return runnable
              */
-            BusExecute next ( );
+            BusRunnable next ( );
 
             /**
              * 剩余任务数量
@@ -412,16 +323,16 @@ public class ObjectBus {
       }
 
       @SuppressWarnings("WeakerAccess")
-      private static abstract class BaseRunnableContainer implements RunnableContainer {
+      private static class ListRunnableContainer implements RunnableContainer {
 
-            protected final LinkedList<BusExecute> mExecutes = new LinkedList<>();
+            protected final LinkedList<BusRunnable> mExecutes = new LinkedList<>();
 
             @Override
             public void delete ( Runnable runnable ) {
 
-                  Iterator<BusExecute> iterator = mExecutes.iterator();
+                  Iterator<BusRunnable> iterator = mExecutes.iterator();
                   while( iterator.hasNext() ) {
-                        BusExecute next = iterator.next();
+                        BusRunnable next = iterator.next();
                         if( next.mRunnable == runnable ) {
                               iterator.remove();
                         }
@@ -443,28 +354,22 @@ public class ObjectBus {
             @Override
             public boolean containsOf ( Runnable runnable ) {
 
-                  for( BusExecute next : mExecutes ) {
+                  for( BusRunnable next : mExecutes ) {
                         if( next.mRunnable == runnable ) {
                               return true;
                         }
                   }
                   return false;
             }
-      }
-
-      /**
-       * 使用list保存任务,先添加的先执行
-       */
-      private static class ListRunnableContainer extends BaseRunnableContainer {
 
             @Override
-            public void add ( BusExecute execute ) {
+            public void add ( BusRunnable execute ) {
 
                   mExecutes.add( execute );
             }
 
             @Override
-            public BusExecute next ( ) {
+            public BusRunnable next ( ) {
 
                   return mExecutes.pollFirst();
             }
@@ -480,31 +385,19 @@ public class ObjectBus {
        * 代理{@link #mRunnable},使其完成后可以调用下一个任务执行
        */
       @SuppressWarnings("WeakerAccess")
-      public static class BusExecute extends Executable {
-
-            public static final int RUN_IN_MAIN_THREAD = 1;
-            public static final int RUN_IN_POOL_THREAD = -1;
-            public static final int RUN_IN_CURRENT     = 2;
+      public static class BusRunnable implements Runnable {
 
             protected RunnableContainer mRunnableContainer;
+            protected int               mThread;
+            protected Runnable          mRunnable;
 
-            /**
-             * 指定执行线程
-             */
-            protected int      mThread;
-            /**
-             * 用户设置的任务,如果自定义任务,可以忽略该变量,重写{@link #onExecute()}添加自己的逻辑,
-             * 记得完成所有操作后,调用{@link #finish()}通知{@link ObjectBus}进行下一个任务
-             */
-            protected Runnable mRunnable;
-
-            protected BusExecute ( RunnableContainer container, int thread ) {
+            public BusRunnable ( int thread, Runnable runnable ) {
 
                   mThread = thread;
-                  mRunnableContainer = container;
+                  mRunnable = runnable;
             }
 
-            protected BusExecute (
+            protected BusRunnable (
                 RunnableContainer container, int thread, Runnable runnable ) {
 
                   mRunnableContainer = container;
@@ -513,32 +406,11 @@ public class ObjectBus {
             }
 
             @Override
-            public void onStart ( ) { }
+            public void run ( ) {
 
-            /**
-             * 真正的执行任务
-             */
-            @Override
-            public void onExecute ( ) {
-
-                  mRunnable.run();
-            }
-
-            /**
-             * 该方法会在任务执行完毕回调,如果任务没有执行完毕,不需要在此处调用{@link #finish()},
-             * 当完成任务后在自己调用{@link #finish()},通知{@link ObjectBus}执行下一个任务
-             */
-            @Override
-            public void onFinish ( ) {
-
-                  finish();
-            }
-
-            /**
-             * 执行完任务之后,必须执行的操作,这样才能进行下一个任务
-             */
-            protected void finish ( ) {
-
+                  if( mRunnable != null ) {
+                        mRunnable.run();
+                  }
                   loop( mRunnableContainer );
             }
       }
@@ -546,11 +418,11 @@ public class ObjectBus {
       /**
        * 处理延时任务
        */
-      private static class DelayExecute extends BusExecute {
+      private static class DelayRunnable extends BusRunnable {
 
             private int mDelayed;
 
-            DelayExecute (
+            DelayRunnable (
                 RunnableContainer container, int thread, Runnable runnable,
                 int delayed ) {
 
@@ -559,70 +431,54 @@ public class ObjectBus {
             }
 
             @Override
-            public void onExecute ( ) {
+            public void run ( ) {
 
-                  new Timer().schedule( new TimerTask() {
-
-                        @Override
-                        public void run ( ) {
-
-                              if( mThread == RUN_IN_MAIN_THREAD ) {
-
-                                    /* 需要完成后进行下一个任务,所以包装一下 */
-                                    BusExecute execute = new BusExecute(
-                                        mRunnableContainer, MAIN_THREAD,
-                                        mRunnable
-                                    );
-                                    MainExecutor.execute( execute );
-                              } else {
-
-                                    /* 需要完成后进行下一个任务,所以包装一下 */
-                                    BusExecute execute = new BusExecute(
-                                        mRunnableContainer, MAIN_THREAD,
-                                        mRunnable
-                                    );
-                                    PoolExecutor.execute( execute );
-                              }
-                        }
+                  ScheduleExecutor.schedule( ( ) -> {
+                        executeBusRunnable(
+                            new BusRunnable( mRunnableContainer, mThread, mRunnable ) );
                   }, mDelayed );
-            }
-
-            @Override
-            public void onFinish ( ) {
-                  /* 此处不调用finish();因为任务还没有完成,需要接收到延时消息后才完成任务 */
             }
       }
 
       /**
-       * 测试结果,如果结果不一致清除所有任务,如果一致继续执行任务
+       * 测试结果,如果结果为true执行一个特殊任务
        */
-      private static class PredicateExecute extends BusExecute {
+      private static class PredicateRunnable extends BusRunnable {
 
-            private Predicate mPredicate;
-            private boolean   mResult;
-            private ObjectBus mObjectBus;
+            private Predicate           mPredicate;
+            private OnPredicateRunnable mRunnable;
 
-            PredicateExecute (
-                ObjectBus objectBus,
+            PredicateRunnable (
                 RunnableContainer container,
-                int thread,
                 Predicate predicate,
-                boolean result ) {
+                OnPredicateRunnable runnable ) {
 
-                  super( container, thread );
-                  mObjectBus = objectBus;
+                  super( container, RUN_IN_CURRENT, null );
                   mPredicate = predicate;
-                  mResult = result;
+                  mRunnable = runnable;
             }
 
             @Override
-            public void onExecute ( ) {
+            public void run ( ) {
 
-                  boolean test = mPredicate.test( mObjectBus );
+                  boolean test = mPredicate.test();
 
-                  if( test != mResult ) {
-                        mRunnableContainer.deleteAll();
+                  if( test ) {
+                        if( mRunnable != null ) {
+                              mRunnable.run( mRunnableContainer );
+                        }
                   }
+                  loop( mRunnableContainer );
             }
+      }
+
+      public interface OnPredicateRunnable {
+
+            /**
+             * {@link PredicateRunnable#mPredicate}的{@link Predicate#test()}通过执行任务
+             *
+             * @param container {@link BusRunnable#mRunnableContainer} 任务所在任务组
+             */
+            void run ( RunnableContainer container );
       }
 }

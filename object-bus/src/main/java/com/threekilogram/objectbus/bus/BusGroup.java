@@ -1,13 +1,13 @@
 package com.threekilogram.objectbus.bus;
 
-import com.threekilogram.objectbus.bus.ObjectBus.BusExecute;
+import com.threekilogram.objectbus.bus.ObjectBus.BusRunnable;
 import com.threekilogram.objectbus.bus.ObjectBus.RunnableContainer;
 import java.util.LinkedList;
 
 /**
  * @author Liujin 2018-10-26:17:41
  */
-public class TaskGroup {
+public class BusGroup {
 
       private           TaskIterator mTaskIterator;
       /**
@@ -22,9 +22,9 @@ public class TaskGroup {
        *
        * @return 任务组
        */
-      public static TaskGroup newList ( int maxConcurrentCount ) {
+      public static BusGroup newList ( int maxConcurrentCount ) {
 
-            return new TaskGroup( new ListTaskIterator(), maxConcurrentCount );
+            return new BusGroup( new ListTaskIterator(), maxConcurrentCount );
       }
 
       /**
@@ -34,9 +34,9 @@ public class TaskGroup {
        *
        * @return 任务组
        */
-      public static TaskGroup newFixSizeList ( int maxCont, int maxConcurrentCount ) {
+      public static BusGroup newFixSizeList ( int maxCont, int maxConcurrentCount ) {
 
-            return new TaskGroup( new FixSizeListTaskIterator( maxCont ), maxConcurrentCount );
+            return new BusGroup( new FixSizeListTaskIterator( maxCont ), maxConcurrentCount );
       }
 
       /**
@@ -46,9 +46,9 @@ public class TaskGroup {
        *
        * @return 任务组
        */
-      public static TaskGroup newQueue ( int maxConcurrentCount ) {
+      public static BusGroup newQueue ( int maxConcurrentCount ) {
 
-            return new TaskGroup( new QueueTaskIterator(), maxConcurrentCount );
+            return new BusGroup( new QueueTaskIterator(), maxConcurrentCount );
       }
 
       /**
@@ -58,23 +58,23 @@ public class TaskGroup {
        *
        * @return 任务组
        */
-      public static TaskGroup newFixSizeQueue ( int maxCont, int maxConcurrentCount ) {
+      public static BusGroup newFixSizeQueue ( int maxCont, int maxConcurrentCount ) {
 
-            return new TaskGroup( new FixSizeQueueTaskIterator( maxCont ), maxConcurrentCount );
+            return new BusGroup( new FixSizeQueueTaskIterator( maxCont ), maxConcurrentCount );
       }
 
       /**
        * @param taskIterator 按照什么顺序执行任务
        * @param concurrentCount 并发线程数量
        */
-      private TaskGroup ( TaskIterator taskIterator, int concurrentCount ) {
+      private BusGroup ( TaskIterator taskIterator, int concurrentCount ) {
 
             mTaskIterator = taskIterator;
             mCouldLoopCount = concurrentCount;
       }
 
       /**
-       * {@link ObjectBus#submit(TaskGroup)}添加任务到队列执行
+       * {@link ObjectBus#submit(BusGroup)}添加任务到队列执行
        *
        * @param container 一组任务
        */
@@ -83,7 +83,7 @@ public class TaskGroup {
             if( mCouldLoopCount == 0 ) {
                   mTaskIterator.add( container );
             } else {
-                  container.add( new LoopBusExecute( container ) );
+                  container.add( new LoopBusRunnable( container ) );
                   ObjectBus.loop( container );
                   mCouldLoopCount--;
             }
@@ -92,19 +92,19 @@ public class TaskGroup {
       /**
        * 用于一组任务执行完成后继续执行下一组任务
        */
-      private class LoopBusExecute extends BusExecute {
+      private class LoopBusRunnable extends BusRunnable {
 
-            private LoopBusExecute ( RunnableContainer container ) {
+            private LoopBusRunnable ( RunnableContainer container ) {
 
-                  super( container, RUN_IN_CURRENT );
+                  super( container, ObjectBus.RUN_IN_CURRENT, null );
             }
 
             @Override
-            public void onExecute ( ) {
+            public void run ( ) {
 
                   try {
                         RunnableContainer container = mTaskIterator.next();
-                        container.add( new LoopBusExecute( container ) );
+                        container.add( new LoopBusRunnable( container ) );
                         ObjectBus.loop( container );
                         return;
                   } catch(Exception e) {
