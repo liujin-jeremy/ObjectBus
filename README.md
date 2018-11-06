@@ -1,25 +1,8 @@
 
 ## 简介
 
-该库用于在不同线程间串行执行任务
-## 引入
-
-project.gradle
-
 ```
-allprojects {
-	repositories {
-		maven { url 'https://jitpack.io' }
-	}
-}
-```
-
-app.gradle
-
-```
-dependencies {
-	implementation 'com.github.threekilogram:ObjectBus:2.3.0'
-}
+implementation 'tech.threekilogram:object-bus:2.0.1'
 ```
 
 ## 异步任务
