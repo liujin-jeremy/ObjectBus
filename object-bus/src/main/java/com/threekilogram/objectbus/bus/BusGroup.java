@@ -1,7 +1,6 @@
 package com.threekilogram.objectbus.bus;
 
 import com.threekilogram.objectbus.bus.ObjectBus.BusRunnable;
-import com.threekilogram.objectbus.bus.ObjectBus.RunnableContainer;
 import java.util.LinkedList;
 
 /**
@@ -9,11 +8,12 @@ import java.util.LinkedList;
  */
 public class BusGroup {
 
-      private           TaskIterator mTaskIterator;
+      private TaskIterator mTaskIterator;
+
       /**
        * 并发执行任务的数量
        */
-      private transient int          mCouldLoopCount = 3;
+      private transient int mCouldLoopCount = 3;
 
       /**
        * 创建一个任务组,先添加的先执行
@@ -34,7 +34,7 @@ public class BusGroup {
        *
        * @return 任务组
        */
-      public static BusGroup newFixSizeList ( int maxCont, int maxConcurrentCount ) {
+      public static BusGroup newList ( int maxCont, int maxConcurrentCount ) {
 
             return new BusGroup( new FixSizeListTaskIterator( maxCont ), maxConcurrentCount );
       }
@@ -58,7 +58,7 @@ public class BusGroup {
        *
        * @return 任务组
        */
-      public static BusGroup newFixSizeQueue ( int maxCont, int maxConcurrentCount ) {
+      public static BusGroup newQueue ( int maxCont, int maxConcurrentCount ) {
 
             return new BusGroup( new FixSizeQueueTaskIterator( maxCont ), maxConcurrentCount );
       }

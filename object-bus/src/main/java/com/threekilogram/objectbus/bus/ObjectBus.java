@@ -4,8 +4,6 @@ import android.support.v4.util.ArrayMap;
 import com.threekilogram.objectbus.executor.MainExecutor;
 import com.threekilogram.objectbus.executor.PoolExecutor;
 import com.threekilogram.objectbus.executor.ScheduleExecutor;
-import java.util.Iterator;
-import java.util.LinkedList;
 
 /**
  * 该类用于按照一定的顺序规则在不同线程之间执行已经添加的所有任务
@@ -38,10 +36,6 @@ public class ObjectBus {
        */
       protected static void loop ( RunnableContainer container ) {
 
-            if( container == null ) {
-                  return;
-            }
-
             try {
 
                   BusRunnable executable = container.next();
@@ -67,7 +61,7 @@ public class ObjectBus {
 
       public ObjectBus ( ) {
 
-            mRunnableContainer = new ListRunnableContainer();
+            mRunnableContainer = new ListContainer();
       }
 
       /**
@@ -265,120 +259,6 @@ public class ObjectBus {
              * @return true :
              */
             boolean test ( );
-      }
-
-      /**
-       * 如何放置任务,如何取出任务
-       */
-      public interface RunnableContainer {
-
-            /**
-             * 添加任务
-             *
-             * @param runnable 任务
-             */
-            void add ( BusRunnable runnable );
-
-            /**
-             * 删除任务
-             *
-             * @param runnable 任务
-             */
-            void delete ( Runnable runnable );
-
-            /**
-             * 清除所有任务
-             */
-            void deleteAll ( );
-
-            /**
-             * 下一个任务,或者异常{@link ArrayIndexOutOfBoundsException},或者null,通常实现会删除该任务,并且返回删除的任务
-             *
-             * @return runnable
-             */
-            BusRunnable next ( );
-
-            /**
-             * 剩余任务数量
-             *
-             * @return 剩余任务
-             */
-            int remainSize ( );
-
-            /**
-             * 是否包含一个任务还没有执行
-             *
-             * @param runnable 需要测试的任务
-             *
-             * @return true: 包含该任务并且还没有执行
-             */
-            boolean containsOf ( Runnable runnable );
-
-            /**
-             * 创建自身
-             *
-             * @return 自身
-             */
-            RunnableContainer create ( );
-      }
-
-      @SuppressWarnings("WeakerAccess")
-      private static class ListRunnableContainer implements RunnableContainer {
-
-            protected final LinkedList<BusRunnable> mExecutes = new LinkedList<>();
-
-            @Override
-            public void delete ( Runnable runnable ) {
-
-                  Iterator<BusRunnable> iterator = mExecutes.iterator();
-                  while( iterator.hasNext() ) {
-                        BusRunnable next = iterator.next();
-                        if( next.mRunnable == runnable ) {
-                              iterator.remove();
-                        }
-                  }
-            }
-
-            @Override
-            public void deleteAll ( ) {
-
-                  mExecutes.clear();
-            }
-
-            @Override
-            public int remainSize ( ) {
-
-                  return mExecutes.size();
-            }
-
-            @Override
-            public boolean containsOf ( Runnable runnable ) {
-
-                  for( BusRunnable next : mExecutes ) {
-                        if( next.mRunnable == runnable ) {
-                              return true;
-                        }
-                  }
-                  return false;
-            }
-
-            @Override
-            public void add ( BusRunnable execute ) {
-
-                  mExecutes.add( execute );
-            }
-
-            @Override
-            public BusRunnable next ( ) {
-
-                  return mExecutes.pollFirst();
-            }
-
-            @Override
-            public RunnableContainer create ( ) {
-
-                  return new ListRunnableContainer();
-            }
       }
 
       /**
