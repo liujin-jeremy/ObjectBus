@@ -34,10 +34,12 @@ def siteUrl = properties.getProperty("siteUrl")
 def gitUrl = properties.getProperty("gitUrl")
 //发布到JCenter上的项目名字
 def libName = properties.getProperty("libName")
-
+// group
 group = "tech.threekilogram"
 // 版本号，下次更新是只需要更改版本号即可
 version = properties.getProperty("version")
+// desc
+def des = properties.getProperty("desc")
 
 //生成源文件
 task sourcesJar(type: Jar) {
@@ -64,7 +66,7 @@ install {
             project {
                 packaging 'aar'
                 //项目描述，随意填
-                name 'Bitmap scale util'
+                name des
                 url siteUrl
                 licenses {
                     license {
@@ -101,7 +103,7 @@ bintray {
         //发布到JCenter上的项目名字
         name = libName
         //项目描述
-        desc = 'Input text with fireworks'
+        desc = des
         websiteUrl = siteUrl
         vcsUrl = gitUrl
         licenses = ["Apache-2.0"]
