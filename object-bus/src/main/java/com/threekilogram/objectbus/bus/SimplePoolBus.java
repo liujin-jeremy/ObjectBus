@@ -7,7 +7,9 @@ import com.threekilogram.objectbus.bus.ObjectBus.BusRunnable;
  */
 public class SimplePoolBus {
 
-      private RunnableContainer mContainer;
+      private final RunnableContainer mContainer;
+
+      private transient boolean isRunning;
 
       public static SimplePoolBus newList ( ) {
 
@@ -36,10 +38,33 @@ public class SimplePoolBus {
 
       public void run ( Runnable runnable ) {
 
-            boolean call = mContainer.remainSize() == 0;
             mContainer.add( new BusRunnable( mContainer, ObjectBus.RUN_IN_POOL_THREAD, runnable ) );
-            if( call ) {
+            if( !isRunning ) {
+                  isRunning = true;
                   ObjectBus.loop( mContainer );
+            }
+      }
+
+      private class PoolBusRunnable extends BusRunnable {
+
+            protected PoolBusRunnable (
+                RunnableContainer container, int thread, Runnable runnable ) {
+
+                  super( container, thread, runnable );
+            }
+
+            @Override
+            public void run ( ) {
+
+                  if( mRunnable != null ) {
+                        mRunnable.run();
+                  }
+                  try {
+                        BusRunnable next = mContainer.next();
+                        ObjectBus.executeBusRunnable( next );
+                  } catch(Exception e) {
+                        isRunning = false;
+                  }
             }
       }
 }

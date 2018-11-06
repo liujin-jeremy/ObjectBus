@@ -7,7 +7,8 @@ import android.util.Log;
 import android.view.View;
 import com.threekilogram.objectbus.bus.BusGroup;
 import com.threekilogram.objectbus.bus.ObjectBus;
-import com.threekilogram.objectbus.bus.ObjectBus.RunnableContainer;
+import com.threekilogram.objectbus.bus.RunnableContainer;
+import com.threekilogram.objectbus.bus.SimplePoolBus;
 
 /**
  * @author liujin
@@ -20,6 +21,9 @@ public class MainActivity extends AppCompatActivity {
 
       private ObjectBus         mObjectBus;
       private RunnableContainer mContainer;
+      private SimplePoolBus     mSimplePoolBus;
+
+      private transient int mCount;
 
       @Override
       protected void onCreate ( Bundle savedInstanceState ) {
@@ -124,9 +128,9 @@ public class MainActivity extends AppCompatActivity {
 
             ObjectBus bus = new ObjectBus();
             //BusGroup busGroup = BusGroup.newList(  3 );
-            //BusGroup busGroup = BusGroup.newFixSizeList( 3, 3 );
+            //BusGroup busGroup = BusGroup.newList( 3, 3 );
             //BusGroup busGroup = BusGroup.newQueue(  3 );
-            BusGroup busGroup = BusGroup.newFixSizeQueue( 3, 3 );
+            BusGroup busGroup = BusGroup.newQueue( 3, 3 );
 
             for( int i = 0; i < 10; i++ ) {
                   final int j = i;
@@ -142,6 +146,27 @@ public class MainActivity extends AppCompatActivity {
 
                         log( "group : 前台执行任务 " + String.valueOf( j ) + " 完成" );
                   } ).submit( busGroup );
+            }
+      }
+
+      public void simple ( View view ) {
+
+            if( mSimplePoolBus == null ) {
+                  mSimplePoolBus = SimplePoolBus.newQueue( 5 );
+            }
+            for( int i = 0; i < 10; i++ ) {
+                  mCount++;
+                  int j = mCount;
+                  mSimplePoolBus.run( ( ) -> {
+
+                        try {
+                              Thread.sleep( 2 * 1000 );
+                        } catch(InterruptedException e) {
+                              e.printStackTrace();
+                        }
+
+                        log( "simple task " + j );
+                  } );
             }
       }
 

@@ -97,7 +97,7 @@
           android:layout_marginStart="8dp"
           android:layout_marginLeft="8dp"
           android:onClick="list"
-          android:text="list"
+          android:text="new"
           app:layout_constraintStart_toStartOf="parent"
           app:layout_constraintTop_toBottomOf="@+id/button7"/>
 
@@ -133,5 +133,16 @@
           android:onClick="group"
           app:layout_constraintStart_toStartOf="parent"
           app:layout_constraintTop_toBottomOf="@+id/button"/>
+      <Button
+          android:id="@+id/button8"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="8dp"
+          android:layout_marginStart="8dp"
+          android:layout_marginLeft="8dp"
+          android:onClick="simple"
+          android:text="simple"
+          app:layout_constraintStart_toStartOf="parent"
+          app:layout_constraintTop_toBottomOf="@+id/group"/>
 
 </android.support.constraint.ConstraintLayout>
