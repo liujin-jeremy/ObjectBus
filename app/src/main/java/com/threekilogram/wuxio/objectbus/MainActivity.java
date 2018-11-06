@@ -9,6 +9,8 @@ import com.threekilogram.objectbus.bus.BusGroup;
 import com.threekilogram.objectbus.bus.ObjectBus;
 import com.threekilogram.objectbus.bus.RunnableContainer;
 import com.threekilogram.objectbus.bus.SimplePoolBus;
+import com.threekilogram.objectbus.executor.PoolExecutor;
+import com.threekilogram.objectbus.executor.ScheduleExecutor;
 
 /**
  * @author liujin
@@ -168,6 +170,28 @@ public class MainActivity extends AppCompatActivity {
                         log( "simple task " + j );
                   } );
             }
+      }
+
+      public void schedule ( View view ) {
+
+            ScheduleExecutor.scheduleAtFixedRate( ( ) -> {
+
+                  PoolExecutor.execute( ( ) -> {
+
+                        log( "schedule " + mCount++ );
+                  } );
+            }, 1000, 1000, 3 );
+      }
+
+      public void schedule2 ( View view ) {
+
+            ScheduleExecutor.scheduleWithFixedDelay( ( ) -> {
+
+                  PoolExecutor.execute( ( ) -> {
+
+                        log( "schedule " + mCount++ );
+                  } );
+            }, 1000, 1000, 3 );
       }
 
       private class Task implements Runnable {

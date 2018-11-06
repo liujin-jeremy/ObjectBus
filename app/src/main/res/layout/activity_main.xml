@@ -144,5 +144,27 @@
           android:text="simple"
           app:layout_constraintStart_toStartOf="parent"
           app:layout_constraintTop_toBottomOf="@+id/group"/>
+      <Button
+          android:id="@+id/button9"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="8dp"
+          android:layout_marginStart="8dp"
+          android:layout_marginLeft="8dp"
+          android:onClick="schedule"
+          android:text="schedule"
+          app:layout_constraintStart_toStartOf="parent"
+          app:layout_constraintTop_toBottomOf="@+id/button8"/>
+      <Button
+          android:id="@+id/button10"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="8dp"
+          android:layout_marginStart="8dp"
+          android:layout_marginLeft="8dp"
+          android:onClick="schedule2"
+          android:text="schedule2"
+          app:layout_constraintStart_toEndOf="@+id/button9"
+          app:layout_constraintTop_toBottomOf="@+id/button8"/>
 
 </android.support.constraint.ConstraintLayout>
