@@ -2,7 +2,7 @@
 ## 简介
 
 ```
-implementation 'tech.threekilogram:object-bus:2.0.1'
+implementation 'tech.threekilogram:object-bus:2.1.3'
 ```
 
 ## 异步任务
