@@ -12,7 +12,7 @@ import android.support.v4.util.ArraySet;
  */
 public class RunningTask {
 
-      private final ArraySet<Integer> mRunning = new ArraySet<>();
+      private final transient ArraySet<Integer> mRunning = new ArraySet<>();
 
       /**
        * 测试是否正在执行该任务,如果没有执行那么添加该任务到执行列表,当下次调用时返回true,
@@ -33,7 +33,9 @@ public class RunningTask {
        */
       public void add ( int what ) {
 
-            mRunning.add( what );
+            synchronized(mRunning) {
+                  mRunning.add( what );
+            }
       }
 
       /**
@@ -57,7 +59,9 @@ public class RunningTask {
        */
       public boolean containsOf ( int what ) {
 
-            return mRunning.contains( what );
+            synchronized(mRunning) {
+                  return mRunning.contains( what );
+            }
       }
 
       /**
@@ -73,7 +77,9 @@ public class RunningTask {
        */
       public void remove ( int what ) {
 
-            mRunning.remove( what );
+            synchronized(mRunning) {
+                  mRunning.remove( what );
+            }
       }
 
       /**
@@ -81,6 +87,8 @@ public class RunningTask {
        */
       public void clear ( ) {
 
-            mRunning.clear();
+            synchronized(mRunning) {
+                  mRunning.clear();
+            }
       }
 }
