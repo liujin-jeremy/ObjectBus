@@ -3,7 +3,7 @@ package com.threekilogram.objectbus.global;
 import android.support.v4.util.ArraySet;
 
 /**
- * 线程安全的记录正在执行的任务,使用{@link #add(int)}测试任务,防止重复执行该任务
+ * 记录正在执行的任务,使用{@link #containsOf(int)}测试任务,防止重复执行该任务
  *
  * @author: Liujin
  * @version: V1.0
