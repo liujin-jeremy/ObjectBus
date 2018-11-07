@@ -14,12 +14,10 @@ public class RunningTasks {
        * 当执行完成后记得删除{@link #remove(String)}
        *
        * @param url 需要测试的任务
-       *
-       * @return true:正在执行
        */
-      public static boolean isRunning ( String url ) {
+      public static void add ( String url ) {
 
-            return RUNNING_TASK.isRunning( url );
+            RUNNING_TASK.add( url );
       }
 
       /**
@@ -47,12 +45,10 @@ public class RunningTasks {
        * 当执行完成后记得删除{@link #remove(String)}
        *
        * @param what 需要测试的任务
-       *
-       * @return true:正在执行
        */
-      public static boolean isRunning ( int what ) {
+      public static void add ( int what ) {
 
-            return RUNNING_TASK.isRunning( what );
+            RUNNING_TASK.add( what );
       }
 
       /**

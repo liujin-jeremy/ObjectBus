@@ -3,7 +3,7 @@ package com.threekilogram.objectbus.global;
 import android.support.v4.util.ArraySet;
 
 /**
- * 线程安全的记录正在执行的任务,使用{@link #isRunning(int)}测试任务,防止重复执行该任务
+ * 线程安全的记录正在执行的任务,使用{@link #add(int)}测试任务,防止重复执行该任务
  *
  * @author: Liujin
  * @version: V1.0
@@ -19,12 +19,10 @@ public class RunningTask {
        * 当执行完成后记得删除{@link #remove(String)}
        *
        * @param url 需要测试的任务
-       *
-       * @return true:正在执行
        */
-      public boolean isRunning ( String url ) {
+      public void add ( String url ) {
 
-            return isRunning( url.hashCode() );
+            add( url.hashCode() );
       }
 
       /**
@@ -32,20 +30,10 @@ public class RunningTask {
        * 当执行完成后记得删除{@link #remove(String)}
        *
        * @param what 需要测试的任务
-       *
-       * @return true:正在执行
        */
-      public boolean isRunning ( int what ) {
+      public void add ( int what ) {
 
-            synchronized(mRunning) {
-
-                  if( mRunning.contains( what ) ) {
-                        return true;
-                  } else {
-                        mRunning.add( what );
-                        return false;
-                  }
-            }
+            mRunning.add( what );
       }
 
       /**
@@ -69,10 +57,7 @@ public class RunningTask {
        */
       public boolean containsOf ( int what ) {
 
-            synchronized(mRunning) {
-
-                  return mRunning.contains( what );
-            }
+            return mRunning.contains( what );
       }
 
       /**
@@ -88,9 +73,7 @@ public class RunningTask {
        */
       public void remove ( int what ) {
 
-            synchronized(mRunning) {
-                  mRunning.remove( what );
-            }
+            mRunning.remove( what );
       }
 
       /**
@@ -98,8 +81,6 @@ public class RunningTask {
        */
       public void clear ( ) {
 
-            synchronized(mRunning) {
-                  mRunning.clear();
-            }
+            mRunning.clear();
       }
 }
