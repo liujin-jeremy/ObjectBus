@@ -25,7 +25,8 @@ public class MainActivity extends AppCompatActivity {
       private RunnableContainer mContainer;
       private SimplePoolBus     mSimplePoolBus;
 
-      private transient int mCount;
+      private transient int      mCount;
+      private           BusGroup mBusGroup;
 
       @Override
       protected void onCreate ( Bundle savedInstanceState ) {
@@ -129,17 +130,21 @@ public class MainActivity extends AppCompatActivity {
       public void group ( View view ) {
 
             ObjectBus bus = new ObjectBus();
-            //BusGroup busGroup = BusGroup.newList(  3 );
-            //BusGroup busGroup = BusGroup.newList( 3, 3 );
-            //BusGroup busGroup = BusGroup.newQueue(  3 );
-            BusGroup busGroup = BusGroup.newQueue( 3, 3 );
+
+            if( mBusGroup == null ) {
+                  mBusGroup = BusGroup.newQueue( 3, 3 );
+                  //mBusGroup = BusGroup.newQueue(  3 );
+                  //mBusGroup = BusGroup.newList( 3, 3 );
+                  //mBusGroup = BusGroup.newList( 3 );
+            }
 
             for( int i = 0; i < 10; i++ ) {
-                  final int j = i;
+                  mCount++;
+                  final int j = mCount;
                   bus.toPool( ( ) -> {
 
                         try {
-                              log( "group : 后台执行任务 " + String.valueOf( j ) + " 完成" );
+                              log( "group : 后台执行任务 " + String.valueOf( j ) + " 中" );
                               Thread.sleep( 1000 );
                         } catch(InterruptedException e) {
                               e.printStackTrace();
@@ -147,14 +152,17 @@ public class MainActivity extends AppCompatActivity {
                   } ).toMain( ( ) -> {
 
                         log( "group : 前台执行任务 " + String.valueOf( j ) + " 完成" );
-                  } ).submit( busGroup );
+                  } ).submit( mBusGroup );
             }
       }
 
       public void simple ( View view ) {
 
             if( mSimplePoolBus == null ) {
-                  mSimplePoolBus = SimplePoolBus.newQueue( 5 );
+                  //mSimplePoolBus = SimplePoolBus.newQueue( 3 );
+                  //mSimplePoolBus = SimplePoolBus.newQueue();
+                  //mSimplePoolBus = SimplePoolBus.newList( 3 );
+                  mSimplePoolBus = SimplePoolBus.newList();
             }
             for( int i = 0; i < 10; i++ ) {
                   mCount++;

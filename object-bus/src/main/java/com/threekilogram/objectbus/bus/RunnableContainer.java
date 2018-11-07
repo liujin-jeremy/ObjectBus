@@ -123,7 +123,7 @@ class ListContainer extends BaseRunnableContainer {
       ListContainer ( ) { }
 
       @Override
-      public BusRunnable next ( ) {
+      public synchronized BusRunnable next ( ) {
 
             return mExecutes.pollFirst();
       }
@@ -154,6 +154,12 @@ class FixSizeListContainer extends ListContainer {
       }
 
       @Override
+      public synchronized BusRunnable next ( ) {
+
+            return super.next();
+      }
+
+      @Override
       public RunnableContainer create ( ) {
 
             return new FixSizeListContainer( mSize );
@@ -169,7 +175,7 @@ class QueueContainer extends BaseRunnableContainer {
       QueueContainer ( ) { }
 
       @Override
-      public BusRunnable next ( ) {
+      public synchronized BusRunnable next ( ) {
 
             return mExecutes.pollLast();
       }
@@ -197,6 +203,12 @@ class FixSizeQueueContainer extends QueueContainer {
             if( mExecutes.size() > mSize ) {
                   mExecutes.pollFirst();
             }
+      }
+
+      @Override
+      public synchronized BusRunnable next ( ) {
+
+            return super.next();
       }
 
       @Override

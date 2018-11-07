@@ -13,7 +13,7 @@ public class BusGroup {
       /**
        * 并发执行任务的数量
        */
-      private transient int mCouldLoopCount = 3;
+      private transient int mConcurrentCount = 3;
 
       /**
        * 创建一个任务组,先添加的先执行
@@ -70,7 +70,7 @@ public class BusGroup {
       private BusGroup ( TaskIterator taskIterator, int concurrentCount ) {
 
             mTaskIterator = taskIterator;
-            mCouldLoopCount = concurrentCount;
+            mConcurrentCount = concurrentCount;
       }
 
       /**
@@ -80,12 +80,12 @@ public class BusGroup {
        */
       void addTask ( RunnableContainer container ) {
 
-            if( mCouldLoopCount == 0 ) {
+            if( mConcurrentCount <= 0 ) {
                   mTaskIterator.add( container );
             } else {
+                  mConcurrentCount--;
                   container.add( new LoopBusRunnable( container ) );
                   ObjectBus.loop( container );
-                  mCouldLoopCount--;
             }
       }
 
@@ -110,7 +110,7 @@ public class BusGroup {
                   } catch(Exception e) {
                         /* nothing */
                   }
-                  mCouldLoopCount++;
+                  mConcurrentCount++;
             }
       }
 
@@ -152,7 +152,7 @@ public class BusGroup {
             }
 
             @Override
-            public RunnableContainer next ( ) {
+            public synchronized RunnableContainer next ( ) {
 
                   return mTasks.pollFirst();
             }
@@ -181,7 +181,7 @@ public class BusGroup {
             }
 
             @Override
-            public RunnableContainer next ( ) {
+            public synchronized RunnableContainer next ( ) {
 
                   return mTasks.pollFirst();
             }
@@ -199,7 +199,7 @@ public class BusGroup {
             }
 
             @Override
-            public RunnableContainer next ( ) {
+            public synchronized RunnableContainer next ( ) {
 
                   return mTasks.pollLast();
             }
@@ -228,7 +228,7 @@ public class BusGroup {
             }
 
             @Override
-            public RunnableContainer next ( ) {
+            public synchronized RunnableContainer next ( ) {
 
                   return mTasks.pollLast();
             }
