@@ -2,9 +2,9 @@ package com.threekilogram.wuxio.objectbus;
 
 import static com.threekilogram.wuxio.objectbus.MsgUtils.getInfo;
 
-import com.threekilogram.objectbus.anth.ScheduledTask;
-import com.threekilogram.objectbus.anth.Task;
-import com.threekilogram.objectbus.anth.Threads;
+import com.threekilogram.objectbus.ScheduledTask;
+import com.threekilogram.objectbus.Task;
+import com.threekilogram.objectbus.Threads;
 
 /**
  * @author Liujin 2019/2/23:0:25:42

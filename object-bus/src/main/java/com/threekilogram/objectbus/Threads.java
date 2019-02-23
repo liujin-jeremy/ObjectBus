@@ -1,4 +1,4 @@
-package com.threekilogram.objectbus.anth;
+package com.threekilogram.objectbus;
 
 import android.os.Handler;
 import android.os.Looper;
@@ -16,6 +16,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
+ * 线程工具类
+ *
  * @author Liujin 2019/2/22:23:01:36
  */
 public class Threads {

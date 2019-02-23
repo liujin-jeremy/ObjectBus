@@ -1,11 +1,11 @@
-package com.threekilogram.objectbus.anth;
+package com.threekilogram.objectbus;
 
 import java.util.concurrent.TimeUnit;
 
 /**
  * @author Liujin 2019/2/23:11:19:26
  */
-public class ScheduledTask implements StepTask {
+class ScheduledTask implements StepTask {
 
       /**
        * 延时
@@ -16,7 +16,7 @@ public class ScheduledTask implements StepTask {
        */
       private StepTask mStepTask;
 
-      public ScheduledTask ( long timeMill, StepTask stepTask ) {
+      ScheduledTask ( long timeMill, StepTask stepTask ) {
 
             mTimeMill = timeMill;
             mStepTask = stepTask;
@@ -26,6 +26,12 @@ public class ScheduledTask implements StepTask {
       public void run ( ) {
 
             mStepTask.start();
+      }
+
+      @Override
+      public void setNext ( StepTask task ) {
+
+            mStepTask.setNext( task );
       }
 
       @Override

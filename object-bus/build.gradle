@@ -22,7 +22,6 @@ android {
 
 dependencies {
     implementation 'com.android.support:appcompat-v7:27.1.1'
-    androidTestImplementation 'junit:junit:4.12'
 }
 
 //上传到JCenter

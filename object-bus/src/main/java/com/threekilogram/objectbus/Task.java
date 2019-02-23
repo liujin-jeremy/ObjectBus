@@ -1,17 +1,17 @@
-package com.threekilogram.objectbus.anth;
+package com.threekilogram.objectbus;
 
 import java.util.concurrent.Executor;
 
 /**
  * @author Liujin 2019/2/23:0:29:41
  */
-public class Task implements StepTask {
+class Task implements StepTask {
 
       private Executor mWhich;
       private Runnable mRunnable;
       private StepTask mNext;
 
-      public Task ( Runnable runnable, Executor which ) {
+      Task ( Runnable runnable, Executor which ) {
 
             mWhich = which;
             mRunnable = runnable;
@@ -23,6 +23,7 @@ public class Task implements StepTask {
             mRunnable.run();
       }
 
+      @Override
       public void setNext ( StepTask next ) {
 
             mNext = next;
