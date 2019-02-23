@@ -9,7 +9,6 @@ import com.threekilogram.objectbus.bus.BusGroup;
 import com.threekilogram.objectbus.bus.ObjectBus;
 import com.threekilogram.objectbus.bus.RunnableContainer;
 import com.threekilogram.objectbus.bus.SimplePoolBus;
-import com.threekilogram.objectbus.executor.PoolExecutor;
 import com.threekilogram.objectbus.executor.ScheduleExecutor;
 
 /**

@@ -10,13 +10,13 @@ public class ScheduledTask implements StepTask {
       /**
        * 延时
        */
-      private int      mTimeMill;
+      private long     mTimeMill;
       /**
        * 任务
        */
       private StepTask mStepTask;
 
-      public ScheduledTask ( int timeMill, StepTask stepTask ) {
+      public ScheduledTask ( long timeMill, StepTask stepTask ) {
 
             mTimeMill = timeMill;
             mStepTask = stepTask;
