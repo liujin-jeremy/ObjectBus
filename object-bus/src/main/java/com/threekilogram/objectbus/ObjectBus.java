@@ -34,65 +34,35 @@ public class ObjectBus {
 
       public ObjectBus toSingle ( Runnable runnable ) {
 
-            Task task = new Task( runnable, Threads.SINGLE );
-            if( mCurrent != null ) {
-                  mCurrent.setNext( task );
-            } else {
-                  mFirst = task;
-            }
-            mCurrent = task;
+            to( runnable, Threads.SINGLE );
             return this;
       }
 
       public ObjectBus toComputation ( Runnable runnable ) {
 
-            Task task = new Task( runnable, Threads.COMPUTATION );
-            if( mCurrent != null ) {
-                  mCurrent.setNext( task );
-            } else {
-                  mFirst = task;
-            }
-            mCurrent = task;
+            to( runnable, Threads.COMPUTATION );
             return this;
       }
 
       public ObjectBus toIO ( Runnable runnable ) {
 
-            Task task = new Task( runnable, Threads.IO );
-            if( mCurrent != null ) {
-                  mCurrent.setNext( task );
-            } else {
-                  mFirst = task;
-            }
-            mCurrent = task;
+            to( runnable, Threads.IO );
             return this;
       }
 
       public ObjectBus toNew ( Runnable runnable ) {
 
-            Task task = new Task( runnable, Threads.NEW_THREAD );
-            if( mCurrent != null ) {
-                  mCurrent.setNext( task );
-            } else {
-                  mFirst = task;
-            }
-            mCurrent = task;
+            to( runnable, Threads.NEW_THREAD );
             return this;
       }
 
       public ObjectBus toAndroidMain ( Runnable runnable ) {
 
-            Task task = new Task( runnable, Threads.ANDROID_MAIN );
-            if( mCurrent != null ) {
-                  mCurrent.setNext( task );
-            } else {
-                  mFirst = task;
-            }
-            mCurrent = task;
+            to( runnable, Threads.ANDROID_MAIN );
             return this;
       }
 
-      public ObjectBus schedule ( Runnable runnable, long delayed, Executor executor ) {
+      public ObjectBus schedule ( Runnable runnable, Executor executor, long delayed ) {
 
             Task task = new Task( runnable, executor );
             if( delayed < 0 ) {
@@ -110,81 +80,31 @@ public class ObjectBus {
 
       public ObjectBus scheduleToSingle ( Runnable runnable, long delayed ) {
 
-            Task task = new Task( runnable, Threads.SINGLE );
-            if( delayed < 0 ) {
-                  delayed = 0;
-            }
-            ScheduledTask scheduledTask = new ScheduledTask( delayed, task );
-            if( mCurrent != null ) {
-                  mCurrent.setNext( scheduledTask );
-            } else {
-                  mFirst = scheduledTask;
-            }
-            mCurrent = scheduledTask;
+            schedule( runnable, Threads.SINGLE, delayed );
             return this;
       }
 
       public ObjectBus scheduleToComputation ( Runnable runnable, long delayed ) {
 
-            Task task = new Task( runnable, Threads.COMPUTATION );
-            if( delayed < 0 ) {
-                  delayed = 0;
-            }
-            ScheduledTask scheduledTask = new ScheduledTask( delayed, task );
-            if( mCurrent != null ) {
-                  mCurrent.setNext( scheduledTask );
-            } else {
-                  mFirst = scheduledTask;
-            }
-            mCurrent = scheduledTask;
+            schedule( runnable, Threads.COMPUTATION, delayed );
             return this;
       }
 
       public ObjectBus scheduleToIO ( Runnable runnable, long delayed ) {
 
-            Task task = new Task( runnable, Threads.IO );
-            if( delayed < 0 ) {
-                  delayed = 0;
-            }
-            ScheduledTask scheduledTask = new ScheduledTask( delayed, task );
-            if( mCurrent != null ) {
-                  mCurrent.setNext( scheduledTask );
-            } else {
-                  mFirst = scheduledTask;
-            }
-            mCurrent = scheduledTask;
+            schedule( runnable, Threads.IO, delayed );
             return this;
       }
 
       public ObjectBus scheduleToNew ( Runnable runnable, long delayed ) {
 
-            Task task = new Task( runnable, Threads.NEW_THREAD );
-            if( delayed < 0 ) {
-                  delayed = 0;
-            }
-            ScheduledTask scheduledTask = new ScheduledTask( delayed, task );
-            if( mCurrent != null ) {
-                  mCurrent.setNext( scheduledTask );
-            } else {
-                  mFirst = scheduledTask;
-            }
-            mCurrent = scheduledTask;
+            schedule( runnable, Threads.NEW_THREAD, delayed );
             return this;
       }
 
       public ObjectBus scheduleToAndroidMain ( Runnable runnable, long delayed ) {
 
-            Task task = new Task( runnable, Threads.ANDROID_MAIN );
-            if( delayed < 0 ) {
-                  delayed = 0;
-            }
-            ScheduledTask scheduledTask = new ScheduledTask( delayed, task );
-            if( mCurrent != null ) {
-                  mCurrent.setNext( scheduledTask );
-            } else {
-                  mFirst = scheduledTask;
-            }
-            mCurrent = scheduledTask;
+            schedule( runnable, Threads.ANDROID_MAIN, delayed );
             return this;
       }
 

@@ -7,4 +7,26 @@
     android:layout_height="match_parent"
     tools:context="com.threekilogram.wuxio.objectbus.Main2Activity">
 
+      <Button
+          android:id="@+id/button11"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="8dp"
+          android:layout_marginStart="8dp"
+          android:layout_marginLeft="8dp"
+          android:text="test 00"
+          android:onClick="startTest"
+          app:layout_constraintStart_toStartOf="parent"
+          app:layout_constraintTop_toTopOf="parent"/>
+      <Button
+          android:id="@+id/button13"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="8dp"
+          android:layout_marginStart="8dp"
+          android:layout_marginLeft="8dp"
+          android:text="test 01"
+          android:onClick="startTest01"
+          app:layout_constraintStart_toEndOf="@+id/button11"
+          app:layout_constraintTop_toTopOf="parent"/>
 </android.support.constraint.ConstraintLayout>

@@ -57,7 +57,7 @@ public class Threads {
           60,
           TimeUnit.SECONDS,
           new SynchronousQueue<>(),
-          new ThreadsFactory( "computation", Thread.NORM_PRIORITY - 1 )
+          new ThreadsFactory( "io", Thread.NORM_PRIORITY - 1 )
       );
       /**
        * 总使用新线程
@@ -68,7 +68,7 @@ public class Threads {
           0,
           TimeUnit.SECONDS,
           new SynchronousQueue<>(),
-          new ThreadsFactory( "computation", Thread.MIN_PRIORITY )
+          new ThreadsFactory( "new", Thread.MIN_PRIORITY )
       );
       /**
        * android 主线程
