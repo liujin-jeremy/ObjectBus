@@ -32,9 +32,9 @@ public class Threads {
       public static final  Executor SINGLE       = new TaskThreadPoolExecutor(
           1,
           1,
-          0,
+          0L,
           TimeUnit.SECONDS,
-          new LinkedBlockingQueue<>(),
+          new LinkedBlockingQueue<Runnable>(),
           new ThreadsFactory( "single", Thread.NORM_PRIORITY )
       );
       /**
@@ -45,7 +45,7 @@ public class Threads {
           sCoreCount,
           0L,
           TimeUnit.SECONDS,
-          new LinkedBlockingQueue<>(),
+          new LinkedBlockingQueue<Runnable>(),
           new ThreadsFactory( "computation", Thread.NORM_PRIORITY )
       );
       /**
@@ -56,7 +56,7 @@ public class Threads {
           Integer.MAX_VALUE,
           60,
           TimeUnit.SECONDS,
-          new SynchronousQueue<>(),
+          new SynchronousQueue<Runnable>(),
           new ThreadsFactory( "io", Thread.NORM_PRIORITY - 1 )
       );
       /**
@@ -67,7 +67,7 @@ public class Threads {
           Integer.MAX_VALUE,
           0,
           TimeUnit.SECONDS,
-          new SynchronousQueue<>(),
+          new SynchronousQueue<Runnable>(),
           new ThreadsFactory( "new", Thread.MIN_PRIORITY )
       );
       /**
@@ -96,8 +96,12 @@ public class Threads {
             }
 
             private TaskThreadPoolExecutor (
-                int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
-                BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory ) {
+                int corePoolSize,
+                int maximumPoolSize,
+                long keepAliveTime,
+                TimeUnit unit,
+                BlockingQueue<Runnable> workQueue,
+                ThreadFactory threadFactory ) {
 
                   super( corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory );
             }
@@ -150,7 +154,7 @@ public class Threads {
              */
             private AtomicInteger mCount = new AtomicInteger();
 
-            private ThreadsFactory ( String threadNamePre, int priority ) {
+            ThreadsFactory ( String threadNamePre, int priority ) {
 
                   mThreadNamePre = threadNamePre;
                   mPriority = priority;
