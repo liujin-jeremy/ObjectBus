@@ -10,15 +10,15 @@ class ScheduledTask implements StepTask {
       /**
        * 延时
        */
-      private long     mTimeMill;
+      private long     mTimeMillDelayed;
       /**
        * 任务
        */
       private StepTask mStepTask;
 
-      ScheduledTask ( long timeMill, StepTask stepTask ) {
+      ScheduledTask ( long timeMillDelayed, StepTask stepTask ) {
 
-            mTimeMill = timeMill;
+            mTimeMillDelayed = timeMillDelayed;
             mStepTask = stepTask;
       }
 
@@ -37,20 +37,20 @@ class ScheduledTask implements StepTask {
       @Override
       public void start ( ) {
 
-            if( mTimeMill > 0 ) {
+            if( mTimeMillDelayed > 0 ) {
 
-                  Threads.SCHEDULE.schedule( this, mTimeMill, TimeUnit.MILLISECONDS );
-                  mTimeMill = -1;
+                  Threads.SCHEDULE.schedule( this, mTimeMillDelayed, TimeUnit.MILLISECONDS );
+                  mTimeMillDelayed = -1;
             }
       }
 
       @Override
       public void startNext ( ) {
 
-            if( mTimeMill > 0 ) {
+            if( mTimeMillDelayed > 0 ) {
 
-                  Threads.SCHEDULE.schedule( this, mTimeMill, TimeUnit.MILLISECONDS );
-                  mTimeMill = -1;
+                  Threads.SCHEDULE.schedule( this, mTimeMillDelayed, TimeUnit.MILLISECONDS );
+                  mTimeMillDelayed = -1;
             }
       }
 }

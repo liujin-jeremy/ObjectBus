@@ -5,9 +5,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
@@ -25,11 +23,11 @@ public class Threads {
       /**
        * 根据cpu计算核心数
        */
-      private static final int      sCoreCount   = Runtime.getRuntime().availableProcessors();
+      private static final int          sCoreCount   = Runtime.getRuntime().availableProcessors();
       /**
        * 只有一个线程
        */
-      public static final  Executor SINGLE       = new TaskThreadPoolExecutor(
+      public static final  StepExecutor SINGLE       = new TaskThreadPoolExecutor(
           1,
           1,
           0L,
@@ -38,9 +36,9 @@ public class Threads {
           new ThreadsFactory( "single", Thread.NORM_PRIORITY )
       );
       /**
-       * 最多只有cpu个数个线程
+       * 最多只有cpu个数个线程,用于计算型任务
        */
-      public static final  Executor COMPUTATION  = new TaskThreadPoolExecutor(
+      public static final  StepExecutor COMPUTATION  = new TaskThreadPoolExecutor(
           sCoreCount,
           sCoreCount,
           0L,
@@ -49,9 +47,9 @@ public class Threads {
           new ThreadsFactory( "computation", Thread.NORM_PRIORITY )
       );
       /**
-       * 最多有Integer.MAX_VALUE个线程执行任务
+       * 最多有Integer.MAX_VALUE个线程执行任务,用于IO操作
        */
-      public static final  Executor IO           = new TaskThreadPoolExecutor(
+      public static final  StepExecutor IO           = new TaskThreadPoolExecutor(
           sCoreCount,
           Integer.MAX_VALUE,
           60,
@@ -60,9 +58,9 @@ public class Threads {
           new ThreadsFactory( "io", Thread.NORM_PRIORITY - 1 )
       );
       /**
-       * 总使用新线程
+       * 总是使用新线程操作任务
        */
-      public static final  Executor NEW_THREAD   = new TaskThreadPoolExecutor(
+      public static final  StepExecutor NEW_THREAD   = new TaskThreadPoolExecutor(
           0,
           Integer.MAX_VALUE,
           0,
@@ -71,12 +69,13 @@ public class Threads {
           new ThreadsFactory( "new", Thread.MIN_PRIORITY )
       );
       /**
-       * android 主线程
+       * android 主线程,UI线程
        */
-      public static final  Executor ANDROID_MAIN = new AndroidExecutor();
+      public static final  StepExecutor ANDROID_MAIN = new AndroidMainExecutor();
 
       /**
-       * 时间调度
+       * 时间调度,用于执行定时任务,不要再此线程中执行耗时任务,此线程应该只用于在一个时间点触发任务开始执行,耗时任务请使用{@link Threads#NEW_THREAD},
+       * {@link Threads#SINGLE},{@link Threads#COMPUTATION},{@link Threads#IO}
        */
       public static final ScheduledThreadPoolExecutor SCHEDULE = new ScheduledThreadPoolExecutor(
           1,
@@ -84,16 +83,38 @@ public class Threads {
       );
 
       /**
+       * 按步骤执行的任务
+       */
+      public interface StepExecutor {
+
+            /**
+             * 任务执行之前回调
+             *
+             * @param t 执行任务的线程
+             * @param r 任务
+             */
+            void beforeExecute ( Thread t, Runnable r );
+
+            /**
+             * 执行任务
+             *
+             * @param command 执行任务
+             */
+            void execute ( Runnable command );
+
+            /**
+             * 任务执行完毕后回调
+             *
+             * @param r 任务
+             * @param t 异常, maybe null
+             */
+            void afterExecute ( Runnable r, Throwable t );
+      }
+
+      /**
        * thread pool executor handle runnable
        */
-      private static class TaskThreadPoolExecutor extends ThreadPoolExecutor {
-
-            private TaskThreadPoolExecutor (
-                int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
-                BlockingQueue<Runnable> workQueue ) {
-
-                  super( corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue );
-            }
+      private static class TaskThreadPoolExecutor extends ThreadPoolExecutor implements StepExecutor {
 
             private TaskThreadPoolExecutor (
                 int corePoolSize,
@@ -106,33 +127,86 @@ public class Threads {
                   super( corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory );
             }
 
-            private TaskThreadPoolExecutor (
-                int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
-                BlockingQueue<Runnable> workQueue, RejectedExecutionHandler handler ) {
-
-                  super( corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, handler );
-            }
-
-            private TaskThreadPoolExecutor (
-                int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
-                BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, RejectedExecutionHandler handler ) {
-
-                  super( corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler );
-            }
-
             @Override
-            protected void beforeExecute ( Thread t, Runnable r ) {
+            public void beforeExecute ( Thread t, Runnable r ) {
 
                   super.beforeExecute( t, r );
             }
 
             @Override
-            protected void afterExecute ( Runnable r, Throwable t ) {
+            public void execute ( Runnable command ) {
+
+                  super.execute( command );
+            }
+
+            @Override
+            public void afterExecute ( Runnable r, Throwable t ) {
 
                   super.afterExecute( r, t );
                   if( r instanceof StepTask ) {
                         ( (Task) r ).startNext();
                   }
+            }
+      }
+
+      /**
+       * android 主线程执行任务
+       */
+      private static class AndroidMainExecutor implements StepExecutor {
+
+            private MainHandler mMainHandler;
+
+            private AndroidMainExecutor ( ) {
+
+                  mMainHandler = new MainHandler( this );
+            }
+
+            @Override
+            public void beforeExecute ( Thread t, Runnable r ) { }
+
+            @Override
+            public void execute ( @NonNull Runnable command ) {
+
+                  Message message = mMainHandler.obtainMessage();
+                  message.obj = command;
+                  mMainHandler.sendMessage( message );
+            }
+
+            @Override
+            public void afterExecute ( Runnable r, Throwable t ) {
+
+                  if( r instanceof Task ) {
+                        ( (Task) r ).startNext();
+                  }
+            }
+      }
+
+      /**
+       * 主线程handler
+       */
+      private static class MainHandler extends Handler {
+
+            private AndroidMainExecutor mExecutor;
+
+            private MainHandler ( AndroidMainExecutor executor ) {
+
+                  super( Looper.getMainLooper() );
+                  mExecutor = executor;
+            }
+
+            @Override
+            public void handleMessage ( Message msg ) {
+
+                  Runnable command = (Runnable) msg.obj;
+                  //mExecutor.beforeExecute( Thread.currentThread(), command );
+                  Throwable throwable = null;
+                  try {
+                        command.run();
+                  } catch(Exception e) {
+                        e.printStackTrace();
+                        throwable = e;
+                  }
+                  mExecutor.afterExecute( command, throwable );
             }
       }
 
@@ -167,43 +241,6 @@ public class Threads {
                   thread.setName( mThreadNamePre + "-" + mCount.getAndAdd( 1 ) );
                   thread.setPriority( mPriority );
                   return thread;
-            }
-      }
-
-      /**
-       * android 主线程执行任务
-       */
-      private static class AndroidExecutor implements Executor {
-
-            private MainHandler mMainHandler = new MainHandler();
-
-            @Override
-            public void execute ( @NonNull Runnable command ) {
-
-                  Message message = mMainHandler.obtainMessage();
-                  message.obj = command;
-                  mMainHandler.sendMessage( message );
-            }
-      }
-
-      /**
-       * 主线程
-       */
-      private static class MainHandler extends Handler {
-
-            private MainHandler ( ) {
-
-                  super( Looper.getMainLooper() );
-            }
-
-            @Override
-            public void handleMessage ( Message msg ) {
-
-                  Runnable command = (Runnable) msg.obj;
-                  command.run();
-                  if( command instanceof Task ) {
-                        ( (Task) command ).startNext();
-                  }
             }
       }
 }

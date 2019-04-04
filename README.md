@@ -1,165 +1,146 @@
-
 ## 简介
 
-```
-implementation 'tech.threekilogram:object-bus:2.1.3'
-```
+该库用于携带任务穿梭于线程间执行
 
-## 异步任务
-
-该类可以在不同的线程上串行执行任务
-
-#### 创建
+### 引入
 
 ```
-// 按照任务添加顺序执行
-mObjectBus = ObjectBus.create();
+implementation 'tech.threekilogram:object-bus:3.0.0'
 ```
 
-#### 后台任务
+### 使用
+
+#### 简单实用
 
 ```
-mObjectBus.toPool( new Runnable() {
+// 创建对象
+ObjectBus bus = new ObjectBus();
+
+// 第一个参数是执行的任务,第二个参数是在哪个线程执行
+// 可以指定的线程包括:
+//		Threads.SINGLE: 总在一条线程执行
+//		Threads.COMPUTATION: 在计算线程操作
+//		Threads.IO: IO线程操作
+//		Threads.NEW_THREAD: 总在新线程操作
+//		Threads.ANDROID_MAIN: 在android UI线程操作
+bus.to( new Runnable() {
       @Override
       public void run ( ) {
-      
-      		//具体任务
-      
+            // 执行的任务
       }
-} ).run();
+}, Threads.COMPUTATION );
+
+// 开始执行
+bus.start();
 ```
 
-> 每次调用run()方法会执行之前添加的所有任务
-
-#### 主线程任务
+#### 流式操作
 
 ```
-mObjectBus.toMain( new Runnable() {
-      @Override
-      public void run ( ) {
-      
-      		//具体任务
-      
-      }
-} ).run();
+ObjectBus bus = new ObjectBus();
+bus.to(
+    ( ) -> {
+          // 执行的任务第0步
+    },
+    Threads.COMPUTATION
+).to(
+    ( ) -> {
+          // 执行的任务第1步
+    },
+    Threads.IO
+).to(
+    ( ) -> {
+          // 执行的任务第2步
+    },
+    Threads.SINGLE
+).to(
+    ( ) -> {
+          // 执行的任务第3步
+    },
+    Threads.ANDROID_MAIN
+).start();
 ```
 
-#### 切换线程
+同样也可以使用工具方法省略线程的指定
 
 ```
-mObjectBus.toPool( new Runnable() {
-      @Override
-      public void run ( ) {
-            // 后台任务
-      }
-} ).toMain( new Runnable() {
-      @Override
-      public void run ( ) {
-      		// 主线程任务
-      }
-} ).run();
-```
-
-#### 传递变量
-
-> 当后面的操作需要前面的操作的结果时,使用如下方法
-
-```
-mObjectBus.toPool( new Runnable() {
-      @Override
-      public void run ( ) {
-      
-      		//设置结果
-            mObjectBus.setResult( "result", "Hello" );
-      }
-} ).toMain( new Runnable() {
-      @Override
-      public void run ( ) {
-      
-      		//读取前面设置的结果
-            String result = mObjectBus.getResult( "result" );
-            
-            //推荐使用下面的方法读取结果,下面的方法会读取结果并移除结果,优化内存
-            String result = mObjectBus.getResultOff( "result" );
-      }
-} ).run();
+ObjectBus bus = new ObjectBus();
+bus.toComputation(
+    ( ) -> {
+          // 执行的任务第0步
+    }
+).toIO(
+    ( ) -> {
+          // 执行的任务第1步
+    }
+).toSingle(
+    ( ) -> {
+          // 执行的任务第2步
+    }
+).toAndroidMain(
+    ( ) -> {
+          // 执行的任务第3步
+    }
+).start();
 ```
 
 #### 延时任务
 
 ```
-mObjectBus.toPool( 1500, new Runnable() { --> 延时 1.5s
-      @Override
-      public void run ( ) {
-      
-      }
-} ).toMain( 1500, new Runnable() {		--> 延时 1.5s
-      @Override
-      public void run ( ) {
-      
-      }
-} ).run();
+ObjectBus bus = new ObjectBus();
+bus.schedule(
+    ( ) -> {
+          // 延时任务
+    },
+    Threads.SINGLE,
+    1000
+).start();
 ```
 
-#### 监听任务执行过程
+流式操作
 
 ```
-mObjectBus.toMain( new Executable() {	--> 一个特殊的Runnable
-      @Override
-      public void onStart ( ) {
-      }
-      @Override
-      public void onExecute ( ) {
-      }
-      @Override
-      public void onFinish ( ) {
-      }
-} ).run();
+ObjectBus bus = new ObjectBus();
+bus.toSingle(
+    ( ) -> {
+          // 任务第0步
+    }
+).schedule(
+    ( ) -> {
+          // 延时任务,任务第2步
+    },
+    Threads.SINGLE,
+    1000
+).toAndroidMain(
+    ( ) -> {
+          // 任务第3步
+    }
+).start();
 ```
 
-#### 主线程回调的Runnable
+工具方法
 
 ```
-mObjectBus.toPool( new EchoRunnable() {
-      @Override
-      protected void onResult ( Object result ) {
-            Log.e(TAG, "onResult : "+result+" "+Thread.currentThread().getName());
-      }
-      @Override
-      public void run ( ) {
-            setResult( "Hello Echo" );
-      }
-} ).run();
+ObjectBus bus = new ObjectBus();
+bus.scheduleToSingle(
+    ( ) -> {
+          // 任务第0步
+    },
+    1000
+).scheduleToIO(
+    ( ) -> {
+          // 延时任务,任务第2步
+    },
+    1000
+).scheduleToComputation(
+    ( ) -> {
+          // 任务第3步
+    },
+    1000
+).scheduleToAndroidMain(
+    ( ) -> {
+          // 任务第4步
+    },
+    1000
+).start();
 ```
-
-## 控制并发
-
-以上使用 `mObjectBus .run()` 方法直接进行调度,如果需要控制任务的执行使用 `submit ( TaskGroup group ) `方法,条交给TaskGroup 之后,会使用固定数量的线程的不断执行添加的任务
-
-```
-// 按照添加顺序执行任务
-TaskGroup busGroup = TaskGroup.newList( 3 );
-// 按照添加顺序执行任务,最多只能添加3组,超过会移除最先添加的
-TaskGroup busGroup = TaskGroup.newFixSizeList( 3, 3 );
-// 按照后添加先执行的顺序执行任务
-TaskGroup busGroup = TaskGroup.newQueue(  3 );
-// 按照后添加先执行的顺序执行任务,最多只能添加3组,超过会移除最先添加的
-TaskGroup busGroup = TaskGroup.newFixSizeQueue( 3, 3 );
-
-for( int i = 0; i < 10; i++ ) {
-      final int j = i;
-      bus.toPool( ( ) -> {
-            try {
-                  log( "group : 后台执行任务 " + String.valueOf( j ) + " 完成" );
-                  Thread.sleep( 1000 );
-            } catch(InterruptedException e) {
-                  e.printStackTrace();
-            }
-      } ).toMain( ( ) -> {
-            log( "group : 前台执行任务 " + String.valueOf( j ) + " 完成" );
-      } ).submit( busGroup );
-}
-
-// 将会保证3个任务同时执行,直至添加的所有任务执行完毕
-```
-

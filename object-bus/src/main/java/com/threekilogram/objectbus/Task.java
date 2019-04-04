@@ -1,17 +1,17 @@
 package com.threekilogram.objectbus;
 
-import java.util.concurrent.Executor;
+import com.threekilogram.objectbus.Threads.StepExecutor;
 
 /**
  * @author Liujin 2019/2/23:0:29:41
  */
 class Task implements StepTask {
 
-      private Executor mWhich;
-      private Runnable mRunnable;
-      private StepTask mNext;
+      private StepExecutor mWhich;
+      private Runnable     mRunnable;
+      private StepTask     mNext;
 
-      Task ( Runnable runnable, Executor which ) {
+      Task ( Runnable runnable, StepExecutor which ) {
 
             mWhich = which;
             mRunnable = runnable;

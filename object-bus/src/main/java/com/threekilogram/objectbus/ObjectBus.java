@@ -1,6 +1,6 @@
 package com.threekilogram.objectbus;
 
-import java.util.concurrent.Executor;
+import com.threekilogram.objectbus.Threads.StepExecutor;
 
 /**
  * @author Liujin 2019/2/22:23:21:08
@@ -20,7 +20,7 @@ public class ObjectBus {
        *
        * @return self
        */
-      public ObjectBus to ( Runnable runnable, Executor executor ) {
+      public ObjectBus to ( Runnable runnable, StepExecutor executor ) {
 
             Task task = new Task( runnable, executor );
             if( mCurrent != null ) {
@@ -62,7 +62,7 @@ public class ObjectBus {
             return this;
       }
 
-      public ObjectBus schedule ( Runnable runnable, Executor executor, long delayed ) {
+      public ObjectBus schedule ( Runnable runnable, StepExecutor executor, long delayed ) {
 
             Task task = new Task( runnable, executor );
             if( delayed < 0 ) {
@@ -113,5 +113,25 @@ public class ObjectBus {
             if( mFirst != null ) {
                   mFirst.start();
             }
+      }
+
+      /**
+       * 保存一个变量
+       *
+       * @param obj 需要保存的变量
+       */
+      public void saveObj ( Object obj ) {
+
+            mObj = obj;
+      }
+
+      /**
+       * 获取保存的变量
+       *
+       * @return 保存的变量
+       */
+      public Object getObj ( ) {
+
+            return mObj;
       }
 }
