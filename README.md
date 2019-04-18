@@ -5,7 +5,7 @@
 ### 引入
 
 ```
-implementation 'tech.threekilogram:object-bus:3.0.0'
+implementation 'tech.liujin:object-bus:1.0.0'
 ```
 
 ### 使用
@@ -144,3 +144,9 @@ bus.scheduleToSingle(
     1000
 ).start();
 ```
+
+
+
+## todo
+
+bus 分组
