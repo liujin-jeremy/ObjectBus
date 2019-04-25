@@ -1,4 +1,4 @@
-package com.threekilogram.wuxio.objectbus;
+package tech.liujin.wuxio.objectbus;
 
 import static org.junit.Assert.assertEquals;
 

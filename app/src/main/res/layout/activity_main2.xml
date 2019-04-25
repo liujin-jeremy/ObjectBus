@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.threekilogram.wuxio.objectbus.Main2Activity">
+    tools:context="com.liujin.wuxio.objectbus.tech.liujin.wuxio.objectbus.Main2Activity">
 
       <Button
           android:id="@+id/button11"

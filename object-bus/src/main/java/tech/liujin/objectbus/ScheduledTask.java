@@ -1,4 +1,4 @@
-package com.threekilogram.objectbus;
+package tech.liujin.objectbus;
 
 import java.util.concurrent.TimeUnit;
 

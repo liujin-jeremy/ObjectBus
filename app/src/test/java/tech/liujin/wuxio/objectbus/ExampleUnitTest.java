@@ -1,8 +1,8 @@
-package com.threekilogram.wuxio.objectbus;
-
-import org.junit.Test;
+package tech.liujin.wuxio.objectbus;
 
 import static org.junit.Assert.*;
+
+import org.junit.Test;
 
 /**
  * Example local unit startTest, which will execute on the development machine (host).

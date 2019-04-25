@@ -1,6 +1,6 @@
-package com.threekilogram.objectbus;
+package tech.liujin.objectbus;
 
-import com.threekilogram.objectbus.Threads.StepExecutor;
+import tech.liujin.objectbus.Threads.StepExecutor;
 
 /**
  * @author Liujin 2019/2/23:0:29:41

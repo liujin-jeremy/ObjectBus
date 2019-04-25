@@ -1,10 +1,11 @@
-package com.threekilogram.wuxio.objectbus;
+package tech.liujin.wuxio.objectbus;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
-import com.threekilogram.objectbus.ObjectBus;
-import com.threekilogram.objectbus.Threads;
+import com.liujin.wuxio.objectbus.R;
+import tech.liujin.objectbus.ObjectBus;
+import tech.liujin.objectbus.Threads;
 
 public class Main2Activity extends AppCompatActivity {
 

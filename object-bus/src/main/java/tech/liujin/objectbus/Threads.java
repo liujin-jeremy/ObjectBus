@@ -1,4 +1,4 @@
-package com.threekilogram.objectbus;
+package tech.liujin.objectbus;
 
 import android.os.Handler;
 import android.os.Looper;

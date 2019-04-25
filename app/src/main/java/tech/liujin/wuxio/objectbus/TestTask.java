@@ -1,6 +1,4 @@
-package com.threekilogram.wuxio.objectbus;
-
-import static com.threekilogram.wuxio.objectbus.MsgUtils.getInfo;
+package tech.liujin.wuxio.objectbus;
 
 /**
  * @author Liujin 2019/2/23:23:16:28
@@ -19,12 +17,12 @@ public class TestTask implements Runnable {
       @Override
       public void run ( ) {
 
-            System.out.println( getInfo() + " " + mWhat + " 开始" );
+            System.out.println( MsgUtils.getInfo() + " " + mWhat + " 开始" );
             try {
                   Thread.sleep( mNeedTime );
             } catch(InterruptedException e) {
                   e.printStackTrace();
             }
-            System.out.println( getInfo() + " " + mWhat + " 结束" );
+            System.out.println( MsgUtils.getInfo() + " " + mWhat + " 结束" );
       }
 }

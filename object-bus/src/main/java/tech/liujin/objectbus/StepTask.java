@@ -1,4 +1,4 @@
-package com.threekilogram.objectbus;
+package tech.liujin.objectbus;
 
 /**
  * @author Liujin 2019/2/23:11:04:35

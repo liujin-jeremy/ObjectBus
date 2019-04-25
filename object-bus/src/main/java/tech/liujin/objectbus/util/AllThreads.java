@@ -1,4 +1,4 @@
-package com.threekilogram.objectbus.util;
+package tech.liujin.objectbus.util;
 
 import android.util.Log;
 import java.util.Map.Entry;
