@@ -3,104 +3,43 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.liujin.wuxio.objectbus.MainActivity">
-
+    tools:context="tech.liujin.wuxio.objectbus.MainActivity">
 
       <Button
-          android:id="@+id/addMain"
+          android:id="@+id/button11"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
           android:layout_marginTop="8dp"
           android:layout_marginStart="8dp"
           android:layout_marginLeft="8dp"
-          android:onClick="addMain"
-          android:text="addMain"
+          android:onClick="startTest"
+          android:text="基础测试"
           app:layout_constraintStart_toStartOf="parent"
           app:layout_constraintTop_toTopOf="parent"/>
       <Button
-          android:id="@+id/button2"
+          android:id="@+id/button13"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
           android:layout_marginTop="8dp"
           android:layout_marginStart="8dp"
           android:layout_marginLeft="8dp"
-          android:onClick="toPool"
-          android:text="toPool"
-          app:layout_constraintStart_toEndOf="@+id/addMain"
+          android:onClick="startTest01"
+          android:text="测试延时任务"
+          app:layout_constraintStart_toEndOf="@+id/button11"
           app:layout_constraintTop_toTopOf="parent"/>
       <Button
-          android:id="@+id/button3"
+          android:id="@+id/button14"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
           android:layout_marginTop="8dp"
           android:layout_marginStart="8dp"
           android:layout_marginLeft="8dp"
-          android:onClick="toMainDelayed"
-          android:text="toMainDelayed"
+          android:onClick="testDelayTask"
+          android:text="10次定时任务 开始"
           app:layout_constraintStart_toStartOf="parent"
-          app:layout_constraintTop_toBottomOf="@+id/addMain"/>
-      <Button
-          android:id="@+id/button4"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="toPoolDelayed"
-          android:text="toPoolDelayed"
-          app:layout_constraintStart_toEndOf="@+id/button3"
-          app:layout_constraintTop_toBottomOf="@+id/button2"/>
-      <Button
-          android:id="@+id/button5"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="run"
-          android:text="run"
-          app:layout_constraintStart_toStartOf="parent"
-          app:layout_constraintTop_toBottomOf="@+id/button3"/>
-
-      <Button
-          android:id="@+id/button6"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="size"
-          android:text="size"
-          app:layout_constraintStart_toEndOf="@+id/button5"
-          app:layout_constraintTop_toBottomOf="@+id/button4"/>
-      <Button
-          android:id="@+id/button7"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="isRunning"
-          android:text="isRunning"
-          app:layout_constraintStart_toEndOf="@+id/button6"
-          app:layout_constraintTop_toBottomOf="@+id/button4"/>
-
-
-      <Button
-          android:id="@+id/button12"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="list"
-          android:text="new"
-          app:layout_constraintStart_toStartOf="parent"
-          app:layout_constraintTop_toBottomOf="@+id/button7"/>
-
+          app:layout_constraintTop_toBottomOf="@+id/button11"/>
       <Button
           android:id="@+id/button"
           android:layout_width="wrap_content"
@@ -108,63 +47,41 @@
           android:layout_marginTop="8dp"
           android:layout_marginStart="8dp"
           android:layout_marginLeft="8dp"
-          android:onClick="ifTrueFalse"
-          android:text="ifTrueFalse"
-          app:layout_constraintStart_toStartOf="parent"
-          app:layout_constraintTop_toBottomOf="@+id/button12"/>
+          android:text="暂停"
+          android:onClick="pause"
+          app:layout_constraintStart_toEndOf="@+id/button14"
+          app:layout_constraintTop_toBottomOf="@+id/button13"/>
       <Button
-          android:id="@+id/button15"
+          android:id="@+id/button2"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
-          android:layout_marginStart="20dp"
-          android:layout_marginLeft="20dp"
-          android:onClick="ifFalseFalse"
-          android:text="ifFalseFalse"
+          android:layout_marginTop="8dp"
+          android:layout_marginStart="8dp"
+          android:layout_marginLeft="8dp"
+          android:onClick="stop"
+          android:text="结束"
+          app:layout_constraintStart_toEndOf="@+id/button3"
+          app:layout_constraintTop_toBottomOf="@+id/button13"/>
+      <Button
+          android:id="@+id/button3"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="8dp"
+          android:layout_marginStart="8dp"
+          android:layout_marginLeft="8dp"
+          android:text="恢复"
+          android:onClick="resume"
           app:layout_constraintStart_toEndOf="@+id/button"
-          app:layout_constraintTop_toTopOf="@+id/button"/>
+          app:layout_constraintTop_toBottomOf="@+id/button13"/>
       <Button
-          android:id="@+id/group"
+          android:id="@+id/button4"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
           android:layout_marginTop="8dp"
           android:layout_marginStart="8dp"
           android:layout_marginLeft="8dp"
-          android:text="group"
-          android:onClick="group"
+          android:text="剃度变化"
+          android:onClick="arrayDelay"
           app:layout_constraintStart_toStartOf="parent"
-          app:layout_constraintTop_toBottomOf="@+id/button"/>
-      <Button
-          android:id="@+id/button8"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="simple"
-          android:text="simple"
-          app:layout_constraintStart_toStartOf="parent"
-          app:layout_constraintTop_toBottomOf="@+id/group"/>
-      <Button
-          android:id="@+id/button9"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="schedule"
-          android:text="schedule"
-          app:layout_constraintStart_toStartOf="parent"
-          app:layout_constraintTop_toBottomOf="@+id/button8"/>
-      <Button
-          android:id="@+id/button10"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="8dp"
-          android:layout_marginStart="8dp"
-          android:layout_marginLeft="8dp"
-          android:onClick="schedule2"
-          android:text="schedule2"
-          app:layout_constraintStart_toEndOf="@+id/button9"
-          app:layout_constraintTop_toBottomOf="@+id/button8"/>
-
+          app:layout_constraintTop_toBottomOf="@+id/button14"/>
 </android.support.constraint.ConstraintLayout>

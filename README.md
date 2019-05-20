@@ -5,7 +5,7 @@
 ### 引入
 
 ```
-implementation 'tech.liujin:object-bus:1.0.1'
+implementation 'tech.liujin:object-bus:1.0.2'
 ```
 
 ### 使用
@@ -151,10 +151,41 @@ bus.scheduleToSingle(
 
 线程工具类
 
+```
+Threads.SINGLE 单线程线程池
+```
+
+```
+Threads.COMPUTATION 最多有cpu核心数个线程的线程池
+```
+
+```
+Threads.IO 最多有无线个线程的线程池
+```
+
+```
+Threads.NEW_THREAD 总是新线程
+```
+
+```
+Threads.ANDROID_MAIN android主线程
+```
+
+```
+Threads.SCHEDULE 执行定时任务
+```
 
 
 
+### 定时任务
 
-## todo
+```
+mDelayTask = new DelayTask(
+    runnable, //任务
+    Threads.SINGLE,
+    1000,
+    10
+);
+mDelayTask.start();
+```
 
-bus 分组

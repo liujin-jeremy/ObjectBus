@@ -5,8 +5,9 @@ package tech.liujin.wuxio.objectbus;
  */
 public class TestTask implements Runnable {
 
-      private String mWhat;
-      private int    mNeedTime;
+      private String   mWhat;
+      private int      mNeedTime;
+      private Runnable mRunnable;
 
       public TestTask ( String what, int needTime ) {
 
@@ -14,10 +15,20 @@ public class TestTask implements Runnable {
             mNeedTime = needTime;
       }
 
+      public TestTask ( String what, int needTime, Runnable runnable ) {
+
+            mWhat = what;
+            mNeedTime = needTime;
+            mRunnable = runnable;
+      }
+
       @Override
       public void run ( ) {
 
             System.out.println( MsgUtils.getInfo() + " " + mWhat + " 开始" );
+            if( mRunnable != null ) {
+                  mRunnable.run();
+            }
             try {
                   Thread.sleep( mNeedTime );
             } catch(InterruptedException e) {
