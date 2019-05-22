@@ -93,6 +93,14 @@ public class MainActivity extends AppCompatActivity {
             }
       }
 
+      public void delayReset ( View view ) {
+
+            if( mDelayTask != null ) {
+                  mDelayTask.reset();
+                  mDelayTask.start();
+            }
+      }
+
       public void arrayDelay ( View view ) {
 
             final DelayTask task = new DelayTask(

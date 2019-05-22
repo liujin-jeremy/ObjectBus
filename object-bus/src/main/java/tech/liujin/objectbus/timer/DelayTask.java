@@ -113,6 +113,14 @@ public class DelayTask implements Runnable {
             }
       }
 
+      /**
+       * 重置状态,从起始重新开始
+       */
+      public void reset ( ) {
+
+            mIterator.reset();
+      }
+
       private void startNext ( ) {
 
             if( mIterator.hasNext() ) {
@@ -149,6 +157,8 @@ public class DelayTask implements Runnable {
             boolean hasNext ( );
 
             int next ( );
+
+            void reset ( );
       }
 
       /**
@@ -178,6 +188,12 @@ public class DelayTask implements Runnable {
                   mCurrent++;
                   return mDelayed;
             }
+
+            @Override
+            public void reset ( ) {
+
+                  mCurrent = 0;
+            }
       }
 
       /**
@@ -203,6 +219,12 @@ public class DelayTask implements Runnable {
             public int next ( ) {
 
                   return mDelayed[ mIndex++ ];
+            }
+
+            @Override
+            public void reset ( ) {
+
+                  mIndex = 0;
             }
       }
 }
