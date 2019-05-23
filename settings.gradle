@@ -1,1 +1,1 @@
-include ':app', ':object-bus'
+include ':app', ':ObjectBus'
