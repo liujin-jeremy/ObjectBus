@@ -5,7 +5,7 @@
 ### 引入
 
 ```
-implementation 'tech.liujin:object-bus:1.0.3'
+implementation 'tech.liujin:ObjectBus:1.0.4'
 ```
 
 ### 使用
