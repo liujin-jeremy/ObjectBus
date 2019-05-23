@@ -118,6 +118,7 @@ public class DelayTask implements Runnable {
        */
       public void reset ( ) {
 
+            mRunCount = 0;
             mIterator.reset();
       }
 
@@ -147,6 +148,14 @@ public class DelayTask implements Runnable {
       public int getRunCount ( ) {
 
             return mRunCount;
+      }
+
+      /**
+       * @return true:倒计时完成
+       */
+      public boolean isFinished ( ) {
+
+            return mState == FINISHED;
       }
 
       /**
