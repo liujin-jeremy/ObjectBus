@@ -118,8 +118,9 @@ public class DelayTask implements Runnable {
        */
       public void reset ( ) {
 
-            mRunCount = 0;
             mIterator.reset();
+            mRunCount = 0;
+            mState = PREPARED;
       }
 
       private void startNext ( ) {
